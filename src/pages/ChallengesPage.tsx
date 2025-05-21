@@ -1,0 +1,185 @@
+
+import { useState } from "react";
+import { useChallenges } from "@/contexts/ChallengeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import ChallengeCard from "@/components/challenges/ChallengeCard";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Plus, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+
+export default function ChallengesPage() {
+  const { challenges, userChallenges } = useChallenges();
+  const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const activeTab = user ? "all" : "browse";
+  
+  // Filter challenges based on search query
+  const filteredChallenges = challenges.filter(challenge =>
+    challenge.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    challenge.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  // Get user's joined challenges
+  const userJoinedChallenges = user 
+    ? filteredChallenges.filter(challenge => 
+        challenge.participants.includes(user.id)
+      )
+    : [];
+  
+  // Get challenges created by the user
+  const userCreatedChallenges = user
+    ? filteredChallenges.filter(challenge => challenge.createdById === user.id)
+    : [];
+  
+  // Get other available challenges
+  const availableChallenges = user
+    ? filteredChallenges.filter(challenge => !challenge.participants.includes(user.id))
+    : filteredChallenges;
+  
+  return (
+    <div className="container py-8">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-bold">Challenges</h1>
+          <Button asChild>
+            <Link to="/challenges/create">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Challenge
+            </Link>
+          </Button>
+        </div>
+        
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search challenges..."
+            className="pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <Tabs defaultValue={activeTab}>
+          <TabsList className="grid w-full grid-cols-2 md:w-auto md:grid-cols-3">
+            <TabsTrigger value="all">All Challenges</TabsTrigger>
+            {user && (
+              <TabsTrigger value="joined">My Joined Challenges</TabsTrigger>
+            )}
+            {user && (
+              <TabsTrigger value="created">Created by Me</TabsTrigger>
+            )}
+          </TabsList>
+          
+          <TabsContent value="all" className="mt-6">
+            {filteredChallenges.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredChallenges.map((challenge) => {
+                  const userChallenge = userChallenges.find(
+                    uc => user && uc.userId === user.id && uc.challengeId === challenge.id
+                  );
+                  
+                  return (
+                    <ChallengeCard
+                      key={challenge.id}
+                      challenge={challenge}
+                      userScore={userChallenge?.totalScore || 0}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-10 text-center">
+                <h3 className="text-lg font-medium">No challenges found</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Try adjusting your search or create a new challenge
+                </p>
+                <Button asChild className="mt-4">
+                  <Link to="/challenges/create">Create Challenge</Link>
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+          
+          {user && (
+            <TabsContent value="joined" className="mt-6">
+              {userJoinedChallenges.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {userJoinedChallenges.map((challenge) => {
+                    const userChallenge = userChallenges.find(
+                      uc => uc.userId === user.id && uc.challengeId === challenge.id
+                    );
+                    
+                    return (
+                      <ChallengeCard
+                        key={challenge.id}
+                        challenge={challenge}
+                        userScore={userChallenge?.totalScore || 0}
+                        showJoin={false}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-10 text-center">
+                  <h3 className="text-lg font-medium">You haven't joined any challenges yet</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Join existing challenges or create your own
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-4">
+                    <Button asChild variant="outline">
+                      <Link to="/challenges">Browse Challenges</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link to="/challenges/create">Create Challenge</Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          )}
+          
+          {user && (
+            <TabsContent value="created" className="mt-6">
+              {userCreatedChallenges.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {userCreatedChallenges.map((challenge) => {
+                    const userChallenge = userChallenges.find(
+                      uc => uc.userId === user.id && uc.challengeId === challenge.id
+                    );
+                    
+                    return (
+                      <ChallengeCard
+                        key={challenge.id}
+                        challenge={challenge}
+                        userScore={userChallenge?.totalScore || 0}
+                        showJoin={false}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-10 text-center">
+                  <h3 className="text-lg font-medium">You haven't created any challenges yet</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Start your first challenge now
+                  </p>
+                  <Button asChild className="mt-4">
+                    <Link to="/challenges/create">Create Challenge</Link>
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+    </div>
+  );
+}
