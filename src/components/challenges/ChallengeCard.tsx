@@ -1,4 +1,3 @@
-
 import { Challenge } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,8 +23,9 @@ export default function ChallengeCard({
   const { joinChallenge, userChallenges } = useChallenges();
   const { user } = useAuth();
   
-  const hasJoined = user && userChallenges.some(
-    uc => uc.userId === user.id && uc.challengeId === challenge.id
+  const hasJoined = user && (
+    userChallenges.some(uc => uc.userId === user.id && uc.challengeId === challenge.id) ||
+    challenge.participants.includes(user.id)
   );
   
   const startDate = new Date(challenge.startDate);

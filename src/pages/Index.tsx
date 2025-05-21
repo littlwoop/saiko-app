@@ -94,7 +94,7 @@ export default function Index() {
       </section>
       
       {/* CTA Section */}
-      <section className="border-t bg-muted/30 py-16">
+      {/* <section className="border-t bg-muted/30 py-16">
         <div className="container">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-2xl font-bold sm:text-3xl">
@@ -119,7 +119,7 @@ export default function Index() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
     </>
   );
 }

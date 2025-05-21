@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useChallenges } from "@/contexts/ChallengeContext";
@@ -12,28 +11,42 @@ import ObjectiveItem from "@/components/challenges/ObjectiveItem";
 import LeaderboardTable from "@/components/challenges/LeaderboardTable";
 import { ChevronLeft, Trophy, Users, Target, Calendar, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
+import { Challenge } from "@/types";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
-  const { challenges, userChallenges, userProgress, joinChallenge } = useChallenges();
+  const { userChallenges, userProgress, joinChallenge } = useChallenges();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
   const [progress, setProgress] = useState(0);
-  
-  const challenge = challenges.find(c => c.id === id);
   
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
   
   useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
+    const fetchChallenge = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching challenge:', error);
+      } else if (data) {
+        setChallenge(data);
+      }
       setLoading(false);
-    }, 500);
+    };
     
-    return () => clearTimeout(timer);
-  }, []);
+    fetchChallenge();
+  }, [id]);
   
   useEffect(() => {
     if (user && challenge) {
