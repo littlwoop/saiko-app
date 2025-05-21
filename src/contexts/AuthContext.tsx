@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types";
 
@@ -102,8 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const newUser: User = {
         id: `${Date.now()}`, // Use timestamp for unique ID
         name,
-        email,
-        avatarUrl: `https://i.pravatar.cc/150?u=${email}`
+        email
       };
       
       // Simulate API delay
