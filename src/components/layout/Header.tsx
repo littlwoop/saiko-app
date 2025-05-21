@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Trophy } from "lucide-react";
+import { Trophy, UserRound } from "lucide-react";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -74,10 +74,18 @@ export default function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
+                  {user.avatarUrl ? (
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.avatarUrl} />
+                      <AvatarFallback>
+                        <UserRound className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      <UserRound className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
                   <span className="hidden sm:inline-block text-sm font-medium">{user.name}</span>
                 </button>
               </DropdownMenuTrigger>

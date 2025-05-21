@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChallenges } from "@/contexts/ChallengeContext";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserRound } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -58,10 +57,9 @@ export default function ProfilePage() {
           <div className="md:col-span-1">
             <Card>
               <CardHeader className="flex flex-col items-center">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user.avatarUrl} />
-                  <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
+                  <UserRound className="h-12 w-12 text-muted-foreground" />
+                </div>
                 <CardTitle className="mt-4">{user.name}</CardTitle>
                 <CardDescription>{user.email}</CardDescription>
               </CardHeader>

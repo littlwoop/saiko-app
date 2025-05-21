@@ -1,10 +1,9 @@
-
 import { useMemo } from "react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trophy } from "lucide-react";
+import { Trophy, UserRound } from "lucide-react";
 
 interface LeaderboardTableProps {
   challengeId?: string;
@@ -120,10 +119,18 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={entry.avatarUrl} />
-                      <AvatarFallback>{entry.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
+                    {entry.avatarUrl ? (
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={entry.avatarUrl} />
+                        <AvatarFallback>
+                          <UserRound className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                        <UserRound className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
                     <span className={isCurrentUser ? "font-medium" : ""}>
                       {entry.name} {isCurrentUser && "(You)"}
                     </span>
