@@ -42,9 +42,10 @@ export default function Login() {
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. For demo, try: john@example.com",
+        description: "Invalid email or password. Please try again or sign up if you don't have an account.",
         variant: "destructive",
       });
+      console.error("Login error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -71,7 +72,7 @@ export default function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder="john@example.com"
+                placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -106,7 +107,7 @@ export default function Login() {
         </form>
       </Card>
       <div className="mt-4 text-center text-xs text-muted-foreground">
-        <p>For demo purposes, use: john@example.com with any password</p>
+        <p>For demo purposes, you can use your registered email with any password</p>
       </div>
     </div>
   );

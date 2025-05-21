@@ -45,10 +45,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // In a real app, this would be an API call
+      // First check if the email exists in our mockUsers
       const foundUser = mockUsers.find(u => u.email === email);
       
+      // Then check if we have this user in localStorage (for users created during signup)
       if (!foundUser) {
+        // Try to find the user in local storage
+        const storedUsers = localStorage.getItem("allUsers");
+        if (storedUsers) {
+          const parsedUsers = JSON.parse(storedUsers);
+          const localUser = parsedUsers.find((u: User) => u.email === email);
+          
+          if (localUser) {
+            // User found in local storage
+            setUser(localUser);
+            localStorage.setItem("user", JSON.stringify(localUser));
+            setIsLoading(false);
+            return;
+          }
+        }
         throw new Error("Invalid credentials");
       }
       
@@ -69,14 +84,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Check if email already exists
+      // Check if email already exists in mock users
       if (mockUsers.some(u => u.email === email)) {
         throw new Error("Email already in use");
       }
       
+      // Also check if email exists in locally stored users
+      const storedUsers = localStorage.getItem("allUsers");
+      if (storedUsers) {
+        const parsedUsers = JSON.parse(storedUsers);
+        if (parsedUsers.some((u: User) => u.email === email)) {
+          throw new Error("Email already in use");
+        }
+      }
+      
       // Create new user
       const newUser: User = {
-        id: `${mockUsers.length + 1}`,
+        id: `${Date.now()}`, // Use timestamp for unique ID
         name,
         email,
         avatarUrl: `https://i.pravatar.cc/150?u=${email}`
@@ -85,8 +109,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // In a real app, this would be an API call
-      mockUsers.push(newUser);
+      // Store the new user in localStorage for persistence
+      const allUsers = storedUsers ? JSON.parse(storedUsers) : [];
+      allUsers.push(newUser);
+      localStorage.setItem("allUsers", JSON.stringify(allUsers));
       
       setUser(newUser);
       localStorage.setItem("user", JSON.stringify(newUser));
