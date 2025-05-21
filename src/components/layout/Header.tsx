@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Trophy, UserRound } from "lucide-react";
+import { Trophy, UserRound, Activity } from "lucide-react";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -45,7 +44,7 @@ export default function Header() {
       <div className="container flex h-16 items-center justify-between py-4">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-challenge-purple" />
+            <Activity className="h-6 w-6 text-challenge-purple" />
             <span className="text-xl font-bold gradient-text">Saiko</span>
           </Link>
         </div>

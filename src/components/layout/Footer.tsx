@@ -1,5 +1,4 @@
-
-import { Trophy } from "lucide-react";
+import { Activity } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Footer() {
@@ -11,7 +10,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col gap-2">
             <Link to="/" className="flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-challenge-purple" />
+              <Activity className="h-6 w-6 text-challenge-purple" />
               <span className="text-xl font-bold gradient-text">Saiko</span>
             </Link>
             <p className="text-sm text-muted-foreground">
