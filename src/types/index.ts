@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -22,6 +21,7 @@ export interface Challenge {
   description: string;
   createdById: string;
   creatorName: string;
+  creatorAvatar?: string;
   startDate: string;
   endDate: string;
   objectives: Objective[];

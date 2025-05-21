@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from 'uuid';
 
 export default function CreateChallengeForm() {
   const { createChallenge } = useChallenges();
@@ -32,7 +32,7 @@ export default function CreateChallengeForm() {
   
   const [objectives, setObjectives] = useState([
     { 
-      id: "1", 
+      id: uuidv4(), 
       title: "", 
       description: "", 
       targetValue: 0, 
@@ -45,7 +45,7 @@ export default function CreateChallengeForm() {
     setObjectives([
       ...objectives,
       { 
-        id: `${objectives.length + 1}`, 
+        id: uuidv4(), 
         title: "", 
         description: "", 
         targetValue: 0, 

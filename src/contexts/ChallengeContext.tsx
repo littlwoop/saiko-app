@@ -16,6 +16,16 @@ interface ChallengeContextType {
 
 const ChallengeContext = createContext<ChallengeContextType | undefined>(undefined);
 
+interface Entry {
+  id: string;
+  user_id: string;
+  challenge_id: string;
+  objective_id: string;
+  value: number;
+  created_at: string;
+  notes?: string;
+}
+
 export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -25,32 +35,77 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load challenges from Supabase
+  // Load challenges and user progress from Supabase
   useEffect(() => {
-    const fetchChallenges = async () => {
+    const fetchData = async () => {
+      if (!user) return;
+      
       try {
         setLoading(true);
-        console.log('Fetching challenges...');
-        const { data, error } = await supabase
+        
+        // Fetch challenges
+        const { data: challengesData, error: challengesError } = await supabase
           .from('challenges')
           .select('*');
         
-        if (error) {
-          console.error('Error fetching challenges:', error);
+        if (challengesError) {
+          console.error('Error fetching challenges:', challengesError);
           toast({ 
             title: "Error", 
-            description: error.message, 
+            description: challengesError.message, 
             variant: "destructive" 
           });
         } else {
-          console.log('Challenges loaded:', data);
-          setChallenges(data || []);
+          setChallenges(challengesData || []);
+        }
+
+        // Fetch user challenges
+        const { data: userChallengesData, error: userChallengesError } = await supabase
+          .from('user_challenges')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        if (userChallengesError) {
+          console.error('Error fetching user challenges:', userChallengesError);
+        } else {
+          setUserChallenges(userChallengesData || []);
+        }
+
+        // Fetch latest progress for each objective
+        const { data: entriesData, error: entriesError } = await supabase
+          .from('entries')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .returns<Entry[]>();
+        
+        if (entriesError) {
+          console.error('Error fetching entries:', entriesError);
+        } else if (entriesData) {
+          // Get the latest entry for each objective
+          const latestEntries = entriesData.reduce((acc, entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (!acc[key]) {
+              acc[key] = entry;
+            }
+            return acc;
+          }, {} as Record<string, Entry>);
+
+          // Convert entries to UserProgress format
+          const progress = Object.values(latestEntries).map(entry => ({
+            userId: entry.user_id,
+            challengeId: entry.challenge_id,
+            objectiveId: entry.objective_id,
+            currentValue: entry.value
+          }));
+
+          setUserProgress(progress);
         }
       } catch (err) {
-        console.error('Unexpected error fetching challenges:', err);
+        console.error('Unexpected error:', err);
         toast({ 
           title: "Error", 
-          description: "Failed to load challenges", 
+          description: "Failed to load data", 
           variant: "destructive" 
         });
       } finally {
@@ -58,8 +113,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     
-    fetchChallenges();
-  }, []);
+    fetchData();
+  }, [user]);
 
   // Create a new challenge in Supabase
   const createChallenge = async (challengeData: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => {
@@ -78,7 +133,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       ...challengeData,
       createdById: user.id,
       creatorName: user.name,
-      participants: [user.id],
+      participants: [],
       totalPoints,
       objectives: challengeData.objectives,
     };
@@ -161,80 +216,59 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Update progress for an objective
-  const updateProgress = (challengeId: string, objectiveId: string, value: number) => {
-    if (!user) {
+  const updateProgress = async (challengeId: string, objectiveId: string, value: number) => {
+    if (!user) return;
+
+    try {
+      // Create a new entry for this progress update
+      const { error: insertError } = await supabase
+        .from('entries')
+        .insert({
+          user_id: user.id,
+          challenge_id: challengeId,
+          objective_id: objectiveId,
+          value: value
+        });
+
+      if (insertError) {
+        console.error('Error creating entry:', insertError);
+        return;
+      }
+
+      // Update local state
+      setUserProgress(prev => {
+        const existing = prev.find(p => 
+          p.challengeId === challengeId && p.objectiveId === objectiveId
+        );
+
+        if (existing) {
+          return prev.map(p => 
+            p.challengeId === challengeId && p.objectiveId === objectiveId
+              ? { ...p, currentValue: value }
+              : p
+          );
+        }
+
+        return [...prev, {
+          userId: user.id,
+          challengeId,
+          objectiveId,
+          currentValue: value
+        }];
+      });
+
+      toast({
+        title: "Progress Updated",
+        description: "Your progress has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating progress:', error);
       toast({
         title: "Error",
-        description: "You must be logged in to update progress",
-        variant: "destructive",
+        description: "Failed to update progress. Please try again.",
+        variant: "destructive"
       });
-      return;
     }
-
-    // Find the challenge and objective
-    const challenge = challenges.find(c => c.id === challengeId);
-    if (!challenge) {
-      toast({
-        title: "Error",
-        description: "Challenge not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const objective = challenge.objectives.find(o => o.id === objectiveId);
-    if (!objective) {
-      toast({
-        title: "Error",
-        description: "Objective not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Update the progress
-    const updatedProgress = userProgress.map(progress => {
-      if (
-        progress.userId === user.id &&
-        progress.challengeId === challengeId &&
-        progress.objectiveId === objectiveId
-      ) {
-        return { ...progress, currentValue: value };
-      }
-      return progress;
-    });
-    
-    setUserProgress(updatedProgress);
-
-    // Calculate new score
-    const userChallengeProgress = updatedProgress.filter(
-      p => p.userId === user.id && p.challengeId === challengeId
-    );
-    
-    let totalScore = 0;
-    challenge.objectives.forEach(obj => {
-      const progress = userChallengeProgress.find(p => p.objectiveId === obj.id);
-      if (progress) {
-        // Cap the progress at the target value
-        const cappedValue = Math.min(progress.currentValue, obj.targetValue);
-        totalScore += cappedValue * obj.pointsPerUnit;
-      }
-    });
-
-    // Update user challenge score
-    const updatedUserChallenges = userChallenges.map(uc => {
-      if (uc.userId === user.id && uc.challengeId === challengeId) {
-        return { ...uc, totalScore };
-      }
-      return uc;
-    });
-    
-    setUserChallenges(updatedUserChallenges);
-
-    toast({
-      title: "Progress Updated",
-      description: `Your progress for ${objective.title} has been updated.`,
-    });
   };
 
   // Get challenges that the current user has joined

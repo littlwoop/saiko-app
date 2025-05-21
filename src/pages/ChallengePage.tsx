@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ObjectiveItem from "@/components/challenges/ObjectiveItem";
 import LeaderboardTable from "@/components/challenges/LeaderboardTable";
-import { ChevronLeft, Trophy, Users, Target, Calendar, Award } from "lucide-react";
+import { ChevronLeft, Trophy, Users, Target, Calendar, Award, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { Challenge } from "@/types";
@@ -137,8 +137,12 @@ export default function ChallengePage() {
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={`https://i.pravatar.cc/150?u=${challenge.createdById}`} />
-                  <AvatarFallback>{challenge.creatorName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  {challenge.creatorAvatar && (
+                    <AvatarImage src={challenge.creatorAvatar} />
+                  )}
+                  <AvatarFallback>
+                    <UserRound className="h-4 w-4" />
+                  </AvatarFallback>
                 </Avatar>
                 <span className="text-sm text-muted-foreground">
                   Created by <span className="font-medium text-foreground">{challenge.creatorName}</span>
