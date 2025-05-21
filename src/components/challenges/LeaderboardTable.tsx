@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, UserRound } from "lucide-react";
@@ -20,6 +22,8 @@ interface LeaderboardEntry {
 export default function LeaderboardTable({ challengeId }: LeaderboardTableProps) {
   const { userChallenges } = useChallenges();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   
   // Mock user data (in a real app, this would come from a database)
   const mockUsers = [
@@ -87,9 +91,9 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
     return (
       <div className="text-center py-10">
         <Trophy className="h-10 w-10 mx-auto text-muted-foreground opacity-50" />
-        <h3 className="mt-4 text-lg font-medium">No participants yet</h3>
+        <h3 className="mt-4 text-lg font-medium">{t("noParticipants")}</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Be the first to join this challenge!
+          {t("noParticipantsDescription")}
         </p>
       </div>
     );
@@ -100,9 +104,9 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-16 text-center">Rank</TableHead>
-            <TableHead>Participant</TableHead>
-            <TableHead className="text-right">Score</TableHead>
+            <TableHead className="w-16 text-center">{t("leaderboardRank")}</TableHead>
+            <TableHead>{t("leaderboardPlayer")}</TableHead>
+            <TableHead className="text-right">{t("leaderboardPoints")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -136,7 +140,7 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-medium">{Math.round(entry.score)} pts</TableCell>
+                <TableCell className="text-right font-medium">{Math.round(entry.score)} {t("leaderboardPoints")}</TableCell>
               </TableRow>
             );
           })}

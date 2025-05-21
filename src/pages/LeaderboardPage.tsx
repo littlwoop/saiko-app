@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import LeaderboardTable from "@/components/challenges/LeaderboardTable";
@@ -10,9 +9,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trophy } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 
 export default function LeaderboardPage() {
   const { challenges } = useChallenges();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const [selectedChallenge, setSelectedChallenge] = useState<string | undefined>(
     undefined
   );
@@ -27,7 +30,7 @@ export default function LeaderboardPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Trophy className="h-8 w-8 text-challenge-purple" />
-            <h1 className="text-3xl font-bold">Leaderboard</h1>
+            <h1 className="text-3xl font-bold">{t("leaderboard")}</h1>
           </div>
           
           <div className="w-full sm:w-64">
@@ -36,10 +39,10 @@ export default function LeaderboardPage() {
               onValueChange={handleChallengeChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Filter by challenge" />
+                <SelectValue placeholder={t("filterByChallenge")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Challenges</SelectItem>
+                <SelectItem value="all">{t("allChallenges")}</SelectItem>
                 {challenges.map((challenge) => (
                   <SelectItem key={challenge.id} value={challenge.id}>
                     {challenge.title}

@@ -1,7 +1,8 @@
-
 import { useState } from "react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 import ChallengeCard from "@/components/challenges/ChallengeCard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -17,6 +18,8 @@ import {
 export default function ChallengesPage() {
   const { challenges, userChallenges } = useChallenges();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const [searchQuery, setSearchQuery] = useState("");
   
   const activeTab = user ? "all" : "browse";
@@ -48,11 +51,11 @@ export default function ChallengesPage() {
     <div className="container py-8">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold">Challenges</h1>
+          <h1 className="text-3xl font-bold">{t("challenges")}</h1>
           <Button asChild>
             <Link to="/challenges/create">
               <Plus className="mr-2 h-4 w-4" />
-              Create Challenge
+              {t("createChallenge")}
             </Link>
           </Button>
         </div>
@@ -60,7 +63,7 @@ export default function ChallengesPage() {
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search challenges..."
+            placeholder={t("searchChallenges")}
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -69,12 +72,12 @@ export default function ChallengesPage() {
         
         <Tabs defaultValue={activeTab}>
           <TabsList className="grid w-full grid-cols-2 md:w-auto md:grid-cols-3">
-            <TabsTrigger value="all">All Challenges</TabsTrigger>
+            <TabsTrigger value="all">{t("allChallenges")}</TabsTrigger>
             {user && (
-              <TabsTrigger value="joined">My Joined Challenges</TabsTrigger>
+              <TabsTrigger value="joined">{t("myJoinedChallenges")}</TabsTrigger>
             )}
             {user && (
-              <TabsTrigger value="created">Created by Me</TabsTrigger>
+              <TabsTrigger value="created">{t("createdByMe")}</TabsTrigger>
             )}
           </TabsList>
           
@@ -97,12 +100,12 @@ export default function ChallengesPage() {
               </div>
             ) : (
               <div className="mt-10 text-center">
-                <h3 className="text-lg font-medium">No challenges found</h3>
+                <h3 className="text-lg font-medium">{t("noChallengesFound")}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Try adjusting your search or create a new challenge
+                  {t("noChallengesFoundDescription")}
                 </p>
                 <Button asChild className="mt-4">
-                  <Link to="/challenges/create">Create Challenge</Link>
+                  <Link to="/challenges/create">{t("createChallenge")}</Link>
                 </Button>
               </div>
             )}
@@ -129,16 +132,16 @@ export default function ChallengesPage() {
                 </div>
               ) : (
                 <div className="mt-10 text-center">
-                  <h3 className="text-lg font-medium">You haven't joined any challenges yet</h3>
+                  <h3 className="text-lg font-medium">{t("noJoinedChallenges")}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Join existing challenges or create your own
+                    {t("noJoinedChallengesDescription")}
                   </p>
                   <div className="mt-4 flex flex-wrap justify-center gap-4">
                     <Button asChild variant="outline">
-                      <Link to="/challenges">Browse Challenges</Link>
+                      <Link to="/challenges">{t("browseChallenges")}</Link>
                     </Button>
                     <Button asChild>
-                      <Link to="/challenges/create">Create Challenge</Link>
+                      <Link to="/challenges/create">{t("createChallenge")}</Link>
                     </Button>
                   </div>
                 </div>
@@ -167,12 +170,12 @@ export default function ChallengesPage() {
                 </div>
               ) : (
                 <div className="mt-10 text-center">
-                  <h3 className="text-lg font-medium">You haven't created any challenges yet</h3>
+                  <h3 className="text-lg font-medium">{t("noCreatedChallenges")}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Start your first challenge now
+                    {t("noCreatedChallengesDescription")}
                   </p>
                   <Button asChild className="mt-4">
-                    <Link to="/challenges/create">Create Challenge</Link>
+                    <Link to="/challenges/create">{t("createChallenge")}</Link>
                   </Button>
                 </div>
               )}

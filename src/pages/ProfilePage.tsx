@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChallenges } from "@/contexts/ChallengeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +21,8 @@ import ChallengeCard from "@/components/challenges/ChallengeCard";
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const { challenges, userChallenges } = useChallenges();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const { toast } = useToast();
   
   const [name, setName] = useState(user?.name || "");
@@ -39,8 +43,8 @@ export default function ProfilePage() {
     
     // In a real app, this would update the user's profile
     toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully.",
+      title: t("profileUpdated"),
+      description: t("profileUpdatedDescription"),
     });
   };
   
@@ -51,7 +55,7 @@ export default function ProfilePage() {
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-5xl">
-        <h1 className="text-3xl font-bold">My Profile</h1>
+        <h1 className="text-3xl font-bold">{t("myProfile")}</h1>
         
         <div className="mt-8 grid gap-8 md:grid-cols-3">
           <div className="md:col-span-1">
@@ -65,11 +69,11 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Joined Challenges</span>
+                  <span className="text-muted-foreground">{t("joinedChallenges")}</span>
                   <span>{userJoinedChallenges.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Created Challenges</span>
+                  <span className="text-muted-foreground">{t("createdChallenges")}</span>
                   <span>{userCreatedChallenges.length}</span>
                 </div>
               </CardContent>
@@ -79,22 +83,22 @@ export default function ProfilePage() {
           <div className="md:col-span-2">
             <Tabs defaultValue="profile">
               <TabsList>
-                <TabsTrigger value="profile">Profile Information</TabsTrigger>
-                <TabsTrigger value="challenges">My Challenges</TabsTrigger>
+                <TabsTrigger value="profile">{t("profileInformation")}</TabsTrigger>
+                <TabsTrigger value="challenges">{t("myChallenges")}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="profile" className="mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Profile Information</CardTitle>
+                    <CardTitle>{t("profileInformation")}</CardTitle>
                     <CardDescription>
-                      Update your personal details here.
+                      {t("updatePersonalDetails")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleUpdateProfile} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
+                        <Label htmlFor="name">{t("fullName")}</Label>
                         <Input
                           id="name"
                           value={name}
@@ -102,7 +106,7 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email">{t("email")}</Label>
                         <Input
                           id="email"
                           type="email"
@@ -111,9 +115,9 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div className="flex gap-4">
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="submit">{t("saveChanges")}</Button>
                         <Button type="button" variant="outline" onClick={logout}>
-                          Log Out
+                          {t("logOut")}
                         </Button>
                       </div>
                     </form>
@@ -124,7 +128,7 @@ export default function ProfilePage() {
               <TabsContent value="challenges" className="mt-4">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium">Joined Challenges</h3>
+                    <h3 className="text-lg font-medium">{t("joinedChallenges")}</h3>
                     {userJoinedChallenges.length > 0 ? (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {userJoinedChallenges.map((challenge) => {
@@ -144,13 +148,13 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <p className="mt-2 text-muted-foreground">
-                        You haven't joined any challenges yet.
+                        {t("noJoinedChallengesYet")}
                       </p>
                     )}
                   </div>
                   
                   <div>
-                    <h3 className="text-lg font-medium">Created Challenges</h3>
+                    <h3 className="text-lg font-medium">{t("createdChallenges")}</h3>
                     {userCreatedChallenges.length > 0 ? (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {userCreatedChallenges.map((challenge) => (
@@ -164,7 +168,7 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <p className="mt-2 text-muted-foreground">
-                        You haven't created any challenges yet.
+                        {t("noCreatedChallengesYet")}
                       </p>
                     )}
                   </div>

@@ -8,6 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { de, enUS } from "date-fns/locale";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 
 interface ChallengeCardProps {
   challenge: Challenge;
@@ -22,6 +25,10 @@ export default function ChallengeCard({
 }: ChallengeCardProps) {
   const { joinChallenge, userChallenges } = useChallenges();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
+  
+  const locale = language === 'de' ? de : enUS;
   
   const hasJoined = user && (
     userChallenges.some(uc => uc.userId === user.id && uc.challengeId === challenge.id) ||
@@ -44,9 +51,9 @@ export default function ChallengeCard({
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <CardTitle className="line-clamp-1 text-lg">{challenge.title}</CardTitle>
-          {isActive && <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>}
-          {isFuture && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Upcoming</Badge>}
-          {isPast && <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Completed</Badge>}
+          {isActive && <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">{t('active')}</Badge>}
+          {isFuture && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{t('upcoming')}</Badge>}
+          {isPast && <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">{t('completed')}</Badge>}
         </div>
         <CardDescription className="line-clamp-2">{challenge.description}</CardDescription>
       </CardHeader>
@@ -55,21 +62,23 @@ export default function ChallengeCard({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>
-              {format(startDate, "MMM d")} - {format(endDate, "MMM d, yyyy")}
+              {format(startDate, t('dateFormatShort'), { locale })} - {format(endDate, t('dateFormatLong'), { locale })}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <Award className="h-4 w-4 text-challenge-purple" />
-            <span className="text-sm">{totalObjectives} Objectives</span>
+            <span className="text-sm">
+              {totalObjectives} {totalObjectives === 1 ? t('objective') : t('objectives')}
+            </span>
             <span className="ml-auto text-sm font-semibold">
-              {challenge.totalPoints} Points
+              {challenge.totalPoints} {t('totalPoints')}
             </span>
           </div>
           
           {hasJoined && (
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Your Progress</span>
+                <span className="text-sm">{t('progress')}</span>
                 <span className="text-sm font-medium">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
@@ -81,7 +90,7 @@ export default function ChallengeCard({
         {user ? (
           hasJoined ? (
             <Button asChild className="w-full" variant="outline">
-              <Link to={`/challenges/${challenge.id}`}>View Challenge</Link>
+              <Link to={`/challenges/${challenge.id}`}>{t('viewChallenge')}</Link>
             </Button>
           ) : (
             showJoin && (
@@ -90,13 +99,13 @@ export default function ChallengeCard({
                 onClick={() => joinChallenge(challenge.id)}
               >
                 <Trophy className="mr-2 h-4 w-4" />
-                Join Challenge
+                {t('joinChallenge')}
               </Button>
             )
           )
         ) : (
           <Button asChild className="w-full">
-            <Link to="/login">Login to Join</Link>
+            <Link to="/login">{t('login')}</Link>
           </Button>
         )}
       </CardFooter>

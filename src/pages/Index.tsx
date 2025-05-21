@@ -1,11 +1,14 @@
-
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Trophy, Star, Award } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 
 export default function Index() {
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   
   return (
     <>
@@ -14,29 +17,29 @@ export default function Index() {
         <div className="container relative z-10">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-              Create and Conquer <span className="gradient-text">Challenges</span> with Friends
+              {t('heroTitle')}
             </h1>
             <p className="mt-6 text-lg text-muted-foreground md:text-xl">
-              Set goals, track progress, and compete with friends in customizable challenges that keep you motivated.
+              {t('heroSubtitle')}
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               {user ? (
                 <Button asChild size="lg">
                   <Link to="/challenges">
                     <Trophy className="mr-2 h-5 w-5" />
-                    Browse Challenges
+                    {t('browseChallenges')}
                   </Link>
                 </Button>
               ) : (
                 <Button asChild size="lg">
                   <Link to="/signup">
                     <Trophy className="mr-2 h-5 w-5" />
-                    Get Started
+                    {t('getStarted')}
                   </Link>
                 </Button>
               )}
               <Button asChild variant="outline" size="lg">
-                <Link to="/challenges/create">Create Challenge</Link>
+                <Link to="/challenges/create">{t('createChallenge')}</Link>
               </Button>
             </div>
           </div>
@@ -52,10 +55,10 @@ export default function Index() {
         <div className="container">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              How It Works
+              {t('howItWorks')}
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Saiko makes it easy to create, join, and conquer challenges
+              {t('howItWorksDescription')}
             </p>
           </div>
           
@@ -64,9 +67,9 @@ export default function Index() {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                 <Trophy className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold">Create Challenges</h3>
+              <h3 className="mt-4 text-xl font-semibold">{t('createChallenges')}</h3>
               <p className="mt-2 text-muted-foreground">
-                Design custom challenges with specific objectives, targets, and rewards
+                {t('createChallengesDescription')}
               </p>
             </div>
             
@@ -74,9 +77,9 @@ export default function Index() {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-challenge-teal/10">
                 <Star className="h-6 w-6 text-challenge-teal" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold">Track Progress</h3>
+              <h3 className="mt-4 text-xl font-semibold">{t('trackProgress')}</h3>
               <p className="mt-2 text-muted-foreground">
-                Monitor your achievements and see real-time updates on your objectives
+                {t('trackProgressDescription')}
               </p>
             </div>
             
@@ -84,9 +87,9 @@ export default function Index() {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-challenge-coral/10">
                 <Award className="h-6 w-6 text-challenge-coral" />
               </div>
-              <h3 className="mt-4 text-xl font-semibold">Win Points</h3>
+              <h3 className="mt-4 text-xl font-semibold">{t('winPoints')}</h3>
               <p className="mt-2 text-muted-foreground">
-                Earn points for every milestone and compete on the leaderboard
+                {t('winPointsDescription')}
               </p>
             </div>
           </div>

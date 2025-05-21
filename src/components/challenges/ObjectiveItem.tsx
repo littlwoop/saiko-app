@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, CheckCircle } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
+import { useTranslation } from "@/lib/translations";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +46,8 @@ export default function ObjectiveItem({
   const [entries, setEntries] = useState<Entry[]>([]);
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
 
   const currentValue = progress?.currentValue || 0;
   const progressPercent = Math.min(100, (currentValue / objective.targetValue) * 100);
@@ -111,7 +115,7 @@ export default function ObjectiveItem({
             {objective.title}
           </CardTitle>
           <div className="text-sm font-medium">
-            {objective.pointsPerUnit} pts/{objective.unit}
+            {objective.pointsPerUnit} {t('points')}/{objective.unit}
           </div>
         </div>
         <CardDescription className="line-clamp-2 text-xs">
@@ -124,7 +128,7 @@ export default function ObjectiveItem({
             <div className="flex items-center gap-1">
               <Trophy className="h-4 w-4 text-challenge-purple" />
               <span className="text-sm font-medium">
-                {Math.floor(pointsEarned)} / {Math.floor(targetPoints)} pts
+                {Math.floor(pointsEarned)} / {Math.floor(targetPoints)} {t('points')}
               </span>
             </div>
             <span className="text-xs text-muted-foreground">
@@ -138,21 +142,21 @@ export default function ObjectiveItem({
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" className="w-full">
-              Add Progress
+              {t('addProgress')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>Add Progress</DialogTitle>
+                <DialogTitle>{t('addProgress')}</DialogTitle>
                 <DialogDescription>
-                  Enter your progress for {objective.title}
+                  {t('enterProgressFor')} {objective.title}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="progress-value">
-                    Progress: {currentValue} / {objective.targetValue} {objective.unit}
+                    {t('progress')}: {currentValue} / {objective.targetValue} {objective.unit}
                   </Label>
                   <Input
                     id="progress-value"
@@ -160,22 +164,22 @@ export default function ObjectiveItem({
                     min="0"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    placeholder={`Enter ${objective.unit}`}
+                    placeholder={t('enterUnit').replace('{unit}', objective.unit)}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Label htmlFor="notes">{t('notes')} ({t('optional')})</Label>
                   <Textarea
                     id="notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Add any notes about your progress..."
+                    placeholder={t('addNotesAboutProgress')}
                     className="h-20"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Save Progress</Button>
+                <Button type="submit">{t('saveProgress')}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

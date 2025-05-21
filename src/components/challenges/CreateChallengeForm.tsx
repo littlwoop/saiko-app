@@ -8,6 +8,8 @@ import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { format, addDays } from "date-fns";
 import { useChallenges } from "@/contexts/ChallengeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 import { Card } from "@/components/ui/card";
 import { CircleX, Trophy, Plus } from "lucide-react";
 import { 
@@ -20,6 +22,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 export default function CreateChallengeForm() {
   const { createChallenge } = useChallenges();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -77,8 +81,8 @@ export default function CreateChallengeForm() {
     
     if (!title || !description || !date?.from || !date?.to) {
       toast({
-        title: "Error",
-        description: "Please fill out all required fields.",
+        title: t("error"),
+        description: t("fillRequiredFields"),
         variant: "destructive",
       });
       return;
@@ -90,8 +94,8 @@ export default function CreateChallengeForm() {
     
     if (hasEmptyObjective) {
       toast({
-        title: "Error",
-        description: "Please complete all objective details.",
+        title: t("error"),
+        description: t("completeObjectiveDetails"),
         variant: "destructive",
       });
       return;
@@ -116,10 +120,10 @@ export default function CreateChallengeForm() {
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="title">Challenge Title</Label>
+          <Label htmlFor="title">{t("challengeTitle")}</Label>
           <Input
             id="title"
-            placeholder="e.g., 30-Day Fitness Challenge"
+            placeholder={t("challengeTitlePlaceholder")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -127,10 +131,10 @@ export default function CreateChallengeForm() {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{t("description")}</Label>
           <Textarea
             id="description"
-            placeholder="Describe what this challenge is about..."
+            placeholder={t("descriptionPlaceholder")}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
@@ -139,7 +143,7 @@ export default function CreateChallengeForm() {
         </div>
         
         <div className="space-y-2">
-          <Label>Challenge Duration</Label>
+          <Label>{t("challengeDuration")}</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -156,7 +160,7 @@ export default function CreateChallengeForm() {
                     format(date.from, "LLL dd, yyyy")
                   )
                 ) : (
-                  <span>Pick a date range</span>
+                  <span>{t("pickDateRange")}</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -176,14 +180,14 @@ export default function CreateChallengeForm() {
       
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Challenge Objectives</h3>
+          <h3 className="text-lg font-medium">{t("challengeObjectives")}</h3>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleAddObjective}
           >
-            <Plus className="mr-2 h-4 w-4" /> Add Objective
+            <Plus className="mr-2 h-4 w-4" /> {t("addObjective")}
           </Button>
         </div>
         
@@ -199,16 +203,16 @@ export default function CreateChallengeForm() {
                   onClick={() => handleRemoveObjective(index)}
                 >
                   <CircleX className="h-4 w-4" />
-                  <span className="sr-only">Remove</span>
+                  <span className="sr-only">{t("remove")}</span>
                 </Button>
               )}
               
               <div className="space-y-4 pr-8">
                 <div className="space-y-2">
-                  <Label htmlFor={`objective-${index}-title`}>Objective Title</Label>
+                  <Label htmlFor={`objective-${index}-title`}>{t("objectiveTitle")}</Label>
                   <Input
                     id={`objective-${index}-title`}
-                    placeholder="e.g., Daily Steps"
+                    placeholder={t("objectiveTitlePlaceholder")}
                     value={objective.title}
                     onChange={(e) => handleObjectiveChange(index, "title", e.target.value)}
                     required
@@ -216,10 +220,10 @@ export default function CreateChallengeForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor={`objective-${index}-description`}>Description</Label>
+                  <Label htmlFor={`objective-${index}-description`}>{t("objectiveDescription")}</Label>
                   <Textarea
                     id={`objective-${index}-description`}
-                    placeholder="Describe what participants need to do..."
+                    placeholder={t("objectiveDescriptionPlaceholder")}
                     value={objective.description}
                     onChange={(e) => handleObjectiveChange(index, "description", e.target.value)}
                     required
@@ -229,12 +233,12 @@ export default function CreateChallengeForm() {
                 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-target`}>Target Value</Label>
+                    <Label htmlFor={`objective-${index}-target`}>{t("targetValue")}</Label>
                     <Input
                       id={`objective-${index}-target`}
                       type="number"
                       min="1"
-                      placeholder="e.g., 10000"
+                      placeholder={t("targetValuePlaceholder")}
                       value={objective.targetValue || ""}
                       onChange={(e) => handleObjectiveChange(index, "targetValue", Number(e.target.value))}
                       required
@@ -242,10 +246,10 @@ export default function CreateChallengeForm() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-unit`}>Unit</Label>
+                    <Label htmlFor={`objective-${index}-unit`}>{t("unit")}</Label>
                     <Input
                       id={`objective-${index}-unit`}
-                      placeholder="e.g., steps"
+                      placeholder={t("unitPlaceholder")}
                       value={objective.unit}
                       onChange={(e) => handleObjectiveChange(index, "unit", e.target.value)}
                       required
@@ -253,13 +257,12 @@ export default function CreateChallengeForm() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-points`}>Points per Unit</Label>
+                    <Label htmlFor={`objective-${index}-points`}>{t("pointsPerUnit")}</Label>
                     <Input
                       id={`objective-${index}-points`}
                       type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="e.g., 0.1"
+                      min="1"
+                      placeholder={t("pointsPerUnitPlaceholder")}
                       value={objective.pointsPerUnit || ""}
                       onChange={(e) => handleObjectiveChange(index, "pointsPerUnit", Number(e.target.value))}
                       required
@@ -272,15 +275,9 @@ export default function CreateChallengeForm() {
         </div>
       </div>
       
-      <div className="flex justify-end gap-4">
-        <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          <Trophy className="mr-2 h-4 w-4" />
-          Create Challenge
-        </Button>
-      </div>
+      <Button type="submit" className="w-full">
+        <Trophy className="mr-2 h-4 w-4" /> {t("createChallenge")}
+      </Button>
     </form>
   );
 }

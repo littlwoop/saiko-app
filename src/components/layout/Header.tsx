@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 import { Link, useLocation } from "react-router-dom";
 import { 
   DropdownMenu,
@@ -11,10 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Trophy, UserRound, Activity } from "lucide-react";
+import { Trophy, UserRound, Activity, Globe } from "lucide-react";
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation(language);
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -56,7 +60,7 @@ export default function Header() {
               location.pathname.includes('/challenges') ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            Challenges
+            {t('challenges')}
           </Link>
           <Link 
             to="/leaderboard" 
@@ -64,11 +68,27 @@ export default function Header() {
               location.pathname === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            Leaderboard
+            {t('leaderboard')}
           </Link>
         </nav>
         
         <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Globe className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setLanguage('en')}>
+                English
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLanguage('de')}>
+                Deutsch
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -89,27 +109,27 @@ export default function Header() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/profile">Profile</Link>
+                  <Link to="/profile">{t('profile')}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/my-challenges">My Challenges</Link>
+                  <Link to="/my-challenges">{t('myChallenges')}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
-                  Logout
+                  {t('logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-2">
               <Button asChild variant="ghost">
-                <Link to="/login">Login</Link>
+                <Link to="/login">{t('login')}</Link>
               </Button>
               <Button asChild>
-                <Link to="/signup">Sign Up</Link>
+                <Link to="/signup">{t('signup')}</Link>
               </Button>
             </div>
           )}
