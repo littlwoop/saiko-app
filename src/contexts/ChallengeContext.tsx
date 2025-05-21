@@ -57,18 +57,18 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           });
         } else {
           setChallenges(challengesData || []);
-        }
-
-        // Fetch user challenges
-        const { data: userChallengesData, error: userChallengesError } = await supabase
-          .from('user_challenges')
-          .select('*')
-          .eq('user_id', user.id);
-        
-        if (userChallengesError) {
-          console.error('Error fetching user challenges:', userChallengesError);
-        } else {
-          setUserChallenges(userChallengesData || []);
+          
+          // Create user challenges from challenges where user is a participant
+          const userChallengesData = challengesData
+            ?.filter(challenge => challenge.participants.includes(user.id))
+            .map(challenge => ({
+              userId: user.id,
+              challengeId: challenge.id,
+              joinedAt: new Date().toISOString(), // This is approximate since we don't store join date
+              totalScore: 0 // This will be calculated from entries
+            })) || [];
+          
+          setUserChallenges(userChallengesData);
         }
 
         // Fetch latest progress for each objective
@@ -82,24 +82,43 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         if (entriesError) {
           console.error('Error fetching entries:', entriesError);
         } else if (entriesData) {
-          // Get the latest entry for each objective
-          const latestEntries = entriesData.reduce((acc, entry) => {
+          // Calculate total progress for each objective by summing all entries
+          const progressMap = entriesData.reduce((acc, entry) => {
             const key = `${entry.challenge_id}-${entry.objective_id}`;
             if (!acc[key]) {
-              acc[key] = entry;
+              acc[key] = {
+                userId: entry.user_id,
+                challengeId: entry.challenge_id,
+                objectiveId: entry.objective_id,
+                currentValue: 0
+              };
             }
+            acc[key].currentValue += entry.value;
             return acc;
-          }, {} as Record<string, Entry>);
+          }, {} as Record<string, UserProgress>);
 
-          // Convert entries to UserProgress format
-          const progress = Object.values(latestEntries).map(entry => ({
-            userId: entry.user_id,
-            challengeId: entry.challenge_id,
-            objectiveId: entry.objective_id,
-            currentValue: entry.value
+          // Calculate total points for each challenge
+          const challengeProgressMap = challenges.reduce((acc, challenge) => {
+            const totalPoints = challenge.objectives.reduce((points, objective) => {
+              const progress = progressMap[`${challenge.id}-${objective.id}`];
+              if (progress) {
+                return points + (progress.currentValue * objective.pointsPerUnit);
+              }
+              return points;
+            }, 0);
+
+            acc[challenge.id] = totalPoints;
+            return acc;
+          }, {} as Record<string, number>);
+
+          // Update user challenges with total points
+          const updatedUserChallenges = userChallenges.map(uc => ({
+            ...uc,
+            totalScore: challengeProgressMap[uc.challengeId] || 0
           }));
 
-          setUserProgress(progress);
+          setUserChallenges(updatedUserChallenges);
+          setUserProgress(Object.values(progressMap));
         }
       } catch (err) {
         console.error('Unexpected error:', err);

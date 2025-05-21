@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ObjectiveItem from "@/components/challenges/ObjectiveItem";
 import LeaderboardTable from "@/components/challenges/LeaderboardTable";
-import { ChevronLeft, Trophy, Users, Target, Calendar, Award, UserRound } from "lucide-react";
+import { ChevronLeft, Trophy, Users, Target, Calendar, Award, UserRound, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { Challenge } from "@/types";
@@ -174,6 +174,7 @@ export default function ChallengePage() {
                     <div className="flex items-center gap-2">
                       <Award className="h-5 w-5 text-challenge-purple" />
                       <span className="font-medium">Your Progress</span>
+                      {progress >= 100 && <CheckCircle className="h-4 w-4 text-green-600" />}
                     </div>
                     <span className="text-sm font-medium">
                       {Math.round(totalPoints)} / {challenge.totalPoints} points

@@ -49,7 +49,8 @@ export default function ObjectiveItem({
   const progressPercent = Math.min(100, (currentValue / objective.targetValue) * 100);
   const isCompleted = currentValue >= objective.targetValue;
   
-  const pointsEarned = Math.min(currentValue, objective.targetValue) * objective.pointsPerUnit;
+  const pointsEarned = currentValue * objective.pointsPerUnit;
+  const targetPoints = objective.targetValue * objective.pointsPerUnit;
 
   useEffect(() => {
     const fetchEntries = async () => {
@@ -123,7 +124,7 @@ export default function ObjectiveItem({
             <div className="flex items-center gap-1">
               <Trophy className="h-4 w-4 text-challenge-purple" />
               <span className="text-sm font-medium">
-                {Math.floor(pointsEarned)} / {objective.targetValue * objective.pointsPerUnit} pts
+                {Math.floor(pointsEarned)} / {Math.floor(targetPoints)} pts
               </span>
             </div>
             <span className="text-xs text-muted-foreground">
