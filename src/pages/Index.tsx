@@ -55,7 +55,7 @@ export default function Index() {
               How It Works
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Challenge Champion makes it easy to create, join, and conquer challenges
+              Saiko makes it easy to create, join, and conquer challenges
             </p>
           </div>
           

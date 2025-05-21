@@ -12,7 +12,7 @@ export default function Footer() {
           <div className="flex flex-col gap-2">
             <Link to="/" className="flex items-center gap-2">
               <Trophy className="h-6 w-6 text-challenge-purple" />
-              <span className="text-xl font-bold gradient-text">Challenge Champion</span>
+              <span className="text-xl font-bold gradient-text">Saiko</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Create and join exciting challenges with friends
@@ -47,7 +47,7 @@ export default function Footer() {
         </div>
         <div className="mt-8 border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-muted-foreground">
-            © {currentYear} Challenge Champion. All rights reserved.
+            © {currentYear} Saiko. All rights reserved.
           </p>
           <div className="flex gap-4">
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">

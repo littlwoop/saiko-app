@@ -46,7 +46,7 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center gap-2">
             <Trophy className="h-6 w-6 text-challenge-purple" />
-            <span className="text-xl font-bold gradient-text">Challenge Champion</span>
+            <span className="text-xl font-bold gradient-text">Saiko</span>
           </Link>
         </div>
         
