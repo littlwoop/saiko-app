@@ -14,6 +14,7 @@ interface ChallengeContextType {
   updateProgress: (challengeId: string, objectiveId: string, value: number, notes?: string) => void;
   getUserChallenges: () => Challenge[];
   refreshChallenges: () => Promise<void>;
+  refreshProgress: (challengeId: string) => Promise<void>;
 }
 
 const ChallengeContext = createContext<ChallengeContextType | undefined>(undefined);
@@ -71,10 +72,29 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           setUserChallenges(userChallengesData);
 
           // Load entries for each challenge the user has joined
-          for (const challenge of challengesData || []) {
-            if (challenge.participants.includes(user.id)) {
-              await loadChallengeEntries(challenge.id);
-            }
+          const loadPromises = (challengesData || [])
+            .filter(challenge => challenge.participants.includes(user.id))
+            .map(challenge => loadChallengeEntries(challenge.id));
+          
+          // Wait for all progress to be loaded
+          await Promise.all(loadPromises);
+
+          // If no progress was loaded, initialize empty progress for each objective
+          if (userProgress.length === 0) {
+            const initialProgress: UserProgress[] = [];
+            challengesData?.forEach(challenge => {
+              if (challenge.participants.includes(user.id)) {
+                challenge.objectives.forEach(objective => {
+                  initialProgress.push({
+                    userId: user.id,
+                    challengeId: challenge.id,
+                    objectiveId: objective.id,
+                    currentValue: 0
+                  });
+                });
+              }
+            });
+            setUserProgress(initialProgress);
           }
         }
       }
@@ -92,7 +112,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchChallenges();
-  }, [user]);
+  }, [user?.id]);
 
   // Load entries for a specific challenge
   const loadChallengeEntries = async (challengeId: string) => {
@@ -110,6 +130,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       
       if (entriesError) {
         console.error('Error fetching entries:', entriesError);
+        toast({
+          title: "Error",
+          description: "Failed to load progress data",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -148,7 +173,16 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           ));
         }
 
-        setUserProgress(Object.values(progressMap));
+        // Merge new progress with existing progress
+        setUserProgress(prev => {
+          const newProgress = Object.values(progressMap);
+          const existingProgress = prev.filter(p => 
+            !newProgress.some(np => 
+              np.challengeId === p.challengeId && np.objectiveId === p.objectiveId
+            )
+          );
+          return [...existingProgress, ...newProgress];
+        });
       }
     } catch (error) {
       console.error('Error loading entries:', error);
@@ -158,6 +192,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         variant: "destructive"
       });
     }
+  };
+
+  // Add a function to refresh progress for a specific challenge
+  const refreshProgress = async (challengeId: string) => {
+    await loadChallengeEntries(challengeId);
   };
 
   // Create a new challenge in Supabase
@@ -395,7 +434,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     joinChallenge,
     updateProgress,
     getUserChallenges,
-    refreshChallenges: fetchChallenges
+    refreshChallenges: fetchChallenges,
+    refreshProgress
   };
 
   return (

@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
+import { useEffect } from "react";
 
 interface ChallengeCardProps {
   challenge: Challenge;
@@ -23,7 +24,7 @@ export default function ChallengeCard({
   userScore = 0,
   showJoin = true 
 }: ChallengeCardProps) {
-  const { joinChallenge, userChallenges } = useChallenges();
+  const { joinChallenge, userChallenges, refreshProgress } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -45,6 +46,13 @@ export default function ChallengeCard({
   
   const totalObjectives = challenge.objectives.length;
   const progress = userScore / challenge.totalPoints * 100;
+
+  // Refresh progress when the component mounts or when userScore changes
+  useEffect(() => {
+    if (hasJoined) {
+      refreshProgress(challenge.id);
+    }
+  }, [hasJoined, challenge.id, refreshProgress]);
   
   return (
     <Card className="overflow-hidden flex flex-col h-full transition-all hover:shadow-md">
