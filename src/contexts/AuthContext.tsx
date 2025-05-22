@@ -57,16 +57,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          }
         },
-      },
-    });
-    if (error) throw error;
+      });
+      
+      if (error) {
+        console.error('Signup error details:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        });
+        throw error;
+      }
+      
+      if (!data.user) {
+        throw new Error('No user data returned from signup');
+      }
+    } catch (error) {
+      console.error('Signup failed:', error);
+      throw error;
+    }
   };
 
   const logout = async () => {

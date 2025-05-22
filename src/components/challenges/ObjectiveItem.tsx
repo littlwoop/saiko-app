@@ -92,7 +92,8 @@ export default function ObjectiveItem({
         challenge_id: challengeId,
         objective_id: objective.id,
         value: newValue,
-        notes: notes.trim() || null
+        notes: notes.trim() || null,
+        username: user.name || `User ${user.id}`
       });
       
     if (error) {

@@ -246,7 +246,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           user_id: user.id,
           challenge_id: challengeId,
           objective_id: objectiveId,
-          value: value
+          value: value,
+          username: user.name || `User ${user.id}`
         });
 
       if (insertError) {

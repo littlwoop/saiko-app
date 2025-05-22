@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -6,6 +6,7 @@ import { useTranslation } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, UserRound } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface LeaderboardTableProps {
   challengeId?: string;
@@ -14,9 +15,19 @@ interface LeaderboardTableProps {
 interface LeaderboardEntry {
   userId: string;
   name: string;
-  avatarUrl?: string;
   score: number;
   position: number;
+}
+
+interface Entry {
+  id: string;
+  user_id: string;
+  challenge_id: string;
+  objective_id: string;
+  value: number;
+  created_at: string;
+  notes?: string;
+  username: string;
 }
 
 export default function LeaderboardTable({ challengeId }: LeaderboardTableProps) {
@@ -24,44 +35,70 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Mock user data (in a real app, this would come from a database)
-  const mockUsers = [
-    { id: "1", name: "John Doe", avatarUrl: "https://i.pravatar.cc/150?u=john" },
-    { id: "2", name: "Jane Smith", avatarUrl: "https://i.pravatar.cc/150?u=jane" },
-    { id: "3", name: "Mike Johnson", avatarUrl: "https://i.pravatar.cc/150?u=mike" },
-    { id: "4", name: "Sarah Williams", avatarUrl: "https://i.pravatar.cc/150?u=sarah" },
-    { id: "5", name: "Alex Brown", avatarUrl: "https://i.pravatar.cc/150?u=alex" },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        let query = supabase
+          .from('entries')
+          .select('*');
+          
+        if (challengeId) {
+          query = query.eq('challenge_id', challengeId);
+        }
+        
+        const { data: entriesData, error: entriesError } = await query;
+        
+        if (entriesError) {
+          console.error('Error fetching entries:', entriesError);
+        } else {
+          setEntries(entriesData || []);
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [challengeId]);
   
   const leaderboard = useMemo(() => {
-    let filteredEntries = userChallenges;
+    // Calculate total score for each user
+    const userScores = entries.reduce((acc, entry) => {
+      if (!acc[entry.user_id]) {
+        acc[entry.user_id] = {
+          score: 0,
+          username: entry.username
+        };
+      }
+      acc[entry.user_id].score += entry.value;
+      return acc;
+    }, {} as Record<string, { score: number; username: string }>);
     
-    if (challengeId) {
-      filteredEntries = filteredEntries.filter(uc => uc.challengeId === challengeId);
-    }
-    
-    const entries: LeaderboardEntry[] = filteredEntries.map(uc => {
-      const userData = mockUsers.find(u => u.id === uc.userId) || 
-        { id: uc.userId, name: `User ${uc.userId}`, avatarUrl: undefined };
-      
+    // Create leaderboard entries
+    const leaderboardEntries: LeaderboardEntry[] = Object.entries(userScores).map(([userId, data]) => {
       return {
-        userId: uc.userId,
-        name: userData.name,
-        avatarUrl: userData.avatarUrl,
-        score: uc.totalScore,
+        userId,
+        name: data.username,
+        score: data.score,
         position: 0 // will be calculated below
       };
     });
     
     // Sort by score (descending)
-    entries.sort((a, b) => b.score - a.score);
+    leaderboardEntries.sort((a, b) => b.score - a.score);
     
     // Assign positions (handling ties)
     let currentPosition = 1;
     let currentScore = Number.MAX_SAFE_INTEGER;
     
-    return entries.map((entry, index) => {
+    return leaderboardEntries.map((entry, index) => {
       if (entry.score < currentScore) {
         currentPosition = index + 1;
         currentScore = entry.score;
@@ -72,7 +109,7 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
         position: currentPosition
       };
     });
-  }, [userChallenges, challengeId]);
+  }, [entries]);
   
   const getPositionStyle = (position: number) => {
     switch (position) {
@@ -86,6 +123,15 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
         return "";
     }
   };
+  
+  if (loading) {
+    return (
+      <div className="text-center py-10">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
+        <p className="mt-4 text-muted-foreground">{t("loading")}</p>
+      </div>
+    );
+  }
   
   if (leaderboard.length === 0) {
     return (
@@ -123,18 +169,9 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    {entry.avatarUrl ? (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={entry.avatarUrl} />
-                        <AvatarFallback>
-                          <UserRound className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                        <UserRound className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    )}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      <UserRound className="h-4 w-4 text-muted-foreground" />
+                    </div>
                     <span className={isCurrentUser ? "font-medium" : ""}>
                       {entry.name} {isCurrentUser && "(You)"}
                     </span>
