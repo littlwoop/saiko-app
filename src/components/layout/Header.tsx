@@ -13,7 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Trophy, UserRound, Activity, Globe } from "lucide-react";
+import { Trophy, UserRound, Activity, Globe, Menu } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -21,6 +27,7 @@ export default function Header() {
   const { t } = useTranslation(language);
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,6 +43,27 @@ export default function Header() {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  const NavLinks = () => (
+    <>
+      <Link 
+        to="/challenges" 
+        className={`text-sm font-medium transition-colors hover:text-primary ${
+          location.pathname.includes('/challenges') ? 'text-primary' : 'text-muted-foreground'
+        }`}
+      >
+        {t('challenges')}
+      </Link>
+      <Link 
+        to="/leaderboard" 
+        className={`text-sm font-medium transition-colors hover:text-primary ${
+          location.pathname === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'
+        }`}
+      >
+        {t('leaderboard')}
+      </Link>
+    </>
+  );
 
   return (
     <header
@@ -53,26 +81,12 @@ export default function Header() {
           </Link>
         </div>
         
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link 
-            to="/challenges" 
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              location.pathname.includes('/challenges') ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            {t('challenges')}
-          </Link>
-          <Link 
-            to="/leaderboard" 
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              location.pathname === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            {t('leaderboard')}
-          </Link>
+          <NavLinks />
         </nav>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -88,6 +102,62 @@ export default function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Mobile Menu Button */}
+          <Drawer open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <DrawerTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader className="text-left">
+                <div className="flex flex-col gap-4">
+                  <NavLinks />
+                  {user ? (
+                    <>
+                      <Link 
+                        to="/profile"
+                        className="text-sm font-medium transition-colors hover:text-primary"
+                      >
+                        {t('profile')}
+                      </Link>
+                      <Link 
+                        to="/my-challenges"
+                        className="text-sm font-medium transition-colors hover:text-primary"
+                      >
+                        {t('myChallenges')}
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="text-sm font-medium text-red-500 transition-colors hover:text-red-600"
+                      >
+                        {t('logout')}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link 
+                        to="/login"
+                        className="text-sm font-medium transition-colors hover:text-primary"
+                      >
+                        {t('login')}
+                      </Link>
+                      <Link 
+                        to="/signup"
+                        className="text-sm font-medium transition-colors hover:text-primary"
+                      >
+                        {t('signup')}
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </DrawerHeader>
+            </DrawerContent>
+          </Drawer>
         
           {user ? (
             <DropdownMenu>
@@ -124,7 +194,7 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <Button asChild variant="ghost">
                 <Link to="/login">{t('login')}</Link>
               </Button>

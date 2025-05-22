@@ -22,6 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Test the connection
+/*
 void (async () => {
   try {
     await supabase.from('challenges').select('id').limit(1);
@@ -30,3 +31,4 @@ void (async () => {
     console.error('Supabase connection error:', error);
   }
 })(); 
+*/ 

@@ -117,8 +117,8 @@ export const translations = {
 
     // Challenges Page
     searchChallenges: "Herausforderungen suchen...",
-    allChallenges: "Alle Herausforderungen",
-    myJoinedChallenges: "Meine beigetretenen Herausforderungen",
+    allChallenges: "Alle",
+    myJoinedChallenges: "Beigetretenen",
     createdByMe: "Von mir erstellt",
     noChallengesFound: "Keine Herausforderungen gefunden",
     noChallengesFoundDescription: "Versuche deine Suche anzupassen oder erstelle eine neue Herausforderung",
@@ -322,8 +322,8 @@ export const translations = {
 
     // Challenges Page
     searchChallenges: "Search challenges...",
-    allChallenges: "All Challenges",
-    myJoinedChallenges: "My Joined Challenges",
+    allChallenges: "All ",
+    myJoinedChallenges: "Joined",
     createdByMe: "Created by Me",
     noChallengesFound: "No challenges found",
     noChallengesFoundDescription: "Try adjusting your search or create a new challenge",
