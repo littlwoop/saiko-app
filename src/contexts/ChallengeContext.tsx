@@ -8,10 +8,12 @@ interface ChallengeContextType {
   challenges: Challenge[];
   userChallenges: UserChallenge[];
   userProgress: UserProgress[];
+  loading: boolean;
   createChallenge: (challenge: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => void;
   joinChallenge: (challengeId: string) => void;
   updateProgress: (challengeId: string, objectiveId: string, value: number) => void;
   getUserChallenges: () => Challenge[];
+  refreshChallenges: () => Promise<void>;
 }
 
 const ChallengeContext = createContext<ChallengeContextType | undefined>(undefined);
@@ -35,30 +37,28 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load challenges and user progress from Supabase
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
+  // Load challenges from Supabase
+  const fetchChallenges = async () => {
+    try {
+      setLoading(true);
       
-      try {
-        setLoading(true);
+      // Fetch challenges
+      const { data: challengesData, error: challengesError } = await supabase
+        .from('challenges')
+        .select('*');
+      
+      if (challengesError) {
+        console.error('Error fetching challenges:', challengesError);
+        toast({ 
+          title: "Error", 
+          description: challengesError.message, 
+          variant: "destructive" 
+        });
+      } else {
+        setChallenges(challengesData || []);
         
-        // Fetch challenges
-        const { data: challengesData, error: challengesError } = await supabase
-          .from('challenges')
-          .select('*');
-        
-        if (challengesError) {
-          console.error('Error fetching challenges:', challengesError);
-          toast({ 
-            title: "Error", 
-            description: challengesError.message, 
-            variant: "destructive" 
-          });
-        } else {
-          setChallenges(challengesData || []);
-          
-          // Create user challenges from challenges where user is a participant
+        // Create user challenges from challenges where user is a participant
+        if (user) {
           const userChallengesData = challengesData
             ?.filter(challenge => challenge.participants.includes(user.id))
             .map(challenge => ({
@@ -70,70 +70,88 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           
           setUserChallenges(userChallengesData);
         }
-
-        // Fetch latest progress for each objective
-        const { data: entriesData, error: entriesError } = await supabase
-          .from('entries')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .returns<Entry[]>();
-        
-        if (entriesError) {
-          console.error('Error fetching entries:', entriesError);
-        } else if (entriesData) {
-          // Calculate total progress for each objective by summing all entries
-          const progressMap = entriesData.reduce((acc, entry) => {
-            const key = `${entry.challenge_id}-${entry.objective_id}`;
-            if (!acc[key]) {
-              acc[key] = {
-                userId: entry.user_id,
-                challengeId: entry.challenge_id,
-                objectiveId: entry.objective_id,
-                currentValue: 0
-              };
-            }
-            acc[key].currentValue += entry.value;
-            return acc;
-          }, {} as Record<string, UserProgress>);
-
-          // Calculate total points for each challenge
-          const challengeProgressMap = challenges.reduce((acc, challenge) => {
-            const totalPoints = challenge.objectives.reduce((points, objective) => {
-              const progress = progressMap[`${challenge.id}-${objective.id}`];
-              if (progress) {
-                return points + (progress.currentValue * objective.pointsPerUnit);
-              }
-              return points;
-            }, 0);
-
-            acc[challenge.id] = totalPoints;
-            return acc;
-          }, {} as Record<string, number>);
-
-          // Update user challenges with total points
-          const updatedUserChallenges = userChallenges.map(uc => ({
-            ...uc,
-            totalScore: challengeProgressMap[uc.challengeId] || 0
-          }));
-
-          setUserChallenges(updatedUserChallenges);
-          setUserProgress(Object.values(progressMap));
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-        toast({ 
-          title: "Error", 
-          description: "Failed to load data", 
-          variant: "destructive" 
-        });
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    fetchData();
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      toast({ 
+        title: "Error", 
+        description: "Failed to load challenges", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChallenges();
   }, [user]);
+
+  // Load entries for a specific challenge
+  const loadChallengeEntries = async (challengeId: string) => {
+    if (!user) return;
+
+    try {
+      // Fetch latest progress for each objective
+      const { data: entriesData, error: entriesError } = await supabase
+        .from('entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('challenge_id', challengeId)
+        .order('created_at', { ascending: false })
+        .returns<Entry[]>();
+      
+      if (entriesError) {
+        console.error('Error fetching entries:', entriesError);
+        return;
+      }
+
+      if (entriesData) {
+        // Calculate total progress for each objective by summing all entries
+        const progressMap = entriesData.reduce((acc, entry) => {
+          const key = `${entry.challenge_id}-${entry.objective_id}`;
+          if (!acc[key]) {
+            acc[key] = {
+              userId: entry.user_id,
+              challengeId: entry.challenge_id,
+              objectiveId: entry.objective_id,
+              currentValue: 0
+            };
+          }
+          acc[key].currentValue += entry.value;
+          return acc;
+        }, {} as Record<string, UserProgress>);
+
+        // Calculate total points for the challenge
+        const challenge = challenges.find(c => c.id === challengeId);
+        if (challenge) {
+          const totalPoints = challenge.objectives.reduce((points, objective) => {
+            const progress = progressMap[`${challengeId}-${objective.id}`];
+            if (progress) {
+              return points + (progress.currentValue * objective.pointsPerUnit);
+            }
+            return points;
+          }, 0);
+
+          // Update user challenge with total points
+          setUserChallenges(prev => prev.map(uc => 
+            uc.challengeId === challengeId
+              ? { ...uc, totalScore: totalPoints }
+              : uc
+          ));
+        }
+
+        setUserProgress(Object.values(progressMap));
+      }
+    } catch (error) {
+      console.error('Error loading entries:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load challenge progress",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Create a new challenge in Supabase
   const createChallenge = async (challengeData: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => {
@@ -169,7 +187,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Join a challenge
-  const joinChallenge = (challengeId: string) => {
+  const joinChallenge = async (challengeId: string) => {
     if (!user) {
       toast({
         title: "Error",
@@ -192,46 +210,74 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Update the challenge participants
-    setChallenges(challenges.map(challenge => {
-      if (challenge.id === challengeId) {
-        return {
-          ...challenge,
-          participants: [...challenge.participants, user.id]
-        };
+    try {
+      // Get current challenge data
+      const { data: challengeData, error: fetchError } = await supabase
+        .from('challenges')
+        .select('participants')
+        .eq('id', challengeId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching challenge:', fetchError);
+        throw fetchError;
       }
-      return challenge;
-    }));
 
-    // Create user challenge record
-    const newUserChallenge: UserChallenge = {
-      userId: user.id,
-      challengeId,
-      joinedAt: new Date().toISOString(),
-      totalScore: 0,
-    };
-    
-    setUserChallenges([...userChallenges, newUserChallenge]);
+      // Ensure participants is an array
+      const currentParticipants = Array.isArray(challengeData?.participants) 
+        ? challengeData.participants 
+        : [];
 
-    // Find the challenge to get its objectives
-    const challenge = challenges.find(c => c.id === challengeId);
-    
-    if (challenge) {
-      // Initialize progress for all objectives in the challenge
-      const newProgress = challenge.objectives.map(objective => ({
+      // Check if user is already in the participants array
+      if (currentParticipants.includes(user.id)) {
+        toast({
+          title: "Info",
+          description: "You've already joined this challenge",
+        });
+        return;
+      }
+
+      // Update the challenge participants in the database
+      const { error: updateError } = await supabase
+        .from('challenges')
+        .update({ 
+          participants: [...currentParticipants, user.id]
+        })
+        .eq('id', challengeId);
+
+      if (updateError) {
+        console.error('Error updating participants:', updateError);
+        throw updateError;
+      }
+
+      // Refresh challenges to get the updated data
+      await fetchChallenges();
+
+      // Create user challenge record
+      const newUserChallenge: UserChallenge = {
         userId: user.id,
         challengeId,
-        objectiveId: objective.id,
-        currentValue: 0,
-      }));
+        joinedAt: new Date().toISOString(),
+        totalScore: 0,
+      };
       
-      setUserProgress([...userProgress, ...newProgress]);
-    }
+      setUserChallenges([...userChallenges, newUserChallenge]);
 
-    toast({
-      title: "Success!",
-      description: "You've joined the challenge",
-    });
+      // Initialize progress for the challenge
+      await loadChallengeEntries(challengeId);
+
+      toast({
+        title: "Success!",
+        description: "You've joined the challenge",
+      });
+    } catch (error) {
+      console.error('Error joining challenge:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join the challenge. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Update progress for an objective
@@ -302,18 +348,20 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     return challenges.filter(challenge => userChallengeIds.includes(challenge.id));
   };
 
+  const value = {
+    challenges,
+    userChallenges,
+    userProgress,
+    loading,
+    createChallenge,
+    joinChallenge,
+    updateProgress,
+    getUserChallenges,
+    refreshChallenges: fetchChallenges
+  };
+
   return (
-    <ChallengeContext.Provider
-      value={{
-        challenges,
-        userChallenges,
-        userProgress,
-        createChallenge,
-        joinChallenge,
-        updateProgress,
-        getUserChallenges,
-      }}
-    >
+    <ChallengeContext.Provider value={value}>
       {children}
     </ChallengeContext.Provider>
   );

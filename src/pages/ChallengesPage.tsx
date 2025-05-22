@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tabs";
 
 export default function ChallengesPage() {
-  const { challenges, userChallenges } = useChallenges();
+  const { challenges, userChallenges, loading } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -46,6 +46,25 @@ export default function ChallengesPage() {
   const availableChallenges = user
     ? filteredChallenges.filter(challenge => !challenge.participants.includes(user.id))
     : filteredChallenges;
+  
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="h-8 w-48 animate-pulse rounded bg-muted"></div>
+            <div className="h-10 w-40 animate-pulse rounded bg-muted"></div>
+          </div>
+          <div className="h-10 w-full animate-pulse rounded bg-muted"></div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-[300px] animate-pulse rounded-lg bg-muted"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container py-8">

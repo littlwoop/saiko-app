@@ -32,7 +32,8 @@ export function ChallengeDetail({ challenge, onJoin, isJoined, isSubmitting }: C
       <CardContent className="space-y-6">
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">{t('target')}</span>
+            <span className="text-sm text-muted-foreground">{t('target')}
+            </span>
             <span className="text-sm font-medium">{challenge.target}</span>
           </div>
           <div className="flex justify-between">
