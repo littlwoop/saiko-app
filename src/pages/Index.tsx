@@ -17,7 +17,9 @@ export default function Index() {
         <div className="container relative z-10">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-              {t('heroTitle')}
+              <span>{t('heroTitlePart1')}</span>{' '}
+              <span className="bg-gradient-to-r from-challenge-purple via-challenge-teal to-challenge-coral bg-clip-text text-transparent">{t('heroTitlePart2')}</span>{' '}
+              <span>{t('heroTitlePart3')}</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground md:text-xl">
               {t('heroSubtitle')}

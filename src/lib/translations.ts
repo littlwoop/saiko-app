@@ -18,7 +18,9 @@ export const translations = {
     footerDescription: "Erstelle und trete spannenden Herausforderungen mit Freunden bei",
 
     // Hero Section
-    heroTitle: "Erstelle und meistere Herausforderungen mit Freunden",
+    heroTitlePart1: "Erstelle und meistere",
+    heroTitlePart2: "Herausforderungen",
+    heroTitlePart3: "mit Freunden",
     heroSubtitle: "Setze Ziele, verfolge Fortschritte und wetteifere mit Freunden in anpassbaren Herausforderungen, die dich motivieren.",
     getStarted: "Loslegen",
     createChallenge: "Herausforderung erstellen",
@@ -221,8 +223,10 @@ export const translations = {
     footerDescription: "Create and join exciting challenges with friends",
 
     // Hero Section
-    heroTitle: "Create and Conquer Challenges with Friends",
-    heroSubtitle: "Set goals, track progress, and compete with friends in customizable challenges that keep you motivated.",
+    heroTitlePart1: "Create and master",
+    heroTitlePart2: "challenges",
+    heroTitlePart3: "with friends",
+    heroSubtitle: "Set goals, track progress, and compete with friends in customizable challenges that motivate you.",
     getStarted: "Get Started",
     createChallenge: "Create Challenge",
     browseChallenges: "Browse Challenges",
