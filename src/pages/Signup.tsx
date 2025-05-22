@@ -14,7 +14,6 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [signupSuccess, setSignupSuccess] = useState(false);
   
   const { signup } = useAuth();
   const { toast } = useToast();
@@ -54,11 +53,11 @@ export default function Signup() {
     
     try {
       await signup(name, email, password);
-      setSignupSuccess(true);
       toast({
         title: "Account created!",
-        description: "Please check your email to confirm your account.",
+        description: "You can now log in to your account.",
       });
+      navigate("/login");
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -69,36 +68,6 @@ export default function Signup() {
       setIsSubmitting(false);
     }
   };
-  
-  if (signupSuccess) {
-    return (
-      <div className="container max-w-md py-12">
-        <div className="mb-8 flex justify-center">
-          <Link to="/" className="flex items-center gap-2">
-            <Trophy className="h-8 w-8 text-challenge-purple" />
-            <span className="text-2xl font-bold gradient-text">Challenge Champion</span>
-          </Link>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Check Your Email</CardTitle>
-            <CardDescription>Please confirm your email address to complete registration</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-center text-muted-foreground">
-              We've sent a confirmation email to {email}. Please check your inbox and click the confirmation link to activate your account.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className="w-full">
-              <Link to="/login">Go to Login</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
   
   return (
     <div className="container max-w-md py-12">
