@@ -77,6 +77,10 @@ export default function ChallengeCard({
           
           {hasJoined && (
             <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t('yourPoints')}</span>
+                <span className="font-medium">{userScore} / {challenge.totalPoints}</span>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">{t('progress')}</span>
                 <span className="text-sm font-medium">{Math.round(progress)}%</span>

@@ -84,27 +84,11 @@ export default function ObjectiveItem({
     
     const newValue = parseInt(value) || 0;
     
-    // Add entry to Supabase
-    const { error } = await supabase
-      .from('entries')
-      .insert({
-        user_id: user.id,
-        challenge_id: challengeId,
-        objective_id: objective.id,
-        value: newValue,
-        notes: notes.trim() || null,
-        username: user.name || `User ${user.id}`
-      });
-      
-    if (error) {
-      console.error('Error adding entry:', error);
-      return;
-    }
-    
-    // Update progress in context
-    updateProgress(challengeId, objective.id, newValue);
+    // Update progress in context - this will handle the database entry
+    updateProgress(challengeId, objective.id, newValue, notes);
     setIsOpen(false);
     setNotes("");
+    setValue("0"); // Reset the input value after submission
   };
 
   return (

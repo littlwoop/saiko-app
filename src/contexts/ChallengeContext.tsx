@@ -11,7 +11,7 @@ interface ChallengeContextType {
   loading: boolean;
   createChallenge: (challenge: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => void;
   joinChallenge: (challengeId: string) => void;
-  updateProgress: (challengeId: string, objectiveId: string, value: number) => void;
+  updateProgress: (challengeId: string, objectiveId: string, value: number, notes?: string) => void;
   getUserChallenges: () => Challenge[];
   refreshChallenges: () => Promise<void>;
 }
@@ -69,6 +69,13 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
             })) || [];
           
           setUserChallenges(userChallengesData);
+
+          // Load entries for each challenge the user has joined
+          for (const challenge of challengesData || []) {
+            if (challenge.participants.includes(user.id)) {
+              await loadChallengeEntries(challenge.id);
+            }
+          }
         }
       }
     } catch (err) {
@@ -281,7 +288,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Update progress for an objective
-  const updateProgress = async (challengeId: string, objectiveId: string, value: number) => {
+  const updateProgress = async (challengeId: string, objectiveId: string, value: number, notes?: string) => {
     if (!user) return;
 
     try {
@@ -293,6 +300,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           challenge_id: challengeId,
           objective_id: objectiveId,
           value: value,
+          notes: notes?.trim() || null,
           username: user.name || `User ${user.id}`
         });
 
@@ -301,27 +309,57 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Update local state
-      setUserProgress(prev => {
-        const existing = prev.find(p => 
-          p.challengeId === challengeId && p.objectiveId === objectiveId
-        );
+      // Fetch all entries for this challenge to recalculate total score
+      const { data: entriesData, error: entriesError } = await supabase
+        .from('entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('challenge_id', challengeId)
+        .order('created_at', { ascending: false })
+        .returns<Entry[]>();
 
-        if (existing) {
-          return prev.map(p => 
-            p.challengeId === challengeId && p.objectiveId === objectiveId
-              ? { ...p, currentValue: value }
-              : p
-          );
+      if (entriesError) {
+        console.error('Error fetching entries:', entriesError);
+        return;
+      }
+
+      if (entriesData) {
+        // Calculate total progress for each objective by summing all entries
+        const progressMap = entriesData.reduce((acc, entry) => {
+          const key = `${entry.challenge_id}-${entry.objective_id}`;
+          if (!acc[key]) {
+            acc[key] = {
+              userId: entry.user_id,
+              challengeId: entry.challenge_id,
+              objectiveId: entry.objective_id,
+              currentValue: 0
+            };
+          }
+          acc[key].currentValue += entry.value;
+          return acc;
+        }, {} as Record<string, UserProgress>);
+
+        // Calculate total points for the challenge
+        const challenge = challenges.find(c => c.id === challengeId);
+        if (challenge) {
+          const totalPoints = challenge.objectives.reduce((points, objective) => {
+            const progress = progressMap[`${challengeId}-${objective.id}`];
+            if (progress) {
+              return points + (progress.currentValue * objective.pointsPerUnit);
+            }
+            return points;
+          }, 0);
+
+          // Update user challenge with total points
+          setUserChallenges(prev => prev.map(uc => 
+            uc.challengeId === challengeId
+              ? { ...uc, totalScore: totalPoints }
+              : uc
+          ));
         }
 
-        return [...prev, {
-          userId: user.id,
-          challengeId,
-          objectiveId,
-          currentValue: value
-        }];
-      });
+        setUserProgress(Object.values(progressMap));
+      }
 
       toast({
         title: "Progress Updated",
