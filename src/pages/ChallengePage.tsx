@@ -55,17 +55,23 @@ export default function ChallengePage() {
   
   useEffect(() => {
     if (user && challenge) {
-      // Get the user's progress for this challenge
-      const userChallenge = userChallenges.find(
-        uc => uc.userId === user.id && uc.challengeId === challenge.id
+      // Calculate total points from all entries for this challenge
+      const challengeProgress = userProgress.filter(
+        p => p.userId === user.id && p.challengeId === challenge.id
       );
       
-      if (userChallenge) {
-        setTotalPoints(userChallenge.totalScore);
-        setProgress((userChallenge.totalScore / challenge.totalPoints) * 100);
-      }
+      const totalPoints = challengeProgress.reduce((sum, progress) => {
+        const objective = challenge.objectives.find(o => o.id === progress.objectiveId);
+        if (objective) {
+          return sum + (progress.currentValue * objective.pointsPerUnit);
+        }
+        return sum;
+      }, 0);
+      
+      setTotalPoints(totalPoints);
+      setProgress((totalPoints / challenge.totalPoints) * 100);
     }
-  }, [user, challenge, userChallenges]);
+  }, [user, challenge, userProgress]);
   
   if (loading || !challenge) {
     return (
