@@ -37,11 +37,6 @@ export default function ChallengesPage() {
       )
     : [];
   
-  // Get challenges created by the user
-  const userCreatedChallenges = user
-    ? filteredChallenges.filter(challenge => challenge.createdById === user.id)
-    : [];
-  
   // Get other available challenges
   const availableChallenges = user
     ? filteredChallenges.filter(challenge => !challenge.participants.includes(user.id))
@@ -90,13 +85,10 @@ export default function ChallengesPage() {
         </div>
         
         <Tabs defaultValue={activeTab}>
-          <TabsList className="grid w-full grid-cols-2 md:w-auto md:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2 md:w-auto md:grid-cols-2">
             <TabsTrigger value="all">{t("allChallenges")}</TabsTrigger>
             {user && (
               <TabsTrigger value="joined">{t("myJoinedChallenges")}</TabsTrigger>
-            )}
-            {user && (
-              <TabsTrigger value="created">{t("createdByMe")}</TabsTrigger>
             )}
           </TabsList>
           
@@ -163,39 +155,6 @@ export default function ChallengesPage() {
                       <Link to="/challenges/create">{t("createChallenge")}</Link>
                     </Button>
                   </div>
-                </div>
-              )}
-            </TabsContent>
-          )}
-          
-          {user && (
-            <TabsContent value="created" className="mt-6">
-              {userCreatedChallenges.length > 0 ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {userCreatedChallenges.map((challenge) => {
-                    const userChallenge = userChallenges.find(
-                      uc => uc.userId === user.id && uc.challengeId === challenge.id
-                    );
-                    
-                    return (
-                      <ChallengeCard
-                        key={challenge.id}
-                        challenge={challenge}
-                        userScore={userChallenge?.totalScore || 0}
-                        showJoin={false}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="mt-10 text-center">
-                  <h3 className="text-lg font-medium">{t("noCreatedChallenges")}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {t("noCreatedChallengesDescription")}
-                  </p>
-                  <Button asChild className="mt-4">
-                    <Link to="/challenges/create">{t("createChallenge")}</Link>
-                  </Button>
                 </div>
               )}
             </TabsContent>
