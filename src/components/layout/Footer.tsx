@@ -53,12 +53,12 @@ export default function Footer() {
             © {currentYear} Saiko. {t("copyright")}
           </p>
           <div className="flex gap-4">
-            <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
+            {/* <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
               {t("privacyPolicy")}
             </Link>
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
               {t("termsOfService")}
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>
