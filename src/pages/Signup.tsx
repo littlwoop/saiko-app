@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Trophy } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -18,14 +20,16 @@ export default function Signup() {
   const { signup } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name || !email || !password) {
       toast({
-        title: "Error",
-        description: "Please fill all required fields",
+        title: t("error"),
+        description: t("fillRequiredFields"),
         variant: "destructive",
       });
       return;
@@ -33,8 +37,8 @@ export default function Signup() {
     
     if (password !== passwordConfirm) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: t("error"),
+        description: t("passwordsDoNotMatch"),
         variant: "destructive",
       });
       return;
@@ -42,8 +46,8 @@ export default function Signup() {
     
     if (password.length < 6) {
       toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
+        title: t("error"),
+        description: t("passwordTooShort"),
         variant: "destructive",
       });
       return;
@@ -54,14 +58,14 @@ export default function Signup() {
     try {
       await signup(name, email, password);
       toast({
-        title: "Account created!",
-        description: "You can now log in to your account.",
+        title: t("accountCreated"),
+        description: t("accountCreatedDescription"),
       });
       navigate("/login");
     } catch (error) {
       toast({
-        title: "Registration failed",
-        description: "This email may already be in use.",
+        title: t("registrationFailed"),
+        description: t("emailInUse"),
         variant: "destructive",
       });
     } finally {
@@ -80,47 +84,47 @@ export default function Signup() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Enter your information to create an account</CardDescription>
+          <CardTitle className="text-2xl">{t("createAccount")}</CardTitle>
+          <CardDescription>{t("enterInformation")}</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">{t("fullName")}</Label>
               <Input
                 id="name"
                 type="text"
-                placeholder="John Doe"
+                placeholder={t("enterFullName")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("email")}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="john@example.com"
+                placeholder={t("enterEmail")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder={t("enterPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password-confirm">Confirm Password</Label>
+              <Label htmlFor="password-confirm">{t("confirmPassword")}</Label>
               <Input
                 id="password-confirm"
                 type="password"
-                placeholder="••••••••"
+                placeholder={t("enterConfirmPassword")}
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
               />
@@ -128,12 +132,12 @@ export default function Signup() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Creating Account..." : "Create Account"}
+              {isSubmitting ? t("creatingAccount") : t("createAccount")}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              {t("alreadyHaveAccount")}{" "}
               <Link to="/login" className="text-primary hover:underline">
-                Login
+                {t("login")}
               </Link>
             </p>
           </CardFooter>

@@ -171,6 +171,36 @@ export const translations = {
     addNotesAboutProgress: "Fügen Sie Notizen zu Ihrem Fortschritt hinzu...",
     saveProgress: "Fortschritt speichern",
     points: "Punkte",
+
+    // Signup Form
+    createAccount: "Konto erstellen",
+    enterInformation: "Geben Sie Ihre Informationen ein, um ein Konto zu erstellen",
+    enterFullName: "Max Mustermann",
+    password: "Passwort",
+    enterPassword: "••••••••",
+    confirmPassword: "Passwort bestätigen",
+    enterConfirmPassword: "••••••••",
+    creatingAccount: "Konto wird erstellt...",
+    accountCreated: "Konto erstellt!",
+    accountCreatedDescription: "Sie können sich jetzt in Ihr Konto einloggen.",
+    registrationFailed: "Registrierung fehlgeschlagen",
+    emailInUse: "Diese E-Mail-Adresse wird bereits verwendet.",
+    alreadyHaveAccount: "Sie haben bereits ein Konto?",
+    passwordsDoNotMatch: "Passwörter stimmen nicht überein",
+    passwordTooShort: "Passwort muss mindestens 6 Zeichen lang sein",
+
+    // Login Form
+    loginTitle: "Anmelden",
+    loginDescription: "Geben Sie Ihre E-Mail und Ihr Passwort ein, um auf Ihr Konto zuzugreifen",
+    enterEmailAndPassword: "Bitte geben Sie E-Mail und Passwort ein",
+    forgotPassword: "Passwort vergessen?",
+    loggingIn: "Wird angemeldet...",
+    loginSuccess: "Erfolg!",
+    loginSuccessDescription: "Sie wurden erfolgreich angemeldet.",
+    loginFailed: "Anmeldung fehlgeschlagen",
+    invalidCredentials: "Ungültige E-Mail oder Passwort. Bitte versuchen Sie es erneut oder registrieren Sie sich, wenn Sie kein Konto haben.",
+    noAccount: "Noch kein Konto?",
+    demoNote: "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden"
   },
   en: {
     // Navigation
@@ -344,6 +374,36 @@ export const translations = {
     addNotesAboutProgress: "Add any notes about your progress...",
     saveProgress: "Save Progress",
     points: "points",
+
+    // Signup Form
+    createAccount: "Create Account",
+    enterInformation: "Enter your information to create an account",
+    enterFullName: "John Doe",
+    password: "Password",
+    enterPassword: "••••••••",
+    confirmPassword: "Confirm Password",
+    enterConfirmPassword: "••••••••",
+    creatingAccount: "Creating Account...",
+    accountCreated: "Account created!",
+    accountCreatedDescription: "You can now log in to your account.",
+    registrationFailed: "Registration failed",
+    emailInUse: "This email may already be in use.",
+    alreadyHaveAccount: "Already have an account?",
+    passwordsDoNotMatch: "Passwords do not match",
+    passwordTooShort: "Password must be at least 6 characters",
+
+    // Login Form
+    loginTitle: "Login",
+    loginDescription: "Enter your email and password to access your account",
+    enterEmailAndPassword: "Please enter both email and password",
+    forgotPassword: "Forgot password?",
+    loggingIn: "Logging in...",
+    loginSuccess: "Success!",
+    loginSuccessDescription: "You have been logged in.",
+    loginFailed: "Login Failed",
+    invalidCredentials: "Invalid email or password. Please try again or sign up if you don't have an account.",
+    noAccount: "Don't have an account?",
+    demoNote: "For demo purposes, you can use your registered email with any password"
   }
 };
 

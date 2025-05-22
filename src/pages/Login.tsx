@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Trophy } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/lib/translations";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,14 +18,16 @@ export default function Login() {
   const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
       toast({
-        title: "Error",
-        description: "Please enter both email and password",
+        title: t("error"),
+        description: t("enterEmailAndPassword"),
         variant: "destructive",
       });
       return;
@@ -35,14 +38,14 @@ export default function Login() {
     try {
       await login(email, password);
       toast({
-        title: "Success!",
-        description: "You have been logged in.",
+        title: t("loginSuccess"),
+        description: t("loginSuccessDescription"),
       });
       navigate("/challenges");
     } catch (error) {
       toast({
-        title: "Login Failed",
-        description: "Invalid email or password. Please try again or sign up if you don't have an account.",
+        title: t("loginFailed"),
+        description: t("invalidCredentials"),
         variant: "destructive",
       });
       console.error("Login error:", error);
@@ -62,32 +65,32 @@ export default function Login() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email and password to access your account</CardDescription>
+          <CardTitle className="text-2xl">{t("loginTitle")}</CardTitle>
+          <CardDescription>{t("loginDescription")}</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("email")}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder={t("enterEmail")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("password")}</Label>
                 <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                  Forgot password?
+                  {t("forgotPassword")}
                 </Link>
               </div>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder={t("enterPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -95,19 +98,19 @@ export default function Login() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Logging in..." : "Login"}
+              {isSubmitting ? t("loggingIn") : t("login")}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{" "}
+              {t("noAccount")}{" "}
               <Link to="/signup" className="text-primary hover:underline">
-                Sign up
+                {t("signup")}
               </Link>
             </p>
           </CardFooter>
         </form>
       </Card>
       <div className="mt-4 text-center text-xs text-muted-foreground">
-        <p>For demo purposes, you can use your registered email with any password</p>
+        <p>{t("demoNote")}</p>
       </div>
     </div>
   );
