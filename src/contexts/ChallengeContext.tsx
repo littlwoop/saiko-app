@@ -78,24 +78,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           
           // Wait for all progress to be loaded
           await Promise.all(loadPromises);
-
-          // If no progress was loaded, initialize empty progress for each objective
-          if (userProgress.length === 0) {
-            const initialProgress: UserProgress[] = [];
-            challengesData?.forEach(challenge => {
-              if (challenge.participants.includes(user.id)) {
-                challenge.objectives.forEach(objective => {
-                  initialProgress.push({
-                    userId: user.id,
-                    challengeId: challenge.id,
-                    objectiveId: objective.id,
-                    currentValue: 0
-                  });
-                });
-              }
-            });
-            setUserProgress(initialProgress);
-          }
         }
       }
     } catch (err) {
@@ -109,6 +91,26 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
+
+  // Separate effect to initialize progress if needed
+  useEffect(() => {
+    if (user && challenges.length > 0 && userProgress.length === 0) {
+      const initialProgress: UserProgress[] = [];
+      challenges.forEach(challenge => {
+        if (challenge.participants.includes(user.id)) {
+          challenge.objectives.forEach(objective => {
+            initialProgress.push({
+              userId: user.id,
+              challengeId: challenge.id,
+              objectiveId: objective.id,
+              currentValue: 0
+            });
+          });
+        }
+      });
+      setUserProgress(initialProgress);
+    }
+  }, [user, challenges, userProgress.length]);
 
   useEffect(() => {
     fetchChallenges();
@@ -166,16 +168,34 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           }, 0);
 
           // Update user challenge with total points
-          setUserChallenges(prev => prev.map(uc => 
-            uc.challengeId === challengeId
-              ? { ...uc, totalScore: totalPoints }
-              : uc
-          ));
+          setUserChallenges(prev => {
+            const existingChallenge = prev.find(uc => uc.challengeId === challengeId);
+            if (existingChallenge?.totalScore === totalPoints) {
+              return prev;
+            }
+            return prev.map(uc => 
+              uc.challengeId === challengeId
+                ? { ...uc, totalScore: totalPoints }
+                : uc
+            );
+          });
         }
 
-        // Merge new progress with existing progress
+        // Only update progress if there are actual changes
         setUserProgress(prev => {
           const newProgress = Object.values(progressMap);
+          const hasChanges = newProgress.some(newP => {
+            const existingP = prev.find(p => 
+              p.challengeId === newP.challengeId && 
+              p.objectiveId === newP.objectiveId
+            );
+            return !existingP || existingP.currentValue !== newP.currentValue;
+          });
+
+          if (!hasChanges) {
+            return prev;
+          }
+
           const existingProgress = prev.filter(p => 
             !newProgress.some(np => 
               np.challengeId === p.challengeId && np.objectiveId === p.objectiveId
