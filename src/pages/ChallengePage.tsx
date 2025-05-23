@@ -20,7 +20,7 @@ import ActivityList from "@/components/challenges/ActivityList";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
-  const { userChallenges, userProgress, joinChallenge, loading: challengesLoading } = useChallenges();
+  const { userChallenges, userProgress, joinChallenge, loading: challengesLoading, refreshProgress } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -53,6 +53,12 @@ export default function ChallengePage() {
     
     fetchChallenge();
   }, [id]);
+  
+  useEffect(() => {
+    if (id && user) {
+      refreshProgress(id);
+    }
+  }, [id, user, refreshProgress]);
   
   useEffect(() => {
     if (user && challenge && !challengesLoading) {
