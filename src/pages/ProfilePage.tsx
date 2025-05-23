@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChallengeCard from "@/components/challenges/ChallengeCard";
+import { supabase } from "@/lib/supabase";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -38,14 +39,36 @@ export default function ProfilePage() {
     ? challenges.filter(challenge => challenge.createdById === user.id)
     : [];
   
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In a real app, this would update the user's profile
-    toast({
-      title: t("profileUpdated"),
-      description: t("profileUpdatedDescription"),
-    });
+    if (!user) return;
+    
+    try {
+      // Update user metadata in Supabase
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          name: name,
+        },
+        email: email !== user.email ? email : undefined,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: t("profileUpdated"),
+        description: t("profileUpdatedDescription"),
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: t("error"),
+        description: t("profileUpdateFailed"),
+        variant: "destructive",
+      });
+    }
   };
   
   if (!user) {
@@ -96,13 +119,14 @@ export default function ProfilePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                    <form className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">{t("fullName")}</Label>
                         <Input
                           id="name"
                           value={name}
-                          onChange={(e) => setName(e.target.value)}
+                          disabled
+                          readOnly
                         />
                       </div>
                       <div className="space-y-2">
@@ -111,11 +135,11 @@ export default function ProfilePage() {
                           id="email"
                           type="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          disabled
+                          readOnly
                         />
                       </div>
                       <div className="flex gap-4">
-                        <Button type="submit">{t("saveChanges")}</Button>
                         <Button type="button" variant="outline" onClick={logout}>
                           {t("logOut")}
                         </Button>
@@ -157,14 +181,20 @@ export default function ProfilePage() {
                     <h3 className="text-lg font-medium">{t("createdChallenges")}</h3>
                     {userCreatedChallenges.length > 0 ? (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                        {userCreatedChallenges.map((challenge) => (
-                          <ChallengeCard
-                            key={challenge.id}
-                            challenge={challenge}
-                            userScore={0}
-                            showJoin={false}
-                          />
-                        ))}
+                        {userCreatedChallenges.map((challenge) => {
+                          const userChallenge = userChallenges.find(
+                            uc => uc.userId === user.id && uc.challengeId === challenge.id
+                          );
+                          
+                          return (
+                            <ChallengeCard
+                              key={challenge.id}
+                              challenge={challenge}
+                              userScore={userChallenge?.totalScore || 0}
+                              showJoin={false}
+                            />
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="mt-2 text-muted-foreground">
