@@ -85,9 +85,8 @@ export default function ObjectiveItem({
     const newValue = parseInt(value) || 0;
     
     // Update progress in context - this will handle the database entry
-    updateProgress(challengeId, objective.id, newValue, notes);
+    updateProgress(challengeId, objective.id, newValue);
     setIsOpen(false);
-    setNotes("");
     setValue("0"); // Reset the input value after submission
   };
 
@@ -150,16 +149,6 @@ export default function ObjectiveItem({
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={t('enterUnit').replace('{unit}', objective.unit)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="notes">{t('notes')} ({t('optional')})</Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder={t('addNotesAboutProgress')}
-                    className="h-20"
                   />
                 </div>
               </div>

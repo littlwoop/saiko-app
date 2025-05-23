@@ -20,7 +20,7 @@ import ActivityList from "@/components/challenges/ActivityList";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
-  const { userChallenges, userProgress, joinChallenge } = useChallenges();
+  const { userChallenges, userProgress, joinChallenge, loading: challengesLoading } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -55,7 +55,7 @@ export default function ChallengePage() {
   }, [id]);
   
   useEffect(() => {
-    if (user && challenge) {
+    if (user && challenge && !challengesLoading) {
       // Calculate total points from all entries for this challenge
       const challengeProgress = userProgress.filter(
         p => p.userId === user.id && p.challengeId === challenge.id
@@ -72,9 +72,9 @@ export default function ChallengePage() {
       setTotalPoints(totalPoints);
       setProgress((totalPoints / challenge.totalPoints) * 100);
     }
-  }, [user, challenge, userProgress]);
+  }, [user, challenge, userProgress, challengesLoading]);
   
-  if (loading || !challenge) {
+  if (loading || challengesLoading || !challenge) {
     return (
       <div className="container py-12">
         <div className="flex justify-center">
