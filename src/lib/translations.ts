@@ -78,10 +78,15 @@ export const translations = {
     startFirstChallenge: "Starte jetzt deine erste Herausforderung",
     daysLeft: "Tage übrig",
     createdBy: "Erstellt von",
-    challengeStats: "Herausforderungsstatistiken",
+    challengeStats: "Statistik",
     status: "Status",
     yourPoints: "Deine Punkte",
     complete: "abgeschlossen",
+    activities: "Aktivitäten",
+    noActivities: "Keine Aktivitäten",
+    noActivitiesDescription: "Es wurden noch keine Aktivitäten für diese Herausforderung aufgezeichnet",
+    addedValue: "{value} hinzugefügt",
+    forObjective: "Für Ziel",
 
     // Profile
     updateProfile: "Profil aktualisieren",
@@ -172,7 +177,7 @@ export const translations = {
     optional: "optional",
     addNotesAboutProgress: "Fügen Sie Notizen zu Ihrem Fortschritt hinzu...",
     saveProgress: "Fortschritt speichern",
-    points: "Punkte",
+    points: "Pkt",
 
     // Signup Form
     createAccount: "Konto erstellen",
@@ -287,6 +292,11 @@ export const translations = {
     status: "Status",
     yourPoints: "Your Points",
     complete: "complete",
+    activities: "Activities",
+    noActivities: "No Activities",
+    noActivitiesDescription: "No activities have been recorded for this challenge yet",
+    addedValue: "Added {value}",
+    forObjective: "For objective",
 
     // Profile
     updateProfile: "Update Profile",

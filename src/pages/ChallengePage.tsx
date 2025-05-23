@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { Challenge } from "@/types";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ActivityList from "@/components/challenges/ActivityList";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
@@ -178,6 +179,7 @@ export default function ChallengePage() {
             <TabsList>
               <TabsTrigger value="objectives">{t("objectives")}</TabsTrigger>
               <TabsTrigger value="leaderboard">{t("leaderboard")}</TabsTrigger>
+              <TabsTrigger value="activities">{t("activities")}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="objectives" className="mt-6">
@@ -221,6 +223,10 @@ export default function ChallengePage() {
             
             <TabsContent value="leaderboard" className="mt-6">
               <LeaderboardTable challengeId={challenge.id} />
+            </TabsContent>
+
+            <TabsContent value="activities" className="mt-6">
+              <ActivityList challengeId={challenge.id} />
             </TabsContent>
           </Tabs>
         </div>
