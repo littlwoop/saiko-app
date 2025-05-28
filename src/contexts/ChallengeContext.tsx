@@ -489,7 +489,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       title: obj.title,
       description: obj.description,
       targetValue: 1,
-      unit: "completion",
+      unit: "Abschluss",
       pointsPerUnit: 1
     }));
 

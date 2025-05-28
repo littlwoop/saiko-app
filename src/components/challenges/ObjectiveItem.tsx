@@ -96,7 +96,7 @@ export default function ObjectiveItem({
     return (
       <Card className={`relative ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''}`}>
         <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
-          <CardTitle className="text-sm leading-tight">
+          <CardTitle className="text-sm leading-tight line-clamp-2">
             {objective.title}
           </CardTitle>
         </CardHeader>

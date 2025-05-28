@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,8 @@ export default function ChallengePage() {
   const [participants, setParticipants] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [showBingoAnimation, setShowBingoAnimation] = useState(false);
   const [shownBingoWins, setShownBingoWins] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState("objectives");
   
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
@@ -276,7 +279,7 @@ export default function ChallengePage() {
   const locale = language === 'de' ? de : enUS;
   
   return (
-    <div className="container py-8">
+    <div className="container py-2">
       <BingoAnimation isVisible={showBingoAnimation} />
       <Link
         to="/challenges"
@@ -286,19 +289,19 @@ export default function ChallengePage() {
         {t("challenges")}
       </Link>
       
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <h1 className="text-3xl font-bold">{challenge.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">{challenge.title}</h1>
               {isActive && <Badge className="bg-green-500">{t("active")}</Badge>}
               {isFuture && <Badge variant="outline" className="border-blue-400 text-blue-500">{t("upcoming")}</Badge>}
               {isPast && <Badge variant="outline" className="border-gray-400 text-gray-500">{t("completed")}</Badge>}
             </div>
             
-            <p className="text-muted-foreground">{challenge.description}</p>
+            {/* <p className="text-sm sm:text-base text-muted-foreground">{challenge.description}</p> */}
             
-            <div className="flex flex-wrap gap-6 text-sm">
+            <div className="flex flex-wrap gap-4 sm:gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
@@ -311,17 +314,17 @@ export default function ChallengePage() {
                 <span>{challenge.participants.length} {t("participants")}</span>
               </div>
               
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-challenge-purple" />
                 <span>{challenge.totalPoints} {t("totalPoints")}</span>
-              </div>
+              </div> */}
               
-              {isActive && (
+              {/* {isActive && (
                 <div className="flex items-center gap-2">
                   <Target className="h-4 w-4 text-challenge-teal" />
                   <span>{daysLeft} {t("daysLeft")}</span>
                 </div>
-              )}
+              )} */}
             </div>
             
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
@@ -351,47 +354,90 @@ export default function ChallengePage() {
             </div>
           </div>
           
-          <Tabs defaultValue="objectives">
-            <div className="flex items-center justify-between">
-              <TabsList>
-                <TabsTrigger value="objectives">{t("objectives")}</TabsTrigger>
-                <TabsTrigger value="leaderboard">{t("leaderboard")}</TabsTrigger>
-                <TabsTrigger value="activities">{t("activities")}</TabsTrigger>
-              </TabsList>
-              
-              {challenge.isBingo && (
-                <Select
-                  value={selectedUserId || ''}
-                  onValueChange={(value) => setSelectedUserId(value)}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder={t("participants")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {participants.map((participant) => (
-                      <SelectItem key={participant.id} value={participant.id}>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            {participant.avatar && (
-                              <AvatarImage src={participant.avatar} />
-                            )}
-                            <AvatarFallback>
-                              <UserRound className="h-4 w-4" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{participant.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="objectives">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {isMobile ? (
+                <div className="flex flex-row gap-2 w-full">
+                  <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="objectives">{t("objectives")}</SelectItem>
+                      <SelectItem value="leaderboard">{t("leaderboard")}</SelectItem>
+                      <SelectItem value="activities">{t("activities")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {challenge.isBingo && (
+                    <Select
+                      value={selectedUserId || ''}
+                      onValueChange={(value) => setSelectedUserId(value)}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder={t("participants")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {participants.map((participant) => (
+                          <SelectItem key={participant.id} value={participant.id}>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                {participant.avatar && (
+                                  <AvatarImage src={participant.avatar} />
+                                )}
+                                <AvatarFallback>
+                                  <UserRound className="h-4 w-4" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{participant.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <TabsList className="w-full sm:w-auto">
+                    <TabsTrigger value="objectives">{t("objectives")}</TabsTrigger>
+                    <TabsTrigger value="leaderboard">{t("leaderboard")}</TabsTrigger>
+                    <TabsTrigger value="activities">{t("activities")}</TabsTrigger>
+                  </TabsList>
+                  {challenge.isBingo && (
+                    <Select
+                      value={selectedUserId || ''}
+                      onValueChange={(value) => setSelectedUserId(value)}
+                    >
+                      <SelectTrigger className="w-full sm:w-[200px]">
+                        <SelectValue placeholder={t("participants")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {participants.map((participant) => (
+                          <SelectItem key={participant.id} value={participant.id}>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                {participant.avatar && (
+                                  <AvatarImage src={participant.avatar} />
+                                )}
+                                <AvatarFallback>
+                                  <UserRound className="h-4 w-4" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{participant.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </>
               )}
             </div>
             
             <TabsContent value="objectives" className="mt-6">
               {hasJoined && (
                 <div className={`mb-6 space-y-2 rounded-lg border p-4 text-card-foreground ${progress >= 100 ? 'border-challenge-teal bg-green-50/30' : 'bg-card'}`}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Award className="h-5 w-5 text-challenge-purple" />
                       <span className="font-medium">{t("challengeProgress")}</span>
@@ -406,18 +452,7 @@ export default function ChallengePage() {
               )}
               
               {challenge.isBingo ? (
-                <div className={`grid gap-2 p-2 ${
-                  (() => {
-                    const gridSize = Math.sqrt(challenge.objectives.length);
-                    switch(gridSize) {
-                      case 3: return 'grid-cols-3';
-                      case 4: return 'grid-cols-4';
-                      case 5: return 'grid-cols-5';
-                      case 6: return 'grid-cols-6';
-                      default: return 'grid-cols-3';
-                    }
-                  })()
-                }`}>
+                <div className="grid grid-cols-5 gap-1 p-0.5">
                   {challenge.objectives.map((objective) => (
                     <ObjectiveItem
                       key={objective.id}
@@ -458,8 +493,108 @@ export default function ChallengePage() {
           </Tabs>
         </div>
         
-        <div className="hidden md:block">
+        <div className="block lg:hidden">
+          <div className="rounded-lg border bg-card p-4 text-card-foreground">
+            <h2 className="text-lg font-semibold mb-2">{t("challengeStats")}</h2>
+            <div className="flex items-center gap-2 mb-2">
+              <Avatar className="h-6 w-6">
+                {challenge.creatorAvatar && (
+                  <AvatarImage src={challenge.creatorAvatar} />
+                )}
+                <AvatarFallback>
+                  <UserRound className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-muted-foreground">
+                {t("createdBy")} <span className="font-medium text-foreground">{challenge.creatorName}</span>
+              </span>
+            </div>
+            
+            <div className="mt-4 space-y-4">
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t("status")}</span>
+                  <span className="font-medium">
+                    {isActive && t("active")}
+                    {isFuture && t("upcoming")}
+                    {isPast && t("completed")}
+                  </span>
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t("participants")}</span>
+                  <span className="font-medium">{challenge.participants.length}</span>
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t("totalPoints")}</span>
+                  <span className="font-medium">{challenge.totalPoints}</span>
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t("objectives")}</span>
+                  <span className="font-medium">{challenge.objectives.length}</span>
+                </div>
+              </div>
+              
+              {isActive && (
+                <div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{t("daysLeft")}</span>
+                    <span className="font-medium">{daysLeft}</span>
+                  </div>
+                </div>
+              )}
+              
+              {hasJoined && (
+                <div className="pt-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{t("yourPoints")}</span>
+                    <span className="font-medium">{Math.round(totalPoints)}</span>
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span>{Math.round(progress)}% {t("complete")}</span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                  </div>
+                </div>
+              )}
+              
+              {!hasJoined && (
+                <Button
+                  className="mt-2 w-full"
+                  onClick={() => joinChallenge(challenge.id)}
+                >
+                  <Trophy className="mr-2 h-4 w-4" />
+                  {t("joinChallenge")}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="hidden lg:block">
           <div className="sticky top-20 rounded-lg border bg-card p-6 text-card-foreground">
+            <div className="flex items-center gap-2 mb-6">
+              <Avatar className="h-7 w-7">
+                {challenge.creatorAvatar && (
+                  <AvatarImage src={challenge.creatorAvatar} />
+                )}
+                <AvatarFallback>
+                  <UserRound className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-base text-muted-foreground">
+                {t("createdBy")} <span className="font-medium text-foreground">{challenge.creatorName}</span>
+              </span>
+            </div>
             <h2 className="text-xl font-semibold">{t("challengeStats")}</h2>
             
             <div className="mt-6 space-y-4">
