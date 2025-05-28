@@ -437,7 +437,7 @@ export default function ChallengePage() {
             <TabsContent value="objectives" className="mt-6">
               {hasJoined && (
                 <div className={`mb-6 space-y-2 rounded-lg border p-4 text-card-foreground ${progress >= 100 ? 'border-challenge-teal bg-green-50/30' : 'bg-card'}`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Award className="h-5 w-5 text-challenge-purple" />
                       <span className="font-medium">{t("challengeProgress")}</span>
