@@ -458,22 +458,46 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Create a 5x5 grid (25 objectives)
-    const gridSize = 5;
-    const objectives = Array.from({ length: gridSize * gridSize }, (_, i) => ({
-      id: crypto.randomUUID(), // Use proper UUID instead of simple string
-      title: `Bingo Objective ${i + 1}`,
-      description: `Complete this objective to mark it on your bingo card`,
+    const objectives = [
+      { title: "25 Pullups", description: "Complete 25 pullups" },
+      { title: "50 Liegestütze", description: "Complete 50 pushups" },
+      { title: "100 Kniebeugen", description: "Complete 100 squats" },
+      { title: "15.000 Schritte", description: "Walk 15,000 steps" },
+      { title: "30.000 Schritte", description: "Walk 30,000 steps" },
+      { title: "12 km Rad", description: "Bike 12 kilometers" },
+      { title: "3 km Laufen", description: "Run 3 kilometers" },
+      { title: "30 Pullups", description: "Complete 30 pullups" },
+      { title: "1000 Höhenmeter", description: "Climb 1,000 meters" },
+      { title: "250 Höhenmeter", description: "Climb 250 meters" },
+      { title: "200 Höhenmeter", description: "Climb 200 meters" },
+      { title: "120 Kniebeugen", description: "Complete 120 squats" },
+      { title: "100 km Rad", description: "Bike 100 kilometers" },
+      { title: "7 km Laufen", description: "Run 7 kilometers" },
+      { title: "15.000 Schritte", description: "Walk 15,000 steps" },
+      { title: "90 Liegestütze", description: "Complete 90 pushups" },
+      { title: "1000 Liegestütze", description: "Complete 1,000 pushups" },
+      { title: "10 km Laufen", description: "Run 10 kilometers" },
+      { title: "15 km Rad", description: "Bike 15 kilometers" },
+      { title: "150 Kniebeugen", description: "Complete 150 squats" },
+      { title: "20 km Laufen", description: "Run 20 kilometers" },
+      { title: "60 min Rad", description: "Bike for 60 minutes" },
+      { title: "8 km Rad", description: "Bike 8 kilometers" },
+      { title: "20 Pullups", description: "Complete 20 pullups" },
+      { title: "30 min Rad", description: "Bike for 30 minutes" }
+    ].map((obj, i) => ({
+      id: crypto.randomUUID(),
+      title: obj.title,
+      description: obj.description,
       targetValue: 1,
       unit: "completion",
       pointsPerUnit: 1
     }));
 
     const challengeData = {
-      title: "2024 Spring Bingo Challenge",
-      description: `Complete objectives to mark them on your ${gridSize}x${gridSize} bingo card. Get bingo by completing a row, column, or diagonal!`,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+      title: "June of Pain - Bingo Edition",
+      description: "5 Felder in einer Reihe (horizontal, vertikal, diagonal) = BINGO! Pro Tag maximal 2 Felder abhaken! Alle Ziele sind einzeln zu bewerten",
+      startDate: new Date('2024-06-01T00:00:00Z').toISOString(),
+      endDate: new Date('2024-06-30T23:59:59Z').toISOString(),
       objectives,
       isBingo: true
     };

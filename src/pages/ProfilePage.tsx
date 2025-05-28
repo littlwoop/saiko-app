@@ -125,8 +125,7 @@ export default function ProfilePage() {
                         <Input
                           id="name"
                           value={name}
-                          disabled
-                          readOnly
+                          onChange={(e) => setName(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -140,6 +139,9 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div className="flex gap-4">
+                        <Button type="submit" onClick={handleUpdateProfile}>
+                          {t("saveChanges")}
+                        </Button>
                         <Button type="button" variant="outline" onClick={logout}>
                           {t("logOut")}
                         </Button>
