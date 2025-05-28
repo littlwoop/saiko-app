@@ -3,7 +3,7 @@ import { Objective, UserProgress } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, CheckCircle } from "lucide-react";
+import { Trophy, CheckCircle, Check } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -26,6 +26,8 @@ interface ObjectiveItemProps {
   objective: Objective;
   challengeId: string;
   progress?: UserProgress;
+  isBingo?: boolean;
+  readOnly?: boolean;
 }
 
 interface Entry {
@@ -38,7 +40,9 @@ interface Entry {
 export default function ObjectiveItem({
   objective,
   challengeId,
-  progress
+  progress,
+  isBingo,
+  readOnly
 }: ObjectiveItemProps) {
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
@@ -83,15 +87,44 @@ export default function ObjectiveItem({
     if (!user) return;
     
     const newValue = parseInt(value) || 0;
-    
-    // Update progress in context - this will handle the database entry
     updateProgress(challengeId, objective.id, newValue);
     setIsOpen(false);
-    setValue("0"); // Reset the input value after submission
+    setValue("0");
   };
 
+  if (isBingo) {
+    return (
+      <Card className={`relative ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''}`}>
+        <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
+          <CardTitle className="text-sm leading-tight">
+            {objective.title}
+          </CardTitle>
+        </CardHeader>
+        {!isCompleted && !readOnly && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-1 right-1 h-5 w-5"
+            onClick={() => {
+              if (user) {
+                updateProgress(challengeId, objective.id, 1);
+              }
+            }}
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+        )}
+        {isCompleted && (
+          <div className="absolute top-1 right-1">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </div>
+        )}
+      </Card>
+    );
+  }
+
   return (
-    <Card className={`${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''}`}>
+    <Card className={isCompleted ? 'border-challenge-teal bg-green-50/30' : ''}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-base flex items-center gap-2">

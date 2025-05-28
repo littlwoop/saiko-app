@@ -13,10 +13,17 @@ import LeaderboardTable from "@/components/challenges/LeaderboardTable";
 import { ChevronLeft, Trophy, Users, Target, Calendar, Award, UserRound, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
-import { Challenge } from "@/types";
+import { Challenge, UserProgress } from "@/types";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ActivityList from "@/components/challenges/ActivityList";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +35,9 @@ export default function ChallengePage() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [participantProgress, setParticipantProgress] = useState<UserProgress[]>([]);
+  const [participants, setParticipants] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
@@ -79,6 +89,56 @@ export default function ChallengePage() {
       setProgress((totalPoints / challenge.totalPoints) * 100);
     }
   }, [user, challenge, userProgress, challengesLoading]);
+  
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      if (!challenge) return;
+      
+      // Use the participants array from the challenge data
+      setParticipants(challenge.participants.map(id => ({
+        id,
+        name: id === challenge.createdById ? challenge.creatorName : `User ${id.slice(0, 4)}`,
+        avatar: id === challenge.createdById ? challenge.creatorAvatar : undefined
+      })));
+    };
+    
+    fetchParticipants();
+  }, [challenge]);
+
+  useEffect(() => {
+    const fetchParticipantProgress = async () => {
+      if (!selectedUserId || !challenge) return;
+      
+      const { data, error } = await supabase
+        .from('entries')
+        .select('*')
+        .eq('user_id', selectedUserId)
+        .eq('challenge_id', challenge.id);
+        
+      if (error) {
+        console.error('Error fetching participant progress:', error);
+      } else if (data) {
+        // Calculate total progress for each objective
+        const progressMap = data.reduce((acc, entry) => {
+          const key = entry.objective_id;
+          if (!acc[key]) {
+            acc[key] = {
+              userId: entry.user_id,
+              challengeId: entry.challenge_id,
+              objectiveId: entry.objective_id,
+              currentValue: 0
+            };
+          }
+          acc[key].currentValue += entry.value;
+          return acc;
+        }, {} as Record<string, UserProgress>);
+        
+        setParticipantProgress(Object.values(progressMap));
+      }
+    };
+    
+    fetchParticipantProgress();
+  }, [selectedUserId, challenge]);
   
   if (loading || challengesLoading || !challenge) {
     return (
@@ -182,11 +242,41 @@ export default function ChallengePage() {
           </div>
           
           <Tabs defaultValue="objectives">
-            <TabsList>
-              <TabsTrigger value="objectives">{t("objectives")}</TabsTrigger>
-              <TabsTrigger value="leaderboard">{t("leaderboard")}</TabsTrigger>
-              <TabsTrigger value="activities">{t("activities")}</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="objectives">{t("objectives")}</TabsTrigger>
+                <TabsTrigger value="leaderboard">{t("leaderboard")}</TabsTrigger>
+                <TabsTrigger value="activities">{t("activities")}</TabsTrigger>
+              </TabsList>
+              
+              {challenge.isBingo && (
+                <Select
+                  value={selectedUserId || ''}
+                  onValueChange={(value) => setSelectedUserId(value)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={t("participants")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {participants.map((participant) => (
+                      <SelectItem key={participant.id} value={participant.id}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6">
+                            {participant.avatar && (
+                              <AvatarImage src={participant.avatar} />
+                            )}
+                            <AvatarFallback>
+                              <UserRound className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{participant.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
             
             <TabsContent value="objectives" className="mt-6">
               {hasJoined && (
@@ -205,26 +295,47 @@ export default function ChallengePage() {
                 </div>
               )}
               
-              <div className="grid gap-4 sm:grid-cols-2">
-                {challenge.objectives.map(objective => {
-                  const userObjectiveProgress = user
-                    ? userProgress.find(
-                        p => p.userId === user.id && 
-                             p.challengeId === challenge.id && 
-                             p.objectiveId === objective.id
-                      )
-                    : undefined;
-                    
-                  return (
-                    <ObjectiveItem 
-                      key={objective.id} 
+              {challenge.isBingo ? (
+                <div className={`grid gap-2 p-2 ${
+                  (() => {
+                    const gridSize = Math.sqrt(challenge.objectives.length);
+                    switch(gridSize) {
+                      case 3: return 'grid-cols-3';
+                      case 4: return 'grid-cols-4';
+                      case 5: return 'grid-cols-5';
+                      case 6: return 'grid-cols-6';
+                      default: return 'grid-cols-3';
+                    }
+                  })()
+                }`}>
+                  {challenge.objectives.map((objective) => (
+                    <ObjectiveItem
+                      key={objective.id}
                       objective={objective}
                       challengeId={challenge.id}
-                      progress={userObjectiveProgress}
+                      progress={selectedUserId 
+                        ? participantProgress.find(p => p.objectiveId === objective.id)
+                        : userProgress.find(p => p.objectiveId === objective.id)
+                      }
+                      isBingo
+                      readOnly={selectedUserId !== null && selectedUserId !== user?.id}
                     />
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {challenge.objectives.map((objective) => (
+                    <ObjectiveItem
+                      key={objective.id}
+                      objective={objective}
+                      challengeId={challenge.id}
+                      progress={userProgress.find(
+                        (p) => p.objectiveId === objective.id
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="leaderboard" className="mt-6">

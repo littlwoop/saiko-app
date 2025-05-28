@@ -15,6 +15,7 @@ interface ChallengeContextType {
   getUserChallenges: () => Challenge[];
   refreshChallenges: () => Promise<void>;
   refreshProgress: (challengeId: string) => Promise<void>;
+  createMockBingoChallenge: () => Promise<void>;
 }
 
 const ChallengeContext = createContext<ChallengeContextType | undefined>(undefined);
@@ -239,6 +240,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       participants: [],
       totalPoints,
       objectives: challengeData.objectives,
+      isBingo: challengeData.isBingo || false,
     };
     const { data, error } = await supabase
       .from('challenges')
@@ -445,6 +447,40 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     return challenges.filter(challenge => userChallengeIds.includes(challenge.id));
   };
 
+  // Create a mock bingo challenge
+  const createMockBingoChallenge = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a challenge",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create a 5x5 grid (25 objectives)
+    const gridSize = 5;
+    const objectives = Array.from({ length: gridSize * gridSize }, (_, i) => ({
+      id: crypto.randomUUID(), // Use proper UUID instead of simple string
+      title: `Bingo Objective ${i + 1}`,
+      description: `Complete this objective to mark it on your bingo card`,
+      targetValue: 1,
+      unit: "completion",
+      pointsPerUnit: 1
+    }));
+
+    const challengeData = {
+      title: "2024 Spring Bingo Challenge",
+      description: `Complete objectives to mark them on your ${gridSize}x${gridSize} bingo card. Get bingo by completing a row, column, or diagonal!`,
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+      objectives,
+      isBingo: true
+    };
+
+    await createChallenge(challengeData);
+  };
+
   const value = {
     challenges,
     userChallenges,
@@ -455,7 +491,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     updateProgress,
     getUserChallenges,
     refreshChallenges: fetchChallenges,
-    refreshProgress
+    refreshProgress,
+    createMockBingoChallenge
   };
 
   return (
