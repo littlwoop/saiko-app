@@ -17,6 +17,7 @@ import { Challenge, UserProgress } from "@/types";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ActivityList from "@/components/challenges/ActivityList";
+import BingoAnimation from "@/components/challenges/BingoAnimation";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,8 @@ export default function ChallengePage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [participantProgress, setParticipantProgress] = useState<UserProgress[]>([]);
   const [participants, setParticipants] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [showBingoAnimation, setShowBingoAnimation] = useState(false);
+  const [shownBingoWins, setShownBingoWins] = useState<Set<string>>(new Set());
   
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
@@ -140,6 +143,112 @@ export default function ChallengePage() {
     fetchParticipantProgress();
   }, [selectedUserId, challenge]);
   
+  // Add this function to check for Bingo wins
+  const checkForBingo = (progress: UserProgress[]) => {
+    if (!challenge?.isBingo) return false;
+
+    const gridSize = Math.sqrt(challenge.objectives.length);
+    const completedObjectives = new Set(
+      progress
+        .filter(p => (p.currentValue || 0) >= 1)
+        .map(p => p.objectiveId)
+    );
+
+    // Check rows
+    for (let i = 0; i < gridSize; i++) {
+      let rowComplete = true;
+      for (let j = 0; j < gridSize; j++) {
+        const index = i * gridSize + j;
+        if (!completedObjectives.has(challenge.objectives[index].id)) {
+          rowComplete = false;
+          break;
+        }
+      }
+      if (rowComplete) {
+        const winKey = `row-${i}`;
+        if (!shownBingoWins.has(winKey)) {
+          setShownBingoWins(prev => new Set([...prev, winKey]));
+          return true;
+        }
+      }
+    }
+
+    // Check columns
+    for (let j = 0; j < gridSize; j++) {
+      let colComplete = true;
+      for (let i = 0; i < gridSize; i++) {
+        const index = i * gridSize + j;
+        if (!completedObjectives.has(challenge.objectives[index].id)) {
+          colComplete = false;
+          break;
+        }
+      }
+      if (colComplete) {
+        const winKey = `col-${j}`;
+        if (!shownBingoWins.has(winKey)) {
+          setShownBingoWins(prev => new Set([...prev, winKey]));
+          return true;
+        }
+      }
+    }
+
+    // Check main diagonal
+    let mainDiagComplete = true;
+    for (let i = 0; i < gridSize; i++) {
+      const index = i * gridSize + i;
+      if (!completedObjectives.has(challenge.objectives[index].id)) {
+        mainDiagComplete = false;
+        break;
+      }
+    }
+    if (mainDiagComplete) {
+      const winKey = 'diag-main';
+      if (!shownBingoWins.has(winKey)) {
+        setShownBingoWins(prev => new Set([...prev, winKey]));
+        return true;
+      }
+    }
+
+    // Check anti-diagonal
+    let antiDiagComplete = true;
+    for (let i = 0; i < gridSize; i++) {
+      const index = i * gridSize + (gridSize - 1 - i);
+      if (!completedObjectives.has(challenge.objectives[index].id)) {
+        antiDiagComplete = false;
+        break;
+      }
+    }
+    if (antiDiagComplete) {
+      const winKey = 'diag-anti';
+      if (!shownBingoWins.has(winKey)) {
+        setShownBingoWins(prev => new Set([...prev, winKey]));
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Reset shown wins when switching users
+  useEffect(() => {
+    setShownBingoWins(new Set());
+  }, [selectedUserId]);
+
+  // Add effect to check for Bingo when progress changes
+  useEffect(() => {
+    if (challenge?.isBingo) {
+      const progressToCheck = selectedUserId ? participantProgress : userProgress;
+      const hasBingo = checkForBingo(progressToCheck);
+      if (hasBingo) {
+        setShowBingoAnimation(true);
+        // Hide animation after 3 seconds
+        const timer = setTimeout(() => {
+          setShowBingoAnimation(false);
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [challenge, selectedUserId, participantProgress, userProgress]);
+  
   if (loading || challengesLoading || !challenge) {
     return (
       <div className="container py-12">
@@ -168,6 +277,7 @@ export default function ChallengePage() {
   
   return (
     <div className="container py-8">
+      <BingoAnimation isVisible={showBingoAnimation} />
       <Link
         to="/challenges"
         className="mb-4 inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
