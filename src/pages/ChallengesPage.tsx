@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tabs";
 
 export default function ChallengesPage() {
-  const { challenges, userChallenges, loading, createMockBingoChallenge } = useChallenges();
+  const { challenges, userChallenges, loading } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -67,9 +67,6 @@ export default function ChallengesPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold">{t("challenges")}</h1>
           <div className="flex gap-2">
-            <Button onClick={createMockBingoChallenge} variant="outline">
-              Create Bingo Challenge
-            </Button>
             <Button asChild>
               <Link to="/challenges/create">
                 <Plus className="mr-2 h-4 w-4" />
