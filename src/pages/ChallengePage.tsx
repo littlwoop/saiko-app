@@ -100,12 +100,26 @@ export default function ChallengePage() {
     const fetchParticipants = async () => {
       if (!challenge) return;
       
-      // Use the participants array from the challenge data
-      setParticipants(challenge.participants.map(id => ({
-        id,
-        name: id === challenge.createdById ? challenge.creatorName : `User ${id.slice(0, 4)}`,
-        avatar: id === challenge.createdById ? challenge.creatorAvatar : undefined
-      })));
+      // Fetch user profiles for all participants
+      const { data: profiles, error } = await supabase
+        .from('user_profiles')
+        .select('id, name, avatar_url')
+        .in('id', challenge.participants);
+        
+      if (error) {
+        console.error('Error fetching participant profiles:', error);
+        return;
+      }
+      
+      // Map participants with their profiles
+      setParticipants(challenge.participants.map(id => {
+        const profile = profiles?.find(p => p.id === id);
+        return {
+          id,
+          name: profile?.name || `User ${id.slice(0, 4)}`,
+          avatar: profile?.avatar_url
+        };
+      }));
     };
     
     fetchParticipants();
