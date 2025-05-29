@@ -496,8 +496,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     const challengeData = {
       title: "June of Pain - Bingo Edition",
       description: "5 Felder in einer Reihe (horizontal, vertikal, diagonal) = BINGO! Pro Tag maximal 2 Felder abhaken! Alle Ziele sind einzeln zu bewerten",
-      startDate: new Date('2024-06-01T00:00:00Z').toISOString(),
-      endDate: new Date('2024-06-30T23:59:59Z').toISOString(),
+      startDate: new Date('2025-06-01T00:00:00Z').toISOString(),
+      endDate: new Date('2025-06-30T23:59:59Z').toISOString(),
       objectives,
       isBingo: true
     };
