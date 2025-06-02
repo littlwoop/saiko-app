@@ -79,11 +79,9 @@ export default function ChallengePage() {
   useEffect(() => {
     if (user && challenge && !challengesLoading) {
       // Calculate total points from all entries for this challenge
-      const challengeProgress = userProgress.filter(
-        p => p.userId === user.id && p.challengeId === challenge.id
-      );
+      const progressToUse = selectedUserId ? participantProgress : userProgress;
       
-      const totalPoints = challengeProgress.reduce((sum, progress) => {
+      const totalPoints = progressToUse.reduce((sum, progress) => {
         const objective = challenge.objectives.find(o => o.id === progress.objectiveId);
         if (objective) {
           return sum + (progress.currentValue * objective.pointsPerUnit);
@@ -94,7 +92,7 @@ export default function ChallengePage() {
       setTotalPoints(totalPoints);
       setProgress((totalPoints / challenge.totalPoints) * 100);
     }
-  }, [user, challenge, userProgress, challengesLoading]);
+  }, [user, challenge, userProgress, participantProgress, selectedUserId, challengesLoading]);
   
   useEffect(() => {
     const fetchParticipants = async () => {
