@@ -235,15 +235,14 @@ export default function ObjectiveItem({
                 </form>
               </DialogContent>
             </Dialog>
-            {!readOnly && isTouchDevice && (
+            {!readOnly && currentValue > 0 && (
               <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={handleReset}
-                className="flex items-center gap-1"
+                className="h-8 w-8"
               >
-                <RotateCcw className="h-4 w-4" />
-                {t("resetObjective")}
+                <RotateCcw className="h-3 w-3" />
               </Button>
             )}
           </CardFooter>
