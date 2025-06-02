@@ -353,21 +353,36 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
-      // Create a new entry for this progress update
-      const { error: insertError } = await supabase
-        .from('entries')
-        .insert({
-          user_id: user.id,
-          challenge_id: challengeId,
-          objective_id: objectiveId,
-          value: value,
-          notes: notes?.trim() || null,
-          username: user.name || `User ${user.id}`
-        });
+      // If value is 0, delete all existing entries for this objective
+      if (value === 0) {
+        const { error: deleteError } = await supabase
+          .from('entries')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('challenge_id', challengeId)
+          .eq('objective_id', objectiveId);
 
-      if (insertError) {
-        console.error('Error creating entry:', insertError);
-        return;
+        if (deleteError) {
+          console.error('Error deleting entries:', deleteError);
+          return;
+        }
+      } else {
+        // Create a new entry for this progress update
+        const { error: insertError } = await supabase
+          .from('entries')
+          .insert({
+            user_id: user.id,
+            challenge_id: challengeId,
+            objective_id: objectiveId,
+            value: value,
+            notes: notes?.trim() || null,
+            username: user.name || `User ${user.id}`
+          });
+
+        if (insertError) {
+          console.error('Error creating entry:', insertError);
+          return;
+        }
       }
 
       // Fetch all entries for this challenge to recalculate total score
@@ -423,8 +438,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       }
 
       toast({
-        title: "Progress Updated",
-        description: "Your progress has been saved successfully.",
+        title: value === 0 ? "Objective Reset" : "Progress Updated",
+        description: value === 0 ? "The objective has been reset." : "Your progress has been saved successfully.",
       });
     } catch (error) {
       console.error('Error updating progress:', error);

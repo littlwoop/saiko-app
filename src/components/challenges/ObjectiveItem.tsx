@@ -3,7 +3,7 @@ import { Objective, UserProgress } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, CheckCircle, Check } from "lucide-react";
+import { Trophy, CheckCircle, Check, RotateCcw } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -16,6 +16,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -92,106 +98,135 @@ export default function ObjectiveItem({
     setValue("0");
   };
 
+  const handleReset = async () => {
+    if (!user || readOnly) return;
+    updateProgress(challengeId, objective.id, 0);
+  };
+
   if (isBingo) {
     return (
-      <Card className={`relative ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''}`}>
-        <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
-          <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
-            {objective.title}
-          </CardTitle>
-        </CardHeader>
-        {!isCompleted && !readOnly && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-1 right-1 h-5 w-5"
-            onClick={() => {
-              if (user) {
-                updateProgress(challengeId, objective.id, 1);
-              }
-            }}
-          >
-            <Check className="h-3 w-3" />
-          </Button>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <Card className={`relative ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}>
+            <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
+              <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
+                {objective.title}
+              </CardTitle>
+            </CardHeader>
+            {!isCompleted && !readOnly && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-1 right-1 h-5 w-5"
+                onClick={() => {
+                  if (user) {
+                    updateProgress(challengeId, objective.id, 1);
+                  }
+                }}
+              >
+                <Check className="h-3 w-3" />
+              </Button>
+            )}
+            {isCompleted && (
+              <div className="absolute top-1 right-1">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
+            )}
+          </Card>
+        </ContextMenuTrigger>
+        {!readOnly && (
+          <ContextMenuContent>
+            <ContextMenuItem onClick={handleReset}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {t("resetObjective")}
+            </ContextMenuItem>
+          </ContextMenuContent>
         )}
-        {isCompleted && (
-          <div className="absolute top-1 right-1">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </div>
-        )}
-      </Card>
+      </ContextMenu>
     );
   }
 
   return (
-    <Card className={isCompleted ? 'border-challenge-teal bg-green-50/30' : ''}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-base flex items-center gap-2">
-            {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
-            {objective.title}
-          </CardTitle>
-          <div className="text-sm font-medium">
-            {objective.pointsPerUnit} {t('points')}/{objective.unit}
-          </div>
-        </div>
-        <CardDescription className="line-clamp-2 text-xs">
-          {objective.description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <Trophy className="h-4 w-4 text-challenge-purple" />
-              <span className="text-sm font-medium">
-                {Math.floor(pointsEarned)} / {Math.floor(targetPoints)} {t('points')}
-              </span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {currentValue} / {objective.targetValue} {objective.unit}
-            </span>
-          </div>
-          <Progress value={progressPercent} className="h-2" />
-        </div>
-      </CardContent>
-      <CardFooter className="pt-2">
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full">
-              {t('addProgress')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>{t('addProgress')}</DialogTitle>
-                <DialogDescription>
-                  {t('enterProgressFor')} {objective.title}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="progress-value">
-                    {t('progress')}: {currentValue} / {objective.targetValue} {objective.unit}
-                  </Label>
-                  <Input
-                    id="progress-value"
-                    type="number"
-                    min="0"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder={t('enterUnit').replace('{unit}', objective.unit)}
-                  />
-                </div>
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <Card className={`${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base flex items-center gap-2">
+                {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
+                {objective.title}
+              </CardTitle>
+              <div className="text-sm font-medium">
+                {objective.pointsPerUnit} {t('points')}/{objective.unit}
               </div>
-              <DialogFooter>
-                <Button type="submit">{t('saveProgress')}</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </CardFooter>
-    </Card>
+            </div>
+            <CardDescription className="line-clamp-2 text-xs">
+              {objective.description}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <Trophy className="h-4 w-4 text-challenge-purple" />
+                  <span className="text-sm font-medium">
+                    {Math.floor(pointsEarned)} / {Math.floor(targetPoints)} {t('points')}
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {currentValue} / {objective.targetValue} {objective.unit}
+                </span>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full">
+                  {t('addProgress')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleSubmit}>
+                  <DialogHeader>
+                    <DialogTitle>{t('addProgress')}</DialogTitle>
+                    <DialogDescription>
+                      {t('enterProgressFor')} {objective.title}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="progress-value">
+                        {t('progress')}: {currentValue} / {objective.targetValue} {objective.unit}
+                      </Label>
+                      <Input
+                        id="progress-value"
+                        type="number"
+                        min="0"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        placeholder={t('enterUnit').replace('{unit}', objective.unit)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">{t('saveProgress')}</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardFooter>
+        </Card>
+      </ContextMenuTrigger>
+      {!readOnly && (
+        <ContextMenuContent>
+          <ContextMenuItem onClick={handleReset}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            {t("resetObjective")}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      )}
+    </ContextMenu>
   );
 }

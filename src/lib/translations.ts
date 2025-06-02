@@ -179,6 +179,7 @@ export const translations = {
     addNotesAboutProgress: "Fügen Sie Notizen zu Ihrem Fortschritt hinzu...",
     saveProgress: "Fortschritt speichern",
     points: "Pkt",
+    resetObjective: "Ziel zurücksetzen",
 
     // Signup Form
     createAccount: "Konto erstellen",
@@ -390,6 +391,7 @@ export const translations = {
     addNotesAboutProgress: "Add any notes about your progress...",
     saveProgress: "Save Progress",
     points: "points",
+    resetObjective: "Reset Objective",
 
     // Signup Form
     createAccount: "Create Account",
