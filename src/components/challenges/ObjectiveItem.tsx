@@ -235,7 +235,7 @@ export default function ObjectiveItem({
                 </form>
               </DialogContent>
             </Dialog>
-            {!readOnly && currentValue > 0 && (
+            {!readOnly && entries.length > 0 && (
               <Button
                 variant="ghost"
                 size="icon"
