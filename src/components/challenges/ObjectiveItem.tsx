@@ -54,6 +54,7 @@ export default function ObjectiveItem({
   const [notes, setNotes] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -87,6 +88,14 @@ export default function ObjectiveItem({
     
     fetchEntries();
   }, [user, challengeId, objective.id]);
+
+  useEffect(() => {
+    // Check if device is touch-enabled
+    const checkTouchDevice = () => {
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkTouchDevice();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,9 +141,19 @@ export default function ObjectiveItem({
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </div>
             )}
+            {!readOnly && isTouchDevice && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute bottom-1 right-1 h-5 w-5"
+                onClick={handleReset}
+              >
+                <RotateCcw className="h-3 w-3" />
+              </Button>
+            )}
           </Card>
         </ContextMenuTrigger>
-        {!readOnly && (
+        {!readOnly && !isTouchDevice && (
           <ContextMenuContent>
             <ContextMenuItem onClick={handleReset}>
               <RotateCcw className="mr-2 h-4 w-4" />
@@ -180,10 +199,10 @@ export default function ObjectiveItem({
               <Progress value={progressPercent} className="h-2" />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex gap-2">
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full">
+                <Button variant="outline" size="sm" className="flex-1">
                   {t('addProgress')}
                 </Button>
               </DialogTrigger>
@@ -216,10 +235,21 @@ export default function ObjectiveItem({
                 </form>
               </DialogContent>
             </Dialog>
+            {!readOnly && isTouchDevice && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                className="flex items-center gap-1"
+              >
+                <RotateCcw className="h-4 w-4" />
+                {t("resetObjective")}
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </ContextMenuTrigger>
-      {!readOnly && (
+      {!readOnly && !isTouchDevice && (
         <ContextMenuContent>
           <ContextMenuItem onClick={handleReset}>
             <RotateCcw className="mr-2 h-4 w-4" />
