@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Objective, UserProgress } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,7 @@ export default function ObjectiveItem({
   const [isOpen, setIsOpen] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout>();
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -90,9 +91,9 @@ export default function ObjectiveItem({
   }, [user, challengeId, objective.id]);
 
   useEffect(() => {
-    // Check if device is touch-enabled
     const checkTouchDevice = () => {
-      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsTouchDevice(isTouch);
     };
     checkTouchDevice();
   }, []);
@@ -112,11 +113,35 @@ export default function ObjectiveItem({
     updateProgress(challengeId, objective.id, 0);
   };
 
+  const handleLongPress = (e: React.TouchEvent) => {
+    if (readOnly) return;
+    e.preventDefault();
+    longPressTimer.current = setTimeout(() => {
+      const contextMenuEvent = new MouseEvent('contextmenu', {
+        bubbles: true,
+        clientX: e.touches[0].clientX,
+        clientY: e.touches[0].clientY
+      });
+      e.currentTarget.dispatchEvent(contextMenuEvent);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
   if (isBingo) {
     return (
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card className={`relative ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}>
+          <Card 
+            className={`relative ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
+            onTouchStart={handleLongPress}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+          >
             <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
               <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
                 {objective.title}
@@ -141,19 +166,9 @@ export default function ObjectiveItem({
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </div>
             )}
-            {!readOnly && isTouchDevice && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute bottom-1 right-1 h-5 w-5"
-                onClick={handleReset}
-              >
-                <RotateCcw className="h-3 w-3" />
-              </Button>
-            )}
           </Card>
         </ContextMenuTrigger>
-        {!readOnly && !isTouchDevice && (
+        {!readOnly && entries.length > 0 && (
           <ContextMenuContent>
             <ContextMenuItem onClick={handleReset}>
               <RotateCcw className="mr-2 h-4 w-4" />
@@ -168,7 +183,12 @@ export default function ObjectiveItem({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <Card className={`${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}>
+        <Card 
+          className={`${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
+          onTouchStart={handleLongPress}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+        >
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
               <CardTitle className="text-base flex items-center gap-2">
@@ -199,10 +219,10 @@ export default function ObjectiveItem({
               <Progress value={progressPercent} className="h-2" />
             </div>
           </CardContent>
-          <CardFooter className="flex gap-2">
+          <CardFooter>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full">
                   {t('addProgress')}
                 </Button>
               </DialogTrigger>
@@ -235,20 +255,10 @@ export default function ObjectiveItem({
                 </form>
               </DialogContent>
             </Dialog>
-            {!readOnly && entries.length > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleReset}
-                className="h-8 w-8"
-              >
-                <RotateCcw className="h-3 w-3" />
-              </Button>
-            )}
           </CardFooter>
         </Card>
       </ContextMenuTrigger>
-      {!readOnly && !isTouchDevice && (
+      {!readOnly && entries.length > 0 && (
         <ContextMenuContent>
           <ContextMenuItem onClick={handleReset}>
             <RotateCcw className="mr-2 h-4 w-4" />
