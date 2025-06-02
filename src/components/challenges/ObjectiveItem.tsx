@@ -116,6 +116,7 @@ export default function ObjectiveItem({
   const handleLongPress = (e: React.TouchEvent) => {
     if (readOnly) return;
     e.preventDefault();
+    (e.currentTarget as HTMLElement).style.userSelect = 'none';
     longPressTimer.current = setTimeout(() => {
       const contextMenuEvent = new MouseEvent('contextmenu', {
         bubbles: true,
@@ -126,10 +127,11 @@ export default function ObjectiveItem({
     }, 500);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
+    (e.currentTarget as HTMLElement).style.userSelect = '';
   };
 
   if (isBingo) {
@@ -137,7 +139,7 @@ export default function ObjectiveItem({
       <ContextMenu>
         <ContextMenuTrigger>
           <Card 
-            className={`relative ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
+            className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
             onTouchStart={handleLongPress}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
@@ -184,7 +186,7 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card 
-          className={`${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
+          className={`select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
           onTouchStart={handleLongPress}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
