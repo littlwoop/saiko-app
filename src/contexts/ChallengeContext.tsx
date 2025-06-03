@@ -4,6 +4,20 @@ import { useAuth } from "./AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 
+// Debug logging utility
+const debug = {
+  log: (...args: unknown[]): void => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[ChallengeContext]', ...args);
+    }
+  },
+  error: (...args: unknown[]): void => {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[ChallengeContext]', ...args);
+    }
+  }
+};
+
 interface ChallengeContextType {
   createChallenge: (challenge: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => Promise<void>;
   joinChallenge: (challengeId: string) => Promise<void>;
@@ -35,6 +49,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get a single challenge by ID
   const getChallenge = async (challengeId: string): Promise<Challenge | null> => {
+    debug.log(`Getting challenge with ID: ${challengeId}`);
     try {
       const { data, error } = await supabase
         .from('challenges')
@@ -43,7 +58,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) {
-        console.error('Error fetching challenge:', error);
+        debug.error('Error fetching challenge:', error);
         toast({ 
           title: "Error", 
           description: error.message, 
@@ -52,9 +67,10 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
+      debug.log('Successfully fetched challenge:', data);
       return data;
     } catch (err) {
-      console.error('Unexpected error:', err);
+      debug.error('Unexpected error:', err);
       toast({ 
         title: "Error", 
         description: "Failed to load challenge", 
@@ -66,6 +82,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get all challenges for the current user
   const getUserChallenges = async (): Promise<UserChallenge[]> => {
+    debug.log('Getting challenges for user:', user?.id);
     if (!user) return [];
 
     try {
@@ -75,7 +92,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .contains('participants', JSON.stringify([user.id]));
 
       if (challengesError) {
-        console.error('Error fetching user challenges:', challengesError);
+        debug.error('Error fetching user challenges:', challengesError);
         toast({ 
           title: "Error", 
           description: challengesError.message, 
@@ -84,14 +101,15 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return [];
       }
 
+      debug.log('Successfully fetched user challenges:', challengesData);
       return (challengesData || []).map(challenge => ({
         userId: user.id,
         challengeId: challenge.id,
         joinedAt: new Date().toISOString(),
-        totalScore: 0 // This will be calculated when needed
+        totalScore: 0
       }));
     } catch (err) {
-      console.error('Unexpected error:', err);
+      debug.error('Unexpected error:', err);
       toast({ 
         title: "Error", 
         description: "Failed to load user challenges", 
@@ -103,6 +121,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get progress for a specific challenge
   const getChallengeProgress = async (challengeId: string): Promise<UserProgress[]> => {
+    debug.log(`Getting progress for challenge: ${challengeId}, user: ${user?.id}`);
     if (!user) return [];
 
     try {
@@ -115,7 +134,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .returns<Entry[]>();
 
       if (entriesError) {
-        console.error('Error fetching entries:', entriesError);
+        debug.error('Error fetching entries:', entriesError);
         toast({
           title: "Error",
           description: "Failed to load progress data",
@@ -123,6 +142,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         });
         return [];
       }
+
+      debug.log('Successfully fetched entries:', entriesData);
 
       if (entriesData) {
         const progressMap = entriesData.reduce((acc, entry) => {
@@ -139,12 +160,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           return acc;
         }, {} as Record<string, UserProgress>);
 
-        return Object.values(progressMap);
+        const progress = Object.values(progressMap);
+        debug.log('Calculated progress:', progress);
+        return progress;
       }
 
       return [];
     } catch (error) {
-      console.error('Error loading entries:', error);
+      debug.error('Error loading entries:', error);
       toast({
         title: "Error",
         description: "Failed to load challenge progress",
@@ -156,6 +179,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Create a new challenge
   const createChallenge = async (challengeData: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => {
+    debug.log('Creating new challenge:', challengeData);
     if (!user) {
       toast({
         title: "Error",
@@ -179,19 +203,24 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       isBingo: challengeData.isBingo || false,
     };
 
+    debug.log('Prepared challenge data:', newChallenge);
+
     const { error } = await supabase
       .from('challenges')
       .insert([newChallenge]);
 
     if (error) {
+      debug.error('Error creating challenge:', error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      debug.log('Successfully created challenge');
       toast({ title: "Success!", description: "Challenge created successfully" });
     }
   };
 
   // Join a challenge
   const joinChallenge = async (challengeId: string) => {
+    debug.log(`Joining challenge: ${challengeId}, user: ${user?.id}`);
     if (!user) {
       toast({
         title: "Error",
@@ -209,15 +238,18 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (fetchError) {
-        console.error('Error fetching challenge:', fetchError);
+        debug.error('Error fetching challenge:', fetchError);
         throw fetchError;
       }
+
+      debug.log('Current challenge data:', challengeData);
 
       const currentParticipants = Array.isArray(challengeData?.participants) 
         ? challengeData.participants 
         : [];
 
       if (currentParticipants.includes(user.id)) {
+        debug.log('User already joined this challenge');
         toast({
           title: "Info",
           description: "You've already joined this challenge",
@@ -233,16 +265,17 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', challengeId);
 
       if (updateError) {
-        console.error('Error updating participants:', updateError);
+        debug.error('Error updating participants:', updateError);
         throw updateError;
       }
 
+      debug.log('Successfully joined challenge');
       toast({
         title: "Success!",
         description: "You've joined the challenge successfully",
       });
     } catch (error) {
-      console.error('Error joining challenge:', error);
+      debug.error('Error joining challenge:', error);
       toast({
         title: "Error",
         description: "Failed to join challenge",
@@ -253,10 +286,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Update progress for a challenge
   const updateProgress = async (challengeId: string, objectiveId: string, value: number, notes?: string) => {
+    debug.log(`Updating progress - Challenge: ${challengeId}, Objective: ${objectiveId}, Value: ${value}, Notes: ${notes}`);
     if (!user) return;
 
     try {
       if (value === 0) {
+        debug.log('Resetting objective progress');
         const { error: deleteError } = await supabase
           .from('entries')
           .delete()
@@ -265,10 +300,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           .eq('objective_id', objectiveId);
 
         if (deleteError) {
-          console.error('Error deleting entries:', deleteError);
+          debug.error('Error deleting entries:', deleteError);
           return;
         }
       } else {
+        debug.log('Creating new progress entry');
         const { error: insertError } = await supabase
           .from('entries')
           .insert({
@@ -281,17 +317,18 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           });
 
         if (insertError) {
-          console.error('Error creating entry:', insertError);
+          debug.error('Error creating entry:', insertError);
           return;
         }
       }
 
+      debug.log('Successfully updated progress');
       toast({
         title: value === 0 ? "Objective Reset" : "Progress Updated",
         description: value === 0 ? "The objective has been reset." : "Your progress has been saved successfully.",
       });
     } catch (error) {
-      console.error('Error updating progress:', error);
+      debug.error('Error updating progress:', error);
       toast({
         title: "Error",
         description: "Failed to update progress. Please try again.",
@@ -332,6 +369,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get progress for a specific participant
   const getParticipantProgress = async (challengeId: string, userId: string): Promise<UserProgress[]> => {
+    debug.log(`Getting progress for participant - Challenge: ${challengeId}, User: ${userId}`);
     try {
       const { data: entriesData, error: entriesError } = await supabase
         .from('entries')
@@ -342,7 +380,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .returns<Entry[]>();
 
       if (entriesError) {
-        console.error('Error fetching entries:', entriesError);
+        debug.error('Error fetching entries:', entriesError);
         toast({
           title: "Error",
           description: "Failed to load progress data",
@@ -350,6 +388,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         });
         return [];
       }
+
+      debug.log('Successfully fetched participant entries:', entriesData);
 
       if (entriesData) {
         const progressMap = entriesData.reduce((acc, entry) => {
@@ -366,12 +406,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           return acc;
         }, {} as Record<string, UserProgress>);
 
-        return Object.values(progressMap);
+        const progress = Object.values(progressMap);
+        debug.log('Calculated participant progress:', progress);
+        return progress;
       }
 
       return [];
     } catch (error) {
-      console.error('Error loading entries:', error);
+      debug.error('Error loading entries:', error);
       toast({
         title: "Error",
         description: "Failed to load challenge progress",
@@ -383,6 +425,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get participants for a challenge
   const getParticipants = async (challengeId: string): Promise<Array<{ id: string; name: string; avatar?: string }>> => {
+    debug.log(`Getting participants for challenge: ${challengeId}`);
     try {
       const { data: challengeData, error: challengeError } = await supabase
         .from('challenges')
@@ -391,9 +434,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (challengeError || !challengeData) {
-        console.error('Error fetching challenge:', challengeError);
+        debug.error('Error fetching challenge:', challengeError);
         return [];
       }
+
+      debug.log('Challenge participants:', challengeData.participants);
 
       const { data: profiles, error: profilesError } = await supabase
         .from('user_profiles')
@@ -401,11 +446,13 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .in('id', challengeData.participants);
 
       if (profilesError) {
-        console.error('Error fetching participant profiles:', profilesError);
+        debug.error('Error fetching participant profiles:', profilesError);
         return [];
       }
 
-      return challengeData.participants.map(id => {
+      debug.log('Participant profiles:', profiles);
+
+      const participants = challengeData.participants.map(id => {
         const profile = profiles?.find(p => p.id === id);
         return {
           id,
@@ -413,14 +460,18 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           avatar: profile?.avatar_url
         };
       });
+
+      debug.log('Processed participants:', participants);
+      return participants;
     } catch (error) {
-      console.error('Error loading participants:', error);
+      debug.error('Error loading participants:', error);
       return [];
     }
   };
 
   // Get creator's avatar
   const getCreatorAvatar = async (userId: string): Promise<string | undefined> => {
+    debug.log(`Getting creator avatar for user: ${userId}`);
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -429,13 +480,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) {
-        console.error('Error fetching creator avatar:', error);
+        debug.error('Error fetching creator avatar:', error);
         return undefined;
       }
 
+      debug.log('Creator avatar URL:', data?.avatar_url);
       return data?.avatar_url;
     } catch (error) {
-      console.error('Error loading creator avatar:', error);
+      debug.error('Error loading creator avatar:', error);
       return undefined;
     }
   };
@@ -459,7 +511,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     </ChallengeContext.Provider>
   );
 };
-
 export const useChallenges = () => {
   const context = useContext(ChallengeContext);
   if (context === undefined) {
@@ -467,3 +518,4 @@ export const useChallenges = () => {
   }
   return context;
 };
+

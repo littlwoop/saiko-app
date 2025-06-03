@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Objective, UserProgress } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ObjectiveItemProps {
@@ -34,13 +33,6 @@ interface ObjectiveItemProps {
   progress?: UserProgress;
   isBingo?: boolean;
   readOnly?: boolean;
-}
-
-interface Entry {
-  id: string;
-  value: number;
-  created_at: string;
-  notes?: string;
 }
 
 export default function ObjectiveItem({
@@ -53,7 +45,6 @@ export default function ObjectiveItem({
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [entries, setEntries] = useState<Entry[]>([]);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout>();
   const { updateProgress } = useChallenges();
@@ -68,70 +59,36 @@ export default function ObjectiveItem({
   const pointsEarned = currentValue * objective.pointsPerUnit;
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
 
-  useEffect(() => {
-    const fetchEntries = async () => {
-      if (!user) return;
-      
-      const { data, error } = await supabase
-        .from('entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('challenge_id', challengeId)
-        .eq('objective_id', objective.id)
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error('Error fetching entries:', error);
-      } else {
-        setEntries(data || []);
-      }
-    };
-    
-    fetchEntries();
-  }, [user, challengeId, objective.id]);
-
-  useEffect(() => {
-    const checkTouchDevice = () => {
-      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      setIsTouchDevice(isTouch);
-    };
-    checkTouchDevice();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    
-    const newValue = parseInt(value) || 0;
-    updateProgress(challengeId, objective.id, newValue);
-    setIsOpen(false);
-    setValue("0");
+  const handleLongPress = () => {
+    if (isTouchDevice && !readOnly) {
+      longPressTimer.current = setTimeout(() => {
+        setIsOpen(true);
+      }, 500);
+    }
   };
 
-  const handleReset = async () => {
-    if (!user || readOnly) return;
-    updateProgress(challengeId, objective.id, 0);
-  };
-
-  const handleLongPress = (e: React.TouchEvent) => {
-    if (readOnly) return;
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).style.userSelect = 'none';
-    longPressTimer.current = setTimeout(() => {
-      const contextMenuEvent = new MouseEvent('contextmenu', {
-        bubbles: true,
-        clientX: e.touches[0].clientX,
-        clientY: e.touches[0].clientY
-      });
-      e.currentTarget.dispatchEvent(contextMenuEvent);
-    }, 500);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
-    (e.currentTarget as HTMLElement).style.userSelect = '';
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) return;
+
+    updateProgress(challengeId, objective.id, numericValue, notes);
+    setIsOpen(false);
+    setValue("0");
+    setNotes("");
+  };
+
+  const handleReset = () => {
+    if (!user) return;
+    updateProgress(challengeId, objective.id, 0);
   };
 
   if (isBingo) {
@@ -170,7 +127,7 @@ export default function ObjectiveItem({
             )}
           </Card>
         </ContextMenuTrigger>
-        {!readOnly && entries.length > 0 && (
+        {!readOnly && (
           <ContextMenuContent>
             <ContextMenuItem onClick={handleReset}>
               <RotateCcw className="mr-2 h-4 w-4" />
@@ -250,6 +207,17 @@ export default function ObjectiveItem({
                         placeholder={t('enterUnit').replace('{unit}', objective.unit)}
                       />
                     </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="notes">
+                        {t('notes')}
+                      </Label>
+                      <Textarea
+                        id="notes"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder={t('addNotesAboutProgress')}
+                      />
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button type="submit">{t('saveProgress')}</Button>
@@ -260,7 +228,7 @@ export default function ObjectiveItem({
           </CardFooter>
         </Card>
       </ContextMenuTrigger>
-      {!readOnly && entries.length > 0 && (
+      {!readOnly && (
         <ContextMenuContent>
           <ContextMenuItem onClick={handleReset}>
             <RotateCcw className="mr-2 h-4 w-4" />
