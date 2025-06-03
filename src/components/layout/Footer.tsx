@@ -1,4 +1,3 @@
-import { Activity } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,7 +13,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col gap-2">
             <Link to="/" className="flex items-center gap-2">
-              <Activity className="h-6 w-6 text-challenge-purple" />
+              <img src="/icon-192.png" alt="Saiko" className="h-6 w-6" />
               <span className="text-xl font-bold gradient-text">Saiko</span>
             </Link>
             <p className="text-sm text-muted-foreground">
