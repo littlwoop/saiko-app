@@ -127,10 +127,10 @@ export default function ChallengesPage() {
     <div className="container py-10">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h1 className="text-3xl font-bold tracking-tight">{t("challenges")}</h1>
             {user && (
-              <Button asChild>
+              <Button asChild className="w-full sm:w-auto">
                 <Link to="/challenges/create">
                   <Plus className="mr-2 h-4 w-4" />
                   {t("createChallenge")}
@@ -139,7 +139,7 @@ export default function ChallengesPage() {
             )}
           </div>
           
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -149,7 +149,7 @@ export default function ChallengesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-          </div>
+          </div> */}
         </div>
         
         <Tabs defaultValue={activeTab}>
