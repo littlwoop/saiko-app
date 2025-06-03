@@ -221,10 +221,14 @@ export const translations = {
     demoNote: "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden",
 
     // Avatar Upload
-    fileTooLarge: "Die Datei ist zu groß. Maximale Größe ist 5MB.",
+    fileTooLarge: "Datei ist zu groß. Maximale Größe ist 5MB.",
     invalidFileType: "Ungültiger Dateityp. Bitte wählen Sie ein Bild aus.",
     avatarUpdated: "Profilbild wurde erfolgreich aktualisiert.",
-    avatarUpdateFailed: "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    avatarUpdateFailed: "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+    cropImage: "Bild zuschneiden",
+    cancel: "Abbrechen",
+    save: "Speichern",
+    uploading: "Wird hochgeladen...",
   },
   en: {
     // Navigation
@@ -451,7 +455,11 @@ export const translations = {
     fileTooLarge: "File is too large. Maximum size is 5MB.",
     invalidFileType: "Invalid file type. Please select an image.",
     avatarUpdated: "Profile picture has been updated successfully.",
-    avatarUpdateFailed: "Failed to update profile picture. Please try again."
+    avatarUpdateFailed: "Failed to update profile picture. Please try again.",
+    cropImage: "Crop Image",
+    cancel: "Cancel",
+    save: "Save",
+    uploading: "Uploading...",
   }
 };
 

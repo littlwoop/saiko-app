@@ -21,6 +21,14 @@ import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import imageCompression from 'browser-image-compression';
 import { Challenge, UserChallenge } from "@/types";
+import ReactCrop, { Crop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -35,6 +43,16 @@ export default function ProfilePage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [crop, setCrop] = useState<Crop>({
+    unit: '%',
+    width: 100,
+    height: 100,
+    x: 0,
+    y: 0
+  });
+  const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null);
   
   const loadChallenges = async () => {
     if (!user || isLoading) return;
@@ -87,48 +105,110 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: t("error"),
+        description: t("fileTooLarge"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: t("error"),
+        description: t("invalidFileType"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setCropDialogOpen(true);
+  };
+
+  const getCroppedImg = async (image: HTMLImageElement, crop: Crop): Promise<Blob> => {
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    // Calculate the actual pixel values for the crop
+    const pixelCrop = {
+      x: crop.x * scaleX,
+      y: crop.y * scaleY,
+      width: crop.width * scaleX,
+      height: crop.height * scaleY
+    };
+
+    // Set canvas dimensions to match the crop size
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+    
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('No 2d context');
+    }
+
+    // Draw the cropped image
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('Canvas is empty'));
+          return;
+        }
+        resolve(blob);
+      }, 'image/jpeg', 0.95); // Increased quality to 0.95
+    });
+  };
+
+  const handleCropComplete = async () => {
+    if (!selectedFile || !imageRef || !user) return;
+
     try {
       setIsUploading(true);
+      setCropDialogOpen(false);
 
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: t("error"),
-          description: t("fileTooLarge"),
-          variant: "destructive",
-        });
-        return;
-      }
+      // Get cropped image
+      const croppedImageBlob = await getCroppedImg(imageRef, crop);
+      const croppedFile = new File([croppedImageBlob], selectedFile.name, {
+        type: 'image/jpeg',
+      });
 
-      // Check file type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: t("error"),
-          description: t("invalidFileType"),
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Compress and resize the image
+      // Compress the cropped image with better quality settings
       const options = {
         maxSizeMB: 1,
         maxWidthOrHeight: 1024,
         useWebWorker: true,
-        fileType: file.type,
+        fileType: 'image/jpeg',
+        initialQuality: 0.9, // Increased initial quality
       };
 
-      const compressedFile = await imageCompression(file, options);
+      const compressedFile = await imageCompression(croppedFile, options);
 
       // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
+      const fileExt = 'jpg';
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, compressedFile, {
           cacheControl: '3600',
           upsert: true,
-          contentType: file.type
+          contentType: 'image/jpeg'
         });
 
       if (uploadError) {
@@ -164,6 +244,7 @@ export default function ProfilePage() {
       });
     } finally {
       setIsUploading(false);
+      setSelectedFile(null);
     }
   };
   
@@ -368,6 +449,47 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("cropImage")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedFile && (
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                aspect={1}
+                className="max-h-[400px] w-full"
+                style={{ maxWidth: '100%', height: 'auto' }}
+              >
+                <img
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Crop preview"
+                  ref={setImageRef}
+                  className="max-h-[400px] w-full object-contain"
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                />
+              </ReactCrop>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCropDialogOpen(false);
+                  setSelectedFile(null);
+                }}
+              >
+                {t("cancel")}
+              </Button>
+              <Button onClick={handleCropComplete} disabled={isUploading}>
+                {isUploading ? t("uploading") : t("save")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
