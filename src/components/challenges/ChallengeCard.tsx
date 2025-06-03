@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 interface ChallengeCardProps {
   challenge: Challenge;
@@ -24,17 +24,16 @@ export default function ChallengeCard({
   userScore = 0,
   showJoin = true 
 }: ChallengeCardProps) {
-  const { joinChallenge, userChallenges, refreshProgress } = useChallenges();
+  const { joinChallenge, getChallengeProgress } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const [progress, setProgress] = useState(0);
+  const [loading, setLoading] = useState(false);
   
   const locale = language === 'de' ? de : enUS;
   
-  const hasJoined = user && (
-    userChallenges.some(uc => uc.userId === user.id && uc.challengeId === challenge.id) ||
-    challenge.participants.includes(user.id)
-  );
+  const hasJoined = user && challenge.participants.includes(user.id);
   
   const startDate = new Date(challenge.startDate);
   const endDate = new Date(challenge.endDate);
@@ -45,14 +44,33 @@ export default function ChallengeCard({
   const isPast = today > endDate;
   
   const totalObjectives = challenge.objectives.length;
-  const progress = userScore / challenge.totalPoints * 100;
+  const progressPercentage = userScore / challenge.totalPoints * 100;
 
-  // Refresh progress when the component mounts or when userScore changes
+  // Load progress when the component mounts or when userScore changes
   useEffect(() => {
-    if (hasJoined) {
-      refreshProgress(challenge.id);
-    }
-  }, [hasJoined, challenge.id, refreshProgress]);
+    const loadProgress = async () => {
+      if (hasJoined) {
+        setLoading(true);
+        try {
+          const progressData = await getChallengeProgress(challenge.id);
+          const totalPoints = progressData.reduce((sum, progress) => {
+            const objective = challenge.objectives.find(o => o.id === progress.objectiveId);
+            if (objective) {
+              return sum + (progress.currentValue * objective.pointsPerUnit);
+            }
+            return sum;
+          }, 0);
+          setProgress((totalPoints / challenge.totalPoints) * 100);
+        } catch (error) {
+          console.error('Error loading progress:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadProgress();
+  }, [hasJoined, challenge.id, challenge.objectives, challenge.totalPoints, getChallengeProgress]);
   
   return (
     <Card className="overflow-hidden flex flex-col h-full transition-all hover:shadow-md">
@@ -65,7 +83,8 @@ export default function ChallengeCard({
         </div>
         <CardDescription className="line-clamp-2">{challenge.description}</CardDescription>
       </CardHeader>
-      <CardContent className="pb-2 flex-grow">
+      
+      <CardContent className="flex-1">
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
@@ -98,7 +117,8 @@ export default function ChallengeCard({
           )}
         </div>
       </CardContent>
-      <CardFooter className="pt-3">
+      
+      <CardFooter>
         {user ? (
           hasJoined ? (
             <Button asChild className="w-full" variant="outline">
@@ -109,9 +129,10 @@ export default function ChallengeCard({
               <Button 
                 className="w-full" 
                 onClick={() => joinChallenge(challenge.id)}
+                disabled={loading}
               >
                 <Trophy className="mr-2 h-4 w-4" />
-                {t('joinChallenge')}
+                {loading ? t('loading') : t('joinChallenge')}
               </Button>
             )
           )

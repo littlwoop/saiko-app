@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface BingoAnimationProps {
   isVisible: boolean;
+  onComplete?: () => void;
 }
 
-export default function BingoAnimation({ isVisible }: BingoAnimationProps) {
+export default function BingoAnimation({ isVisible, onComplete }: BingoAnimationProps) {
   useEffect(() => {
     if (isVisible) {
       // Trigger confetti
@@ -22,6 +23,7 @@ export default function BingoAnimation({ isVisible }: BingoAnimationProps) {
 
         if (timeLeft <= 0) {
           clearInterval(interval);
+          onComplete?.();
           return;
         }
 
@@ -39,7 +41,7 @@ export default function BingoAnimation({ isVisible }: BingoAnimationProps) {
 
       return () => clearInterval(interval);
     }
-  }, [isVisible]);
+  }, [isVisible, onComplete]);
 
   return (
     <AnimatePresence>

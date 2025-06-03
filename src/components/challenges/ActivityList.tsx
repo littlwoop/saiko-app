@@ -6,6 +6,8 @@ import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRound } from "lucide-react";
+import { useChallenges } from "@/contexts/ChallengeContext";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Objective {
   id: string;
@@ -30,6 +32,7 @@ interface ActivityListProps {
 export default function ActivityList({ challengeId }: ActivityListProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const { getChallenge } = useChallenges();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [objectives, setObjectives] = useState<Record<string, Objective>>({});
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,16 @@ export default function ActivityList({ challengeId }: ActivityListProps) {
     const fetchData = async () => {
       try {
         setLoading(true);
+        
+        // Fetch challenge to get objectives
+        const challenge = await getChallenge(challengeId);
+        if (challenge) {
+          const objectivesMap = challenge.objectives.reduce((acc, objective) => ({
+            ...acc,
+            [objective.id]: objective
+          }), {});
+          setObjectives(objectivesMap);
+        }
         
         // Fetch activities
         const { data: activitiesData, error: activitiesError } = await supabase
@@ -69,22 +82,6 @@ export default function ActivityList({ challengeId }: ActivityListProps) {
             setUserAvatars(avatarMap);
           }
         }
-        
-        // Fetch objectives
-        const { data: objectivesData, error: objectivesError } = await supabase
-          .from('objectives')
-          .select('*')
-          .eq('challenge_id', challengeId);
-          
-        if (objectivesError) {
-          console.error('Error fetching objectives:', objectivesError);
-        } else {
-          const objectivesMap = (objectivesData || []).reduce((acc, objective) => ({
-            ...acc,
-            [objective.id]: objective
-          }), {});
-          setObjectives(objectivesMap);
-        }
       } catch (error) {
         console.error('Unexpected error:', error);
       } finally {
@@ -93,7 +90,7 @@ export default function ActivityList({ challengeId }: ActivityListProps) {
     };
     
     fetchData();
-  }, [challengeId]);
+  }, [challengeId, getChallenge]);
   
   const locale = language === 'de' ? de : enUS;
   
@@ -116,43 +113,50 @@ export default function ActivityList({ challengeId }: ActivityListProps) {
   }
   
   return (
-    <div className="space-y-4">
-      {activities.map((activity) => {
-        const objective = objectives[activity.objective_id];
-        
-        return (
-          <div key={activity.id} className="flex items-start gap-4 p-4 rounded-lg border">
-            <Avatar className="h-10 w-10">
-              {userAvatars[activity.user_id] && (
-                <AvatarImage 
-                  src={userAvatars[activity.user_id]} 
-                  onError={(e) => {
-                    // Hide the image on error
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              )}
-              <AvatarFallback>
-                <UserRound className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{activity.username}</span>
-                <span className="text-sm text-muted-foreground">
-                  {format(new Date(activity.created_at), t('dateFormatLong'), { locale })}
-                </span>
-              </div>
-              <p className="text-sm">
-                {t("addedValue").replace("{value}", `${activity.value} ${objective?.unit}`)} {t("forObjective")} "{objective?.title}"
-              </p>
-              {activity.notes && (
-                <p className="text-sm text-muted-foreground">{activity.notes}</p>
-              )}
-            </div>
-          </div>
-        );
-      })}
+    <div className="rounded-md border">
+      <Table>
+        <TableBody>
+          {activities.map((activity) => {
+            const objective = objectives[activity.objective_id];
+            
+            return (
+              <TableRow key={activity.id}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      {userAvatars[activity.user_id] && (
+                        <AvatarImage 
+                          src={userAvatars[activity.user_id]} 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <AvatarFallback>
+                        <UserRound className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{activity.username}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-1">
+                    <p className="text-sm">
+                      {t("addedValue").replace("{value}", `${activity.value} ${objective?.unit}`)} {t("forObjective")} "{objective?.title}"
+                    </p>
+                    {activity.notes && (
+                      <p className="text-sm text-muted-foreground">{activity.notes}</p>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {format(new Date(activity.created_at), t('dateFormatLong') + ' HH:mm', { locale })}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 } 

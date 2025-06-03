@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import LeaderboardTable from "@/components/challenges/LeaderboardTable";
 import {
@@ -11,18 +11,54 @@ import {
 import { Trophy } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
+import { Challenge } from "@/types";
+import { supabase } from "@/lib/supabase";
 
 export default function LeaderboardPage() {
-  const { challenges } = useChallenges();
+  const { getChallenge } = useChallenges();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  const [selectedChallenge, setSelectedChallenge] = useState<string | undefined>(
-    undefined
-  );
+  const [selectedChallenge, setSelectedChallenge] = useState<string | undefined>(undefined);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        setLoading(true);
+        const { data: challengesData, error } = await supabase
+          .from('challenges')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching challenges:', error);
+        } else {
+          setChallenges(challengesData || []);
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchChallenges();
+  }, []);
   
   const handleChallengeChange = (value: string) => {
     setSelectedChallenge(value === "all" ? undefined : value);
   };
+  
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container py-8">

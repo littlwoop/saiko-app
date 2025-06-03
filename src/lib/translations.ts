@@ -87,6 +87,14 @@ export const translations = {
     noActivitiesDescription: "Es wurden noch keine Aktivitäten für diese Herausforderung aufgezeichnet",
     addedValue: "{value} hinzugefügt",
     forObjective: "Für Ziel",
+    challengeNotFound: "Herausforderung nicht gefunden",
+    challengeNotFoundDescription: "Die gesuchte Herausforderung konnte nicht gefunden werden.",
+    backToChallenges: "Zurück zu den Herausforderungen",
+    duration: "Dauer",
+    total: "Gesamt",
+    yourProgress: "Dein Fortschritt",
+    selectParticipant: "Teilnehmer auswählen",
+    recentActivity: "Letzte Aktivitäten",
 
     // Profile
     updateProfile: "Profil aktualisieren",
@@ -109,6 +117,7 @@ export const translations = {
     next: "Weiter",
     previous: "Zurück",
     morePages: "Weitere Seiten",
+    loadMore: "Mehr laden",
 
     target: "Ziel",
     deadline: "Frist",
@@ -305,6 +314,14 @@ export const translations = {
     noActivitiesDescription: "No activities have been recorded for this challenge yet",
     addedValue: "Added {value}",
     forObjective: "For objective",
+    challengeNotFound: "Challenge not found",
+    challengeNotFoundDescription: "The requested challenge could not be found.",
+    backToChallenges: "Back to Challenges",
+    duration: "Duration",
+    total: "Total",
+    yourProgress: "Your Progress",
+    selectParticipant: "Select Participant",
+    recentActivity: "Recent Activity",
 
     // Profile
     updateProfile: "Update Profile",
@@ -327,6 +344,7 @@ export const translations = {
     next: "Next",
     previous: "Previous",
     morePages: "More pages",
+    loadMore: "Load More",
 
     target: "Target",
     deadline: "Deadline",

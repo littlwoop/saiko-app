@@ -29,7 +29,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
-  const { userChallenges, userProgress, joinChallenge, loading: challengesLoading, refreshProgress } = useChallenges();
+  const { getChallenge, joinChallenge, getChallengeProgress, getParticipantProgress, getParticipants, getCreatorAvatar } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -45,41 +45,60 @@ export default function ChallengePage() {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("objectives");
   const [creatorAvatar, setCreatorAvatar] = useState<string | undefined>(undefined);
+  const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
   
+  // Load challenge data
   useEffect(() => {
     const fetchChallenge = async () => {
       if (!id) return;
       
       setLoading(true);
-      const { data, error } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching challenge:', error);
-      } else if (data) {
-        setChallenge(data);
+      const challengeData = await getChallenge(id);
+      if (challengeData) {
+        setChallenge(challengeData);
+        // Load creator avatar
+        const avatar = await getCreatorAvatar(challengeData.createdById);
+        setCreatorAvatar(avatar);
+        // Load participants
+        const participantsData = await getParticipants(id);
+        setParticipants(participantsData);
       }
       setLoading(false);
     };
     
     fetchChallenge();
-  }, [id]);
+  }, [id, getChallenge, getCreatorAvatar, getParticipants]);
   
+  // Load user progress when challenge is loaded
   useEffect(() => {
-    if (id && user) {
-      refreshProgress(id);
-    }
-  }, [id, user, refreshProgress]);
+    const loadUserProgress = async () => {
+      if (!challenge || !user) return;
+      
+      const progressData = await getChallengeProgress(challenge.id);
+      setUserProgress(progressData);
+    };
+    
+    loadUserProgress();
+  }, [challenge, user, getChallengeProgress]);
   
+  // Load participant progress when selected user changes
   useEffect(() => {
-    if (user && challenge && !challengesLoading) {
-      // Calculate total points from all entries for this challenge
+    const loadParticipantProgress = async () => {
+      if (!selectedUserId || !challenge) return;
+      
+      const progressData = await getParticipantProgress(challenge.id, selectedUserId);
+      setParticipantProgress(progressData);
+    };
+    
+    loadParticipantProgress();
+  }, [selectedUserId, challenge, getParticipantProgress]);
+  
+  // Calculate total points and progress
+  useEffect(() => {
+    if (user && challenge) {
       const progressToUse = selectedUserId ? participantProgress : userProgress;
       
       const totalPoints = progressToUse.reduce((sum, progress) => {
@@ -93,91 +112,30 @@ export default function ChallengePage() {
       setTotalPoints(totalPoints);
       setProgress((totalPoints / challenge.totalPoints) * 100);
     }
-  }, [user, challenge, userProgress, participantProgress, selectedUserId, challengesLoading]);
+  }, [user, challenge, userProgress, participantProgress, selectedUserId]);
   
+  // Reset shown wins when switching users
   useEffect(() => {
-    const fetchParticipants = async () => {
-      if (!challenge) return;
-      
-      // Fetch user profiles for all participants
-      const { data: profiles, error } = await supabase
-        .from('user_profiles')
-        .select('id, name, avatar_url')
-        .in('id', challenge.participants);
-        
-      if (error) {
-        console.error('Error fetching participant profiles:', error);
-        return;
-      }
-      
-      // Map participants with their profiles
-      setParticipants(challenge.participants.map(id => {
-        const profile = profiles?.find(p => p.id === id);
-        return {
-          id,
-          name: profile?.name || `User ${id.slice(0, 4)}`,
-          avatar: profile?.avatar_url
-        };
-      }));
-    };
-    
-    fetchParticipants();
-  }, [challenge]);
+    setShownBingoWins(new Set());
+  }, [selectedUserId]);
 
+  // Check for Bingo when progress changes
   useEffect(() => {
-    const fetchParticipantProgress = async () => {
-      if (!selectedUserId || !challenge) return;
-      
-      const { data, error } = await supabase
-        .from('entries')
-        .select('*')
-        .eq('user_id', selectedUserId)
-        .eq('challenge_id', challenge.id);
-        
-      if (error) {
-        console.error('Error fetching participant progress:', error);
-      } else if (data) {
-        // Calculate total progress for each objective
-        const progressMap = data.reduce((acc, entry) => {
-          const key = entry.objective_id;
-          if (!acc[key]) {
-            acc[key] = {
-              userId: entry.user_id,
-              challengeId: entry.challenge_id,
-              objectiveId: entry.objective_id,
-              currentValue: 0
-            };
-          }
-          acc[key].currentValue += entry.value;
-          return acc;
-        }, {} as Record<string, UserProgress>);
-        
-        setParticipantProgress(Object.values(progressMap));
+    if (challenge?.isBingo) {
+      const progressToCheck = selectedUserId ? participantProgress : userProgress;
+      const hasBingo = checkForBingo(progressToCheck);
+      if (hasBingo) {
+        setShowBingoAnimation(true);
+        // Hide animation after 3 seconds
+        const timer = setTimeout(() => {
+          setShowBingoAnimation(false);
+        }, 3000);
+        return () => clearTimeout(timer);
       }
-    };
-    
-    fetchParticipantProgress();
-  }, [selectedUserId, challenge]);
-  
-  useEffect(() => {
-    if (challenge?.createdById) {
-      const fetchCreatorAvatar = async () => {
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('avatar_url')
-          .eq('id', challenge.createdById)
-          .single();
-        if (!error && data) {
-          setCreatorAvatar(data.avatar_url);
-        } else {
-          setCreatorAvatar(undefined);
-        }
-      };
-      fetchCreatorAvatar();
     }
-  }, [challenge?.createdById]);
+  }, [challenge, selectedUserId, participantProgress, userProgress]);
   
-  // Add this function to check for Bingo wins
+  // Function to check for Bingo wins
   const checkForBingo = (progress: UserProgress[]) => {
     if (!challenge?.isBingo) return false;
 
@@ -261,29 +219,8 @@ export default function ChallengePage() {
     }
     return false;
   };
-
-  // Reset shown wins when switching users
-  useEffect(() => {
-    setShownBingoWins(new Set());
-  }, [selectedUserId]);
-
-  // Add effect to check for Bingo when progress changes
-  useEffect(() => {
-    if (challenge?.isBingo) {
-      const progressToCheck = selectedUserId ? participantProgress : userProgress;
-      const hasBingo = checkForBingo(progressToCheck);
-      if (hasBingo) {
-        setShowBingoAnimation(true);
-        // Hide animation after 3 seconds
-        const timer = setTimeout(() => {
-          setShowBingoAnimation(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [challenge, selectedUserId, participantProgress, userProgress]);
   
-  if (loading || challengesLoading || !challenge) {
+  if (loading || !challenge) {
     return (
       <div className="container py-12">
         <div className="flex justify-center">
