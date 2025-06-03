@@ -118,6 +118,7 @@ export const translations = {
     previous: "Zurück",
     morePages: "Weitere Seiten",
     loadMore: "Mehr laden",
+    uploading: "Wird hochgeladen...",
 
     target: "Ziel",
     deadline: "Frist",
@@ -226,9 +227,12 @@ export const translations = {
     avatarUpdated: "Profilbild wurde erfolgreich aktualisiert.",
     avatarUpdateFailed: "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
     cropImage: "Bild zuschneiden",
-    cancel: "Abbrechen",
-    save: "Speichern",
-    uploading: "Wird hochgeladen...",
+
+    // Progress Updates
+    objectiveReset: "Ziel zurückgesetzt",
+    progressUpdated: "Fortschritt aktualisiert",
+    objectiveResetDescription: "Das Ziel wurde zurückgesetzt.",
+    progressUpdatedDescription: "Dein Fortschritt wurde erfolgreich gespeichert.",
   },
   en: {
     // Navigation
@@ -347,8 +351,9 @@ export const translations = {
     success: "Success",
     next: "Next",
     previous: "Previous",
-    morePages: "More pages",
+    morePages: "More Pages",
     loadMore: "Load More",
+    uploading: "Uploading...",
 
     target: "Target",
     deadline: "Deadline",
@@ -457,9 +462,12 @@ export const translations = {
     avatarUpdated: "Profile picture has been updated successfully.",
     avatarUpdateFailed: "Failed to update profile picture. Please try again.",
     cropImage: "Crop Image",
-    cancel: "Cancel",
-    save: "Save",
-    uploading: "Uploading...",
+
+    // Progress Updates
+    objectiveReset: "Objective Reset",
+    progressUpdated: "Progress Updated",
+    objectiveResetDescription: "The objective has been reset.",
+    progressUpdatedDescription: "Your progress has been saved successfully.",
   }
 };
 

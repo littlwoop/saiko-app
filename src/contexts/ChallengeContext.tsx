@@ -3,6 +3,8 @@ import { Challenge, Objective, UserChallenge, UserProgress } from "@/types";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+import { useTranslation } from "@/lib/translations";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Debug logging utility
 const debug = {
@@ -46,6 +48,8 @@ interface Entry {
 export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const { t } = useTranslation(language);
 
   // Get a single challenge by ID
   const getChallenge = async (challengeId: string): Promise<Challenge | null> => {
@@ -324,8 +328,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       debug.log('Successfully updated progress');
       toast({
-        title: value === 0 ? "Objective Reset" : "Progress Updated",
-        description: value === 0 ? "The objective has been reset." : "Your progress has been saved successfully.",
+        title: value === 0 ? t("objectiveReset") : t("progressUpdated"),
+        description: value === 0 ? t("objectiveResetDescription") : t("progressUpdatedDescription"),
       });
     } catch (error) {
       debug.error('Error updating progress:', error);
