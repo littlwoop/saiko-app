@@ -44,6 +44,7 @@ export default function ChallengePage() {
   const [shownBingoWins, setShownBingoWins] = useState<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("objectives");
+  const [creatorAvatar, setCreatorAvatar] = useState<string | undefined>(undefined);
   
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
@@ -157,6 +158,24 @@ export default function ChallengePage() {
     
     fetchParticipantProgress();
   }, [selectedUserId, challenge]);
+  
+  useEffect(() => {
+    if (challenge?.createdById) {
+      const fetchCreatorAvatar = async () => {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('avatar_url')
+          .eq('id', challenge.createdById)
+          .single();
+        if (!error && data) {
+          setCreatorAvatar(data.avatar_url);
+        } else {
+          setCreatorAvatar(undefined);
+        }
+      };
+      fetchCreatorAvatar();
+    }
+  }, [challenge?.createdById]);
   
   // Add this function to check for Bingo wins
   const checkForBingo = (progress: UserProgress[]) => {
@@ -305,7 +324,22 @@ export default function ChallengePage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <h1 className="text-2xl sm:text-3xl font-bold">{challenge.title}</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl sm:text-3xl font-bold">{challenge.title}</h1>
+                <Avatar className="h-8 w-8">
+                  {creatorAvatar && (
+                    <AvatarImage 
+                      src={creatorAvatar} 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <AvatarFallback>
+                    <UserRound className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               {isActive && <Badge className="bg-green-500">{t("active")}</Badge>}
               {isFuture && <Badge variant="outline" className="border-blue-400 text-blue-500">{t("upcoming")}</Badge>}
               {isPast && <Badge variant="outline" className="border-gray-400 text-gray-500">{t("completed")}</Badge>}
@@ -342,8 +376,13 @@ export default function ChallengePage() {
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  {challenge.creatorAvatar && (
-                    <AvatarImage src={challenge.creatorAvatar} />
+                  {creatorAvatar && (
+                    <AvatarImage 
+                      src={creatorAvatar} 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
                   )}
                   <AvatarFallback>
                     <UserRound className="h-4 w-4" />
@@ -510,8 +549,13 @@ export default function ChallengePage() {
             <h2 className="text-lg font-semibold mb-2">{t("challengeStats")}</h2>
             <div className="flex items-center gap-2 mb-2">
               <Avatar className="h-6 w-6">
-                {challenge.creatorAvatar && (
-                  <AvatarImage src={challenge.creatorAvatar} />
+                {creatorAvatar && (
+                  <AvatarImage 
+                    src={creatorAvatar} 
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
                 )}
                 <AvatarFallback>
                   <UserRound className="h-4 w-4" />
@@ -596,8 +640,13 @@ export default function ChallengePage() {
           <div className="sticky top-20 rounded-lg border bg-card p-6 text-card-foreground">
             <div className="flex items-center gap-2 mb-6">
               <Avatar className="h-7 w-7">
-                {challenge.creatorAvatar && (
-                  <AvatarImage src={challenge.creatorAvatar} />
+                {creatorAvatar && (
+                  <AvatarImage 
+                    src={creatorAvatar} 
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
                 )}
                 <AvatarFallback>
                   <UserRound className="h-4 w-4" />

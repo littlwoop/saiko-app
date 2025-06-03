@@ -209,7 +209,13 @@ export const translations = {
     loginFailed: "Anmeldung fehlgeschlagen",
     invalidCredentials: "Ungültige E-Mail oder Passwort. Bitte versuchen Sie es erneut oder registrieren Sie sich, wenn Sie kein Konto haben.",
     noAccount: "Noch kein Konto?",
-    demoNote: "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden"
+    demoNote: "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden",
+
+    // Avatar Upload
+    fileTooLarge: "Die Datei ist zu groß. Maximale Größe ist 5MB.",
+    invalidFileType: "Ungültiger Dateityp. Bitte wählen Sie ein Bild aus.",
+    avatarUpdated: "Profilbild wurde erfolgreich aktualisiert.",
+    avatarUpdateFailed: "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
   },
   en: {
     // Navigation
@@ -421,7 +427,13 @@ export const translations = {
     loginFailed: "Login Failed",
     invalidCredentials: "Invalid email or password. Please try again or sign up if you don't have an account.",
     noAccount: "Don't have an account?",
-    demoNote: "For demo purposes, you can use your registered email with any password"
+    demoNote: "For demo purposes, you can use your registered email with any password",
+
+    // Avatar Upload
+    fileTooLarge: "File is too large. Maximum size is 5MB.",
+    invalidFileType: "Invalid file type. Please select an image.",
+    avatarUpdated: "Profile picture has been updated successfully.",
+    avatarUpdateFailed: "Failed to update profile picture. Please try again."
   }
 };
 

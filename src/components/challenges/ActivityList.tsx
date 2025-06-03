@@ -4,7 +4,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRound } from "lucide-react";
 
 interface Objective {
@@ -13,16 +13,14 @@ interface Objective {
   unit: string;
 }
 
-interface Entry {
+interface Activity {
   id: string;
   user_id: string;
-  challenge_id: string;
+  username: string;
   objective_id: string;
   value: number;
-  created_at: string;
   notes?: string;
-  username: string;
-  objective?: Objective;
+  created_at: string;
 }
 
 interface ActivityListProps {
@@ -30,124 +28,131 @@ interface ActivityListProps {
 }
 
 export default function ActivityList({ challengeId }: ActivityListProps) {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  const locale = language === 'de' ? de : enUS;
-
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [objectives, setObjectives] = useState<Record<string, Objective>>({});
+  const [loading, setLoading] = useState(true);
+  const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
+  
   useEffect(() => {
-    const fetchEntries = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        // First fetch the challenge to get its objectives
-        const { data: challengeData, error: challengeError } = await supabase
-          .from('challenges')
-          .select('objectives')
-          .eq('id', challengeId)
-          .single();
-
-        if (challengeError) {
-          console.error('Error fetching challenge:', challengeError);
-          return;
-        }
-
-        // Then fetch the entries
-        const { data: entriesData, error: entriesError } = await supabase
+        
+        // Fetch activities
+        const { data: activitiesData, error: activitiesError } = await supabase
           .from('entries')
           .select('*')
           .eq('challenge_id', challengeId)
           .order('created_at', { ascending: false });
-
-        if (entriesError) {
-          console.error('Error fetching entries:', entriesError);
-          return;
+          
+        if (activitiesError) {
+          console.error('Error fetching activities:', activitiesError);
+        } else {
+          setActivities(activitiesData || []);
+          
+          // Fetch user profiles for all unique users
+          const uniqueUserIds = [...new Set(activitiesData?.map(activity => activity.user_id) || [])];
+          const { data: profiles, error: profilesError } = await supabase
+            .from('user_profiles')
+            .select('id, avatar_url')
+            .in('id', uniqueUserIds);
+            
+          if (profilesError) {
+            console.error('Error fetching user profiles:', profilesError);
+          } else {
+            const avatarMap = (profiles || []).reduce((acc, profile) => ({
+              ...acc,
+              [profile.id]: profile.avatar_url
+            }), {});
+            setUserAvatars(avatarMap);
+          }
         }
-
-        // Combine entries with their objective details
-        const entriesWithObjectives = entriesData?.map(entry => {
-          const objective = challengeData.objectives.find(
-            (obj: Objective) => obj.id === entry.objective_id
-          );
-          return {
-            ...entry,
-            objective
-          };
-        }) || [];
-
-        setEntries(entriesWithObjectives);
+        
+        // Fetch objectives
+        const { data: objectivesData, error: objectivesError } = await supabase
+          .from('objectives')
+          .select('*')
+          .eq('challenge_id', challengeId);
+          
+        if (objectivesError) {
+          console.error('Error fetching objectives:', objectivesError);
+        } else {
+          const objectivesMap = (objectivesData || []).reduce((acc, objective) => ({
+            ...acc,
+            [objective.id]: objective
+          }), {});
+          setObjectives(objectivesMap);
+        }
       } catch (error) {
         console.error('Unexpected error:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchEntries();
+    
+    fetchData();
   }, [challengeId]);
-
+  
+  const locale = language === 'de' ? de : enUS;
+  
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="animate-pulse space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-muted" />
-              <div className="space-y-2">
-                <div className="h-4 w-32 rounded bg-muted" />
-                <div className="h-3 w-48 rounded bg-muted" />
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="text-center py-10">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
+        <p className="mt-4 text-muted-foreground">{t("loading")}</p>
       </div>
     );
   }
-
-  if (entries.length === 0) {
+  
+  if (activities.length === 0) {
     return (
       <div className="text-center py-10">
-        <UserRound className="h-10 w-10 mx-auto text-muted-foreground opacity-50" />
-        <h3 className="mt-4 text-lg font-medium">{t("noActivities")}</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t("noActivitiesDescription")}
-        </p>
+        <p className="text-muted-foreground">{t("noActivities")}</p>
+        <p className="text-sm text-muted-foreground mt-2">{t("noActivitiesDescription")}</p>
       </div>
     );
   }
-
+  
   return (
-    <div className="space-y-3">
-      {entries.map((entry) => (
-        <div key={entry.id} className="flex gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>
-              <UserRound className="h-4 w-4" />
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">{entry.username}</span>
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(entry.created_at), t("dateFormatLong"), { locale })}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span>
-                {t("addedValue").replace("{value}", `${entry.value} ${entry.objective?.unit || ''}`)}
-              </span>
-              {entry.objective && (
-                <span className="text-xs text-muted-foreground">
-                  {t("forObjective")}: {entry.objective.title}
-                </span>
+    <div className="space-y-4">
+      {activities.map((activity) => {
+        const objective = objectives[activity.objective_id];
+        
+        return (
+          <div key={activity.id} className="flex items-start gap-4 p-4 rounded-lg border">
+            <Avatar className="h-10 w-10">
+              {userAvatars[activity.user_id] && (
+                <AvatarImage 
+                  src={userAvatars[activity.user_id]} 
+                  onError={(e) => {
+                    // Hide the image on error
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
               )}
-              {entry.notes && (
-                <span className="text-xs text-muted-foreground">• {entry.notes}</span>
+              <AvatarFallback>
+                <UserRound className="h-5 w-5" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{activity.username}</span>
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(activity.created_at), t('dateFormatLong'), { locale })}
+                </span>
+              </div>
+              <p className="text-sm">
+                {t("addedValue").replace("{value}", `${activity.value} ${objective?.unit}`)} {t("forObjective")} "{objective?.title}"
+              </p>
+              {activity.notes && (
+                <p className="text-sm text-muted-foreground">{activity.notes}</p>
               )}
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 } 

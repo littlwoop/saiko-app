@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { UserRound } from "lucide-react";
+import { UserRound, Upload } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,6 +18,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChallengeCard from "@/components/challenges/ChallengeCard";
 import { supabase } from "@/lib/supabase";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import imageCompression from 'browser-image-compression';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -28,6 +30,7 @@ export default function ProfilePage() {
   
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [isUploading, setIsUploading] = useState(false);
   
   // Get user's joined challenges
   const userJoinedChallenges = user
@@ -38,6 +41,90 @@ export default function ProfilePage() {
   const userCreatedChallenges = user
     ? challenges.filter(challenge => challenge.createdById === user.id)
     : [];
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setIsUploading(true);
+
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: t("error"),
+          description: t("fileTooLarge"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: t("error"),
+          description: t("invalidFileType"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Compress and resize the image
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+        fileType: file.type,
+      };
+
+      const compressedFile = await imageCompression(file, options);
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, compressedFile, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update user metadata
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          avatar_url: publicUrl,
+        },
+      });
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      toast({
+        title: t("success"),
+        description: t("avatarUpdated"),
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: t("error"),
+        description: t("avatarUpdateFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
   
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +171,34 @@ export default function ProfilePage() {
           <div className="md:col-span-1">
             <Card>
               <CardHeader className="flex flex-col items-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
-                  <UserRound className="h-12 w-12 text-muted-foreground" />
+                <div className="relative">
+                  <Avatar className="h-24 w-24">
+                    {user.avatarUrl && (
+                      <AvatarImage 
+                        src={user.avatarUrl} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <AvatarFallback>
+                      <UserRound className="h-12 w-12" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <label
+                    htmlFor="avatar-upload"
+                    className="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Upload className="h-4 w-4" />
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
                 </div>
                 <CardTitle className="mt-4">{user.name}</CardTitle>
                 <CardDescription>{user.email}</CardDescription>

@@ -37,6 +37,7 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
   const { t } = useTranslation(language);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
   
   useEffect(() => {
     const fetchData = async () => {
@@ -57,6 +58,23 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
           console.error('Error fetching entries:', entriesError);
         } else {
           setEntries(entriesData || []);
+          
+          // Fetch user profiles for all unique users
+          const uniqueUserIds = [...new Set(entriesData?.map(entry => entry.user_id) || [])];
+          const { data: profiles, error: profilesError } = await supabase
+            .from('user_profiles')
+            .select('id, avatar_url')
+            .in('id', uniqueUserIds);
+            
+          if (profilesError) {
+            console.error('Error fetching user profiles:', profilesError);
+          } else {
+            const avatarMap = (profiles || []).reduce((acc, profile) => ({
+              ...acc,
+              [profile.id]: profile.avatar_url
+            }), {});
+            setUserAvatars(avatarMap);
+          }
         }
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -169,9 +187,20 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                      <UserRound className="h-4 w-4 text-muted-foreground" />
-                    </div>
+                    <Avatar className="h-8 w-8">
+                      {userAvatars[entry.userId] && (
+                        <AvatarImage 
+                          src={userAvatars[entry.userId]} 
+                          onError={(e) => {
+                            // Hide the image on error
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <AvatarFallback>
+                        <UserRound className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
                     <span className={isCurrentUser ? "font-medium" : ""}>
                       {entry.name} {isCurrentUser && "(You)"}
                     </span>
