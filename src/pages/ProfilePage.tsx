@@ -34,36 +34,44 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
-    const loadChallenges = async () => {
-      if (!user) return;
-      
-      try {
-        // Get all challenges from Supabase
-        const { data: challengesData, error: challengesError } = await supabase
-          .from('challenges')
-          .select('*');
-          
-        if (challengesError) throw challengesError;
-        
-        // Get user's challenges
-        const userChallengesData = await getUserChallenges();
-        
-        setChallenges(challengesData || []);
-        setUserChallenges(userChallengesData);
-      } catch (error) {
-        console.error('Error loading challenges:', error);
-        toast({
-          title: t("error"),
-          description: t("error"),
-          variant: "destructive",
-        });
-      }
-    };
+  const loadChallenges = async () => {
+    if (!user || isLoading) return;
     
-    loadChallenges();
-  }, [user, getUserChallenges, t, toast]);
+    try {
+      setIsLoading(true);
+      
+      // Get all challenges from Supabase
+      const { data: challengesData, error: challengesError } = await supabase
+        .from('challenges')
+        .select('*');
+        
+      if (challengesError) throw challengesError;
+      
+      // Get user's challenges
+      const userChallengesData = await getUserChallenges();
+      
+      setChallenges(challengesData || []);
+      setUserChallenges(userChallengesData);
+    } catch (error) {
+      console.error('Error loading challenges:', error);
+      toast({
+        title: t("error"),
+        description: t("error"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Load challenges when the user changes
+  useEffect(() => {
+    if (user) {
+      loadChallenges();
+    }
+  }, [user]);
   
   // Get user's joined challenges
   const userJoinedChallenges = user
@@ -301,7 +309,9 @@ export default function ProfilePage() {
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium">{t("joinedChallenges")}</h3>
-                    {userJoinedChallenges.length > 0 ? (
+                    {isLoading ? (
+                      <p className="mt-2 text-muted-foreground">{t("loading")}</p>
+                    ) : userJoinedChallenges.length > 0 ? (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {userJoinedChallenges.map((challenge) => {
                           const userChallenge = userChallenges.find(
@@ -327,7 +337,9 @@ export default function ProfilePage() {
                   
                   <div>
                     <h3 className="text-lg font-medium">{t("createdChallenges")}</h3>
-                    {userCreatedChallenges.length > 0 ? (
+                    {isLoading ? (
+                      <p className="mt-2 text-muted-foreground">{t("loading")}</p>
+                    ) : userCreatedChallenges.length > 0 ? (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {userCreatedChallenges.map((challenge) => {
                           const userChallenge = userChallenges.find(
