@@ -222,12 +222,58 @@ export default function ChallengePage() {
   
   if (loading || !challenge) {
     return (
-      <div className="container py-12">
-        <div className="flex justify-center">
-          <div className="animate-pulse space-y-4">
-            <div className="h-12 w-72 rounded bg-muted"></div>
-            <div className="h-32 w-full max-w-3xl rounded bg-muted"></div>
-            <div className="h-64 w-full max-w-3xl rounded bg-muted"></div>
+      <div className="container py-2">
+        <div className="animate-pulse space-y-4 mb-4">
+          <div className="h-8 w-64 rounded bg-muted"></div>
+        </div>
+        
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="h-8 w-64 rounded bg-muted"></div>
+                <div className="h-6 w-20 rounded bg-muted"></div>
+              </div>
+              
+              <div className="flex flex-wrap gap-4 sm:gap-6">
+                <div className="h-5 w-48 rounded bg-muted"></div>
+                <div className="h-5 w-32 rounded bg-muted"></div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-full bg-muted"></div>
+                <div className="h-5 w-40 rounded bg-muted"></div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="h-10 w-full rounded bg-muted"></div>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 rounded bg-muted"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="hidden lg:block">
+            <div className="sticky top-20 rounded-lg border bg-card p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="h-7 w-7 rounded-full bg-muted"></div>
+                <div className="h-5 w-40 rounded bg-muted"></div>
+              </div>
+              
+              <div className="h-6 w-32 rounded bg-muted mb-6"></div>
+              
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="h-5 w-24 rounded bg-muted"></div>
+                    <div className="h-5 w-16 rounded bg-muted"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -261,22 +307,7 @@ export default function ChallengePage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-bold">{challenge.title}</h1>
-                <Avatar className="h-8 w-8">
-                  {creatorAvatar && (
-                    <AvatarImage 
-                      src={creatorAvatar} 
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <AvatarFallback>
-                    <UserRound className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold">{challenge.title}</h1>
               {isActive && <Badge className="bg-green-500">{t("active")}</Badge>}
               {isFuture && <Badge variant="outline" className="border-blue-400 text-blue-500">{t("upcoming")}</Badge>}
               {isPast && <Badge variant="outline" className="border-gray-400 text-gray-500">{t("completed")}</Badge>}
