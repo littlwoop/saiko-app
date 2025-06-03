@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -20,10 +20,11 @@ import ChallengeCard from "@/components/challenges/ChallengeCard";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import imageCompression from 'browser-image-compression';
+import { Challenge, UserChallenge } from "@/types";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
-  const { challenges, userChallenges } = useChallenges();
+  const { getUserChallenges } = useChallenges();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { toast } = useToast();
@@ -31,6 +32,38 @@ export default function ProfilePage() {
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [isUploading, setIsUploading] = useState(false);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
+  
+  useEffect(() => {
+    const loadChallenges = async () => {
+      if (!user) return;
+      
+      try {
+        // Get all challenges from Supabase
+        const { data: challengesData, error: challengesError } = await supabase
+          .from('challenges')
+          .select('*');
+          
+        if (challengesError) throw challengesError;
+        
+        // Get user's challenges
+        const userChallengesData = await getUserChallenges();
+        
+        setChallenges(challengesData || []);
+        setUserChallenges(userChallengesData);
+      } catch (error) {
+        console.error('Error loading challenges:', error);
+        toast({
+          title: t("error"),
+          description: t("error"),
+          variant: "destructive",
+        });
+      }
+    };
+    
+    loadChallenges();
+  }, [user, getUserChallenges, t, toast]);
   
   // Get user's joined challenges
   const userJoinedChallenges = user
