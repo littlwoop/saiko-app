@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -119,24 +119,8 @@ export default function ChallengePage() {
     setShownBingoWins(new Set());
   }, [selectedUserId]);
 
-  // Check for Bingo when progress changes
-  useEffect(() => {
-    if (challenge?.isBingo) {
-      const progressToCheck = selectedUserId ? participantProgress : userProgress;
-      const hasBingo = checkForBingo(progressToCheck);
-      if (hasBingo) {
-        setShowBingoAnimation(true);
-        // Hide animation after 3 seconds
-        const timer = setTimeout(() => {
-          setShowBingoAnimation(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [challenge, selectedUserId, participantProgress, userProgress]);
-  
   // Function to check for Bingo wins
-  const checkForBingo = (progress: UserProgress[]) => {
+  const checkForBingo = useCallback((progress: UserProgress[]) => {
     if (!challenge?.isBingo) return false;
 
     const gridSize = Math.sqrt(challenge.objectives.length);
@@ -218,7 +202,18 @@ export default function ChallengePage() {
       }
     }
     return false;
-  };
+  }, [challenge, shownBingoWins]);
+  
+  useEffect(() => {
+    if (challenge?.isBingo) {
+      const progressToCheck = selectedUserId ? participantProgress : userProgress;
+      const hasBingo = checkForBingo(progressToCheck);
+      // The checkForBingo function already updates shownBingoWins and returns true only for new bingos
+      if (hasBingo) {
+        setShowBingoAnimation(true);
+      }
+    }
+  }, [challenge, selectedUserId, participantProgress, userProgress, checkForBingo]);
   
   if (loading || !challenge) {
     return (
@@ -294,7 +289,7 @@ export default function ChallengePage() {
   
   return (
     <div className="container py-2">
-      <BingoAnimation isVisible={showBingoAnimation} />
+      <BingoAnimation isVisible={showBingoAnimation} onComplete={() => setShowBingoAnimation(false)} />
       <Link
         to="/challenges"
         className="mb-4 inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"

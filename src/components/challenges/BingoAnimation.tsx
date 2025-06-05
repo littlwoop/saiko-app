@@ -11,7 +11,7 @@ export default function BingoAnimation({ isVisible, onComplete }: BingoAnimation
   useEffect(() => {
     if (isVisible) {
       // Trigger confetti
-      const duration = 3 * 1000;
+      const duration = 1.5 * 1000;
       const animationEnd = Date.now() + duration;
 
       const randomInRange = (min: number, max: number) => {
@@ -44,17 +44,20 @@ export default function BingoAnimation({ isVisible, onComplete }: BingoAnimation
   }, [isVisible, onComplete]);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isVisible && (
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0, opacity: 0 }}
+          transition={{ duration: 0.2 }}
           className="fixed inset-0 flex items-center justify-center pointer-events-none z-50"
         >
           <motion.div
             initial={{ y: -100 }}
             animate={{ y: 0 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="text-6xl font-bold text-challenge-purple bg-white/90 px-8 py-4 rounded-lg shadow-lg"
           >
             BINGO!
