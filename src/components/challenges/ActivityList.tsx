@@ -27,9 +27,10 @@ interface Activity {
 
 interface ActivityListProps {
   challengeId: string;
+  onUserClick?: (userId: string) => void;
 }
 
-export default function ActivityList({ challengeId }: ActivityListProps) {
+export default function ActivityList({ challengeId, onUserClick }: ActivityListProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { getChallenge } = useChallenges();
@@ -122,7 +123,10 @@ export default function ActivityList({ challengeId }: ActivityListProps) {
             return (
               <TableRow key={activity.id}>
                 <TableCell>
-                  <div className="flex items-center gap-3">
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                    onClick={() => onUserClick?.(activity.user_id)}
+                  >
                     <Avatar className="h-8 w-8">
                       {userAvatars[activity.user_id] && (
                         <AvatarImage 

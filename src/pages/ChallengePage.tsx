@@ -520,11 +520,23 @@ export default function ChallengePage() {
             </TabsContent>
             
             <TabsContent value="leaderboard" className="mt-6">
-              <LeaderboardTable challengeId={challenge.id} />
+              <LeaderboardTable 
+                challengeId={challenge.id} 
+                onUserClick={(userId) => {
+                  setSelectedUserId(userId);
+                  setActiveTab("objectives");
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="activities" className="mt-6">
-              <ActivityList challengeId={challenge.id} />
+              <ActivityList 
+                challengeId={challenge.id} 
+                onUserClick={(userId) => {
+                  setSelectedUserId(userId);
+                  setActiveTab("objectives");
+                }}
+              />
             </TabsContent>
           </Tabs>
         </div>

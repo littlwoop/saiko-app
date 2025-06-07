@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 
 interface LeaderboardTableProps {
   challengeId?: string;
+  onUserClick?: (userId: string) => void;
 }
 
 interface LeaderboardEntry {
@@ -30,8 +31,7 @@ interface Entry {
   username: string;
 }
 
-export default function LeaderboardTable({ challengeId }: LeaderboardTableProps) {
-  const { userChallenges } = useChallenges();
+export default function LeaderboardTable({ challengeId, onUserClick }: LeaderboardTableProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -186,13 +186,15 @@ export default function LeaderboardTable({ challengeId }: LeaderboardTableProps)
                   {entry.position > 3 && entry.position}
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-3">
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                    onClick={() => onUserClick?.(entry.userId)}
+                  >
                     <Avatar className="h-8 w-8">
                       {userAvatars[entry.userId] && (
                         <AvatarImage 
                           src={userAvatars[entry.userId]} 
                           onError={(e) => {
-                            // Hide the image on error
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
