@@ -46,9 +46,30 @@ export default function ChallengePage() {
   const [activeTab, setActiveTab] = useState("objectives");
   const [creatorAvatar, setCreatorAvatar] = useState<string | undefined>(undefined);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
+  const [joiningChallenge, setJoiningChallenge] = useState(false);
   
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
+  
+  const handleJoinChallenge = async () => {
+    if (!challenge) return;
+    setJoiningChallenge(true);
+    try {
+      await joinChallenge(challenge.id);
+      // Refresh challenge data
+      const challengeData = await getChallenge(challenge.id);
+      if (challengeData) {
+        setChallenge(challengeData);
+        // Load participants
+        const participantsData = await getParticipants(challenge.id);
+        setParticipants(participantsData);
+      }
+    } catch (error) {
+      console.error('Error joining challenge:', error);
+    } finally {
+      setJoiningChallenge(false);
+    }
+  };
   
   // Load challenge data
   useEffect(() => {
@@ -359,10 +380,11 @@ export default function ChallengePage() {
               {!hasJoined && (
                 <Button
                   className="sm:ml-auto"
-                  onClick={() => joinChallenge(challenge.id)}
+                  onClick={handleJoinChallenge}
+                  disabled={joiningChallenge}
                 >
                   <Trophy className="mr-2 h-4 w-4" />
-                  {t("joinChallenge")}
+                  {joiningChallenge ? t("joining") : t("joinChallenge")}
                 </Button>
               )}
             </div>
@@ -585,16 +607,6 @@ export default function ChallengePage() {
                   </div>
                 </div>
               )}
-              
-              {!hasJoined && (
-                <Button
-                  className="mt-2 w-full"
-                  onClick={() => joinChallenge(challenge.id)}
-                >
-                  <Trophy className="mr-2 h-4 w-4" />
-                  {t("joinChallenge")}
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -676,16 +688,6 @@ export default function ChallengePage() {
                     <Progress value={progress} className="h-2" />
                   </div>
                 </div>
-              )}
-              
-              {!hasJoined && (
-                <Button
-                  className="mt-2 w-full"
-                  onClick={() => joinChallenge(challenge.id)}
-                >
-                  <Trophy className="mr-2 h-4 w-4" />
-                  {t("joinChallenge")}
-                </Button>
               )}
             </div>
           </div>

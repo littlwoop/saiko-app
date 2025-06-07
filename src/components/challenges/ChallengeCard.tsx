@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Award, Calendar, Trophy } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
@@ -30,6 +30,7 @@ export default function ChallengeCard({
   const { t } = useTranslation(language);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   
   const locale = language === 'de' ? de : enUS;
   
@@ -71,6 +72,18 @@ export default function ChallengeCard({
     
     loadProgress();
   }, [hasJoined, challenge.id, challenge.objectives, challenge.totalPoints, getChallengeProgress]);
+
+  const handleJoinChallenge = async () => {
+    setLoading(true);
+    try {
+      await joinChallenge(challenge.id);
+      navigate(`/challenges/${challenge.id}`);
+    } catch (error) {
+      console.error('Error joining challenge:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return (
     <Card className="overflow-hidden flex flex-col h-full transition-all hover:shadow-md">
@@ -128,7 +141,7 @@ export default function ChallengeCard({
             showJoin && (
               <Button 
                 className="w-full" 
-                onClick={() => joinChallenge(challenge.id)}
+                onClick={handleJoinChallenge}
                 disabled={loading}
               >
                 <Trophy className="mr-2 h-4 w-4" />

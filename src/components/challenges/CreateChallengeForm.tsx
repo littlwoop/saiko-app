@@ -113,7 +113,7 @@ export default function CreateChallengeForm() {
       })),
     });
     
-    navigate("/my-challenges");
+    navigate("/challenges");
   };
   
   return (
