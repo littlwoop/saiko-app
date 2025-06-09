@@ -42,6 +42,7 @@ export default function ChallengePage() {
   const [participants, setParticipants] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [showBingoAnimation, setShowBingoAnimation] = useState(false);
   const [shownBingoWins, setShownBingoWins] = useState<Set<string>>(new Set());
+  const [previousProgress, setPreviousProgress] = useState<UserProgress[]>([]);
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("objectives");
   const [creatorAvatar, setCreatorAvatar] = useState<string | undefined>(undefined);
@@ -100,6 +101,7 @@ export default function ChallengePage() {
       
       const progressData = await getChallengeProgress(challenge.id);
       setUserProgress(progressData);
+      setPreviousProgress(progressData); // Initialize previous progress
     };
     
     loadUserProgress();
@@ -225,16 +227,31 @@ export default function ChallengePage() {
     return false;
   }, [challenge, shownBingoWins]);
   
+  // Check for new completions and trigger bingo animation
   useEffect(() => {
-    if (challenge?.isBingo) {
-      const progressToCheck = selectedUserId ? participantProgress : userProgress;
+    if (!challenge?.isBingo || !user) return;
+
+    const progressToCheck = selectedUserId ? participantProgress : userProgress;
+    const prevProgress = selectedUserId ? [] : previousProgress;
+
+    // Check if any new objectives were completed
+    const hasNewCompletion = progressToCheck.some(current => {
+      const prev = prevProgress.find(p => p.objectiveId === current.objectiveId);
+      return current.currentValue >= 1 && (!prev || prev.currentValue < 1);
+    });
+
+    if (hasNewCompletion) {
       const hasBingo = checkForBingo(progressToCheck);
-      // The checkForBingo function already updates shownBingoWins and returns true only for new bingos
       if (hasBingo) {
         setShowBingoAnimation(true);
       }
     }
-  }, [challenge, selectedUserId, participantProgress, userProgress, checkForBingo]);
+
+    // Update previous progress
+    if (!selectedUserId) {
+      setPreviousProgress(progressToCheck);
+    }
+  }, [challenge, selectedUserId, participantProgress, userProgress, checkForBingo, previousProgress, user]);
   
   if (loading || !challenge) {
     return (
