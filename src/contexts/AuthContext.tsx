@@ -84,7 +84,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('No user data returned from signup');
       }
 
-      return data;
+      return {
+        user: {
+          id: data.user.id,
+          email: data.user.email!,
+          name: data.user.user_metadata.name || '',
+          avatarUrl: data.user.user_metadata.avatar_url || '',
+        },
+        session: data.session
+      };
     } catch (error) {
       console.error('Signup failed:', error);
       throw error;
