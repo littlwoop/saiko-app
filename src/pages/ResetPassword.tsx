@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +14,48 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
   
   const { toast } = useToast();
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+
+  useEffect(() => {
+    const verifyToken = async () => {
+      const token = searchParams.get('token');
+      const type = searchParams.get('type');
+
+      if (!token || type !== 'recovery') {
+        toast({
+          title: t("error"),
+          description: "Invalid or missing reset token",
+          variant: "destructive",
+        });
+        navigate("/forgot-password");
+        return;
+      }
+
+      try {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: 'recovery'
+        });
+
+        if (error) throw error;
+      } catch (error) {
+        console.error("Token verification error:", error);
+        toast({
+          title: t("error"),
+          description: "Invalid or expired reset token",
+          variant: "destructive",
+        });
+        navigate("/forgot-password");
+      }
+    };
+
+    verifyToken();
+  }, [searchParams, toast, t, navigate]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
