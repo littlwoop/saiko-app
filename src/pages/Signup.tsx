@@ -13,11 +13,13 @@ import { useTranslation } from "@/lib/translations";
 export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [emailConfirm, setEmailConfirm] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
   
-  const { signup } = useAuth();
+  const { signup, checkEmailConfirmation } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -26,10 +28,19 @@ export default function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !email || !password) {
+    if (!name || !email || !emailConfirm || !password) {
       toast({
         title: t("error"),
         description: t("fillRequiredFields"),
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (email !== emailConfirm) {
+      toast({
+        title: t("error"),
+        description: t("emailsDoNotMatch"),
         variant: "destructive",
       });
       return;
@@ -57,11 +68,11 @@ export default function Signup() {
     
     try {
       await signup(name, email, password);
+      setShowConfirmationMessage(true);
       toast({
-        title: t("accountCreated"),
-        description: t("accountCreatedDescription"),
+        title: t("checkEmail"),
+        description: t("checkEmailDescription"),
       });
-      navigate("/login");
     } catch (error) {
       toast({
         title: t("registrationFailed"),
@@ -72,6 +83,58 @@ export default function Signup() {
       setIsSubmitting(false);
     }
   };
+
+  const handleResendConfirmation = async () => {
+    try {
+      await checkEmailConfirmation(email);
+      toast({
+        title: t("emailSent"),
+        description: t("emailSentDescription"),
+      });
+    } catch (error) {
+      toast({
+        title: t("error"),
+        description: t("resendFailed"),
+        variant: "destructive",
+      });
+    }
+  };
+  
+  if (showConfirmationMessage) {
+    return (
+      <div className="container max-w-md py-12">
+        <div className="mb-8 flex justify-center">
+          <Link to="/" className="flex items-center gap-2">
+            <Trophy className="h-8 w-8 text-challenge-purple" />
+            <span className="text-2xl font-bold gradient-text">Challenge Champion</span>
+          </Link>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">{t("checkEmail")}</CardTitle>
+            <CardDescription>{t("checkEmailDescription")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-muted-foreground">
+              {t("emailConfirmationSent")}
+            </p>
+            <Button onClick={handleResendConfirmation} className="w-full">
+              {t("resendEmail")}
+            </Button>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <p className="text-center text-sm text-muted-foreground">
+              {t("alreadyHaveAccount")}{" "}
+              <Link to="/login" className="text-primary hover:underline">
+                {t("login")}
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
   
   return (
     <div className="container max-w-md py-12">
@@ -107,6 +170,16 @@ export default function Signup() {
                 placeholder={t("enterEmail")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-confirm">{t("confirmEmail")}</Label>
+              <Input
+                id="email-confirm"
+                type="email"
+                placeholder={t("enterConfirmEmail")}
+                value={emailConfirm}
+                onChange={(e) => setEmailConfirm(e.target.value)}
               />
             </div>
             <div className="space-y-2">

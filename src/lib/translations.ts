@@ -207,6 +207,16 @@ export const translations = {
     alreadyHaveAccount: "Sie haben bereits ein Konto?",
     passwordsDoNotMatch: "Passwörter stimmen nicht überein",
     passwordTooShort: "Passwort muss mindestens 6 Zeichen lang sein",
+    checkEmail: "E-Mail überprüfen",
+    checkEmailDescription: "Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu bestätigen",
+    emailConfirmationSent: "Eine Bestätigungs-E-Mail wurde an Ihre Adresse gesendet",
+    resendEmail: "E-Mail erneut senden",
+    emailSent: "E-Mail gesendet",
+    emailSentDescription: "Die Bestätigungs-E-Mail wurde erneut gesendet",
+    resendFailed: "E-Mail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut",
+    confirmEmail: "E-Mail bestätigen",
+    enterConfirmEmail: "E-Mail-Adresse erneut eingeben",
+    emailsDoNotMatch: "E-Mail-Adressen stimmen nicht überein",
 
     // Login Form
     loginTitle: "Anmelden",
@@ -459,6 +469,16 @@ export const translations = {
     alreadyHaveAccount: "Already have an account?",
     passwordsDoNotMatch: "Passwords do not match",
     passwordTooShort: "Password must be at least 6 characters",
+    checkEmail: "Check Your Email",
+    checkEmailDescription: "Please check your email to confirm your account",
+    emailConfirmationSent: "A confirmation email has been sent to your address",
+    resendEmail: "Resend Email",
+    emailSent: "Email Sent",
+    emailSentDescription: "The confirmation email has been resent",
+    resendFailed: "Failed to send email. Please try again later",
+    confirmEmail: "Confirm Email",
+    enterConfirmEmail: "Enter email address again",
+    emailsDoNotMatch: "Email addresses do not match",
 
     // Login Form
     loginTitle: "Login",

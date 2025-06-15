@@ -1,13 +1,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types";
 import { supabase } from "@/lib/supabase";
+import { Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<{ user: User | null; session: Session | null; }>;
   logout: () => void;
+  checkEmailConfirmation: (email: string) => Promise<{ user: null; session: null; messageId?: string | null; }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,7 +66,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         options: {
           data: {
             name,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/login`
         },
       });
       
@@ -80,8 +83,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!data.user) {
         throw new Error('No user data returned from signup');
       }
+
+      return data;
     } catch (error) {
       console.error('Signup failed:', error);
+      throw error;
+    }
+  };
+
+  const checkEmailConfirmation = async (email: string) => {
+    try {
+      const { data, error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      
+      if (error) {
+        console.error('Resend confirmation error:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Resend confirmation failed:', error);
       throw error;
     }
   };
@@ -106,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, signup, logout, checkEmailConfirmation }}>
       {children}
     </AuthContext.Provider>
   );
