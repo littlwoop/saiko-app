@@ -100,7 +100,7 @@ export default function ObjectiveItem({
               <Card 
                 className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
                 onClick={(e) => {
-                  if (!isTouchDevice || !longPressTimer.current) {
+                  if (isTouchDevice && longPressTimer.current) {
                     e.preventDefault();
                   }
                 }}
