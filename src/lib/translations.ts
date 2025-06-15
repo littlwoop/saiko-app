@@ -190,6 +190,9 @@ export const translations = {
     saveProgress: "Fortschritt speichern",
     points: "Pkt",
     resetObjective: "Ziel zurücksetzen",
+    completeObjective: "Ziel abschließen",
+    confirmCompleteObjective: "Sind Sie sicher, dass Sie '{objective}' abschließen möchten?",
+    completeButton: "Abschließen",
 
     // Signup Form
     createAccount: "Konto erstellen",
@@ -452,6 +455,9 @@ export const translations = {
     saveProgress: "Save Progress",
     points: "points",
     resetObjective: "Reset Objective",
+    completeObjective: "Complete Objective",
+    confirmCompleteObjective: "Are you sure you want to complete '{objective}'?",
+    completeButton: "Complete",
 
     // Signup Form
     createAccount: "Create Account",

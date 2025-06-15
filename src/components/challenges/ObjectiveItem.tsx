@@ -95,37 +95,75 @@ export default function ObjectiveItem({
     return (
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card 
-            className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
-            onTouchStart={handleLongPress}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
-          >
-            <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
-              <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
-                {objective.title}
-              </CardTitle>
-            </CardHeader>
-            {!isCompleted && !readOnly && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-1 right-1 h-5 w-5"
-                onClick={() => {
-                  if (user) {
-                    updateProgress(challengeId, objective.id, 1);
+          <Dialog>
+            <DialogTrigger asChild>
+              <Card 
+                className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
+                onClick={(e) => {
+                  if (!isTouchDevice || !longPressTimer.current) {
+                    e.preventDefault();
+                  }
+                }}
+                onTouchStart={(e) => {
+                  if (isTouchDevice && !readOnly && !isCompleted) {
+                    longPressTimer.current = setTimeout(() => {
+                      const contextMenuEvent = new MouseEvent('contextmenu', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: e.touches[0].clientX,
+                        clientY: e.touches[0].clientY
+                      });
+                      e.currentTarget.dispatchEvent(contextMenuEvent);
+                    }, 500);
+                  }
+                }}
+                onTouchEnd={(e) => {
+                  if (longPressTimer.current) {
+                    clearTimeout(longPressTimer.current);
+                    longPressTimer.current = undefined;
+                  }
+                }}
+                onTouchCancel={(e) => {
+                  if (longPressTimer.current) {
+                    clearTimeout(longPressTimer.current);
+                    longPressTimer.current = undefined;
                   }
                 }}
               >
-                <Check className="h-3 w-3" />
-              </Button>
+                <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
+                  <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
+                    {objective.title}
+                  </CardTitle>
+                </CardHeader>
+                {isCompleted && (
+                  <div className="absolute top-1 right-1">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </div>
+                )}
+              </Card>
+            </DialogTrigger>
+            {!readOnly && !isCompleted && (
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{t("completeObjective")}</DialogTitle>
+                  <DialogDescription>
+                    {t("confirmCompleteObjective").replace("{objective}", objective.title)}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    onClick={() => {
+                      if (user) {
+                        updateProgress(challengeId, objective.id, 1);
+                      }
+                    }}
+                  >
+                    {t("completeButton")}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
             )}
-            {isCompleted && (
-              <div className="absolute top-1 right-1">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-            )}
-          </Card>
+          </Dialog>
         </ContextMenuTrigger>
         {!readOnly && (
           <ContextMenuContent>
