@@ -13,6 +13,8 @@ import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import ChallengesPage from "@/pages/ChallengesPage";
 import CreateChallengePage from "@/pages/CreateChallengePage";
 import ChallengePage from "@/pages/ChallengePage";
@@ -37,6 +39,8 @@ const App = () => (
                   <Route index element={<Index />} />
                   <Route path="login" element={<Login />} />
                   <Route path="signup" element={<Signup />} />
+                  <Route path="forgot-password" element={<ForgotPassword />} />
+                  <Route path="reset-password" element={<ResetPassword />} />
                   <Route path="challenges" element={<ChallengesPage />} />
                   <Route path="challenges/:id" element={<ChallengePage />} />
                   <Route path="leaderboard" element={<LeaderboardPage />} />

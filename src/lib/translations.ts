@@ -221,6 +221,23 @@ export const translations = {
     noAccount: "Noch kein Konto?",
     demoNote: "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden",
 
+    // Forgot Password
+    forgotPasswordTitle: "Passwort vergessen",
+    forgotPasswordDescription: "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts",
+    sendResetLink: "Link senden",
+    sending: "Wird gesendet...",
+    resetPasswordEmailSent: "Der Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet",
+    resetPasswordFailed: "Link konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    rememberPassword: "Passwort wieder eingefallen?",
+
+    // Reset Password
+    resetPassword: "Passwort zurücksetzen",
+    resetPasswordDescription: "Geben Sie Ihr neues Passwort unten ein",
+    resetting: "Wird zurückgesetzt...",
+    passwordResetSuccess: "Ihr Passwort wurde erfolgreich zurückgesetzt",
+    passwordResetFailed: "Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.",
+    enterPasswordAndConfirm: "Bitte geben Sie Ihr Passwort ein und bestätigen Sie es",
+
     // Avatar Upload
     fileTooLarge: "Datei ist zu groß. Maximale Größe ist 5MB.",
     invalidFileType: "Ungültiger Dateityp. Bitte wählen Sie ein Bild aus.",
@@ -455,6 +472,23 @@ export const translations = {
     invalidCredentials: "Invalid email or password. Please try again or sign up if you don't have an account.",
     noAccount: "Don't have an account?",
     demoNote: "For demo purposes, you can use your registered email with any password",
+
+    // Forgot Password
+    forgotPasswordTitle: "Forgot Password",
+    forgotPasswordDescription: "Enter your email address and we'll send you a link to reset your password",
+    sendResetLink: "Send Reset Link",
+    sending: "Sending...",
+    resetPasswordEmailSent: "Password reset link has been sent to your email",
+    resetPasswordFailed: "Failed to send reset link. Please try again.",
+    rememberPassword: "Remember your password?",
+
+    // Reset Password
+    resetPassword: "Reset Password",
+    resetPasswordDescription: "Enter your new password below",
+    resetting: "Resetting...",
+    passwordResetSuccess: "Your password has been reset successfully",
+    passwordResetFailed: "Failed to reset password. Please try again.",
+    enterPasswordAndConfirm: "Please enter and confirm your password",
 
     // Avatar Upload
     fileTooLarge: "File is too large. Maximum size is 5MB.",
