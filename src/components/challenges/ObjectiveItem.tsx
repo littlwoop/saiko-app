@@ -98,7 +98,7 @@ export default function ObjectiveItem({
           <Dialog>
             <DialogTrigger asChild>
               <Card 
-                className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
+                className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}
                 onClick={(e) => {
                   if (isTouchDevice && longPressTimer.current) {
                     e.preventDefault();
@@ -181,7 +181,7 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card 
-          className={`select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer hover:bg-accent/50' : ''}`}
+          className={`select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}
           onTouchStart={handleLongPress}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
