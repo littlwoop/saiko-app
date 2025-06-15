@@ -58,8 +58,8 @@ export default function Login() {
     <div className="container max-w-md py-12">
       <div className="mb-8 flex justify-center">
         <Link to="/" className="flex items-center gap-2">
-          <Trophy className="h-8 w-8 text-challenge-purple" />
-          <span className="text-2xl font-bold gradient-text">Challenge Champion</span>
+          <img src="/favicon.png" alt="Saiko" className="h-6 w-6" />
+          <span className="text-2xl font-bold gradient-text">Saiko</span>
         </Link>
       </div>
       
