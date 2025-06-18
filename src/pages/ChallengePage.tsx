@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,46 +78,60 @@ export default function ChallengePage() {
       if (!id) return;
       
       setLoading(true);
-      const challengeData = await getChallenge(id);
-      if (challengeData) {
-        setChallenge(challengeData);
-        // Load creator avatar
-        const avatar = await getCreatorAvatar(challengeData.createdById);
-        setCreatorAvatar(avatar);
-        // Load participants
-        const participantsData = await getParticipants(id);
-        setParticipants(participantsData);
+      try {
+        const challengeData = await getChallenge(id);
+        if (challengeData) {
+          setChallenge(challengeData);
+          // Load creator avatar and participants in parallel
+          const [avatar, participantsData] = await Promise.all([
+            getCreatorAvatar(challengeData.createdById),
+            getParticipants(id)
+          ]);
+          setCreatorAvatar(avatar);
+          setParticipants(participantsData);
+        }
+      } catch (error) {
+        console.error('Error fetching challenge:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     
     fetchChallenge();
-  }, [id, getChallenge, getCreatorAvatar, getParticipants]);
+  }, [id]); // Remove function dependencies to prevent unnecessary re-renders
   
   // Load user progress when challenge is loaded
   useEffect(() => {
     const loadUserProgress = async () => {
       if (!challenge || !user) return;
       
-      const progressData = await getChallengeProgress(challenge.id);
-      setUserProgress(progressData);
-      setPreviousProgress(progressData); // Initialize previous progress
+      try {
+        const progressData = await getChallengeProgress(challenge.id);
+        setUserProgress(progressData);
+        setPreviousProgress(progressData); // Initialize previous progress
+      } catch (error) {
+        console.error('Error loading user progress:', error);
+      }
     };
     
     loadUserProgress();
-  }, [challenge, user, getChallengeProgress]);
+  }, [challenge?.id, user?.id]); // Only depend on IDs, not the full objects
   
   // Load participant progress when selected user changes
   useEffect(() => {
     const loadParticipantProgress = async () => {
       if (!selectedUserId || !challenge) return;
       
-      const progressData = await getParticipantProgress(challenge.id, selectedUserId);
-      setParticipantProgress(progressData);
+      try {
+        const progressData = await getParticipantProgress(challenge.id, selectedUserId);
+        setParticipantProgress(progressData);
+      } catch (error) {
+        console.error('Error loading participant progress:', error);
+      }
     };
     
     loadParticipantProgress();
-  }, [selectedUserId, challenge, getParticipantProgress]);
+  }, [selectedUserId, challenge?.id]); // Only depend on IDs
   
   // Calculate total points and progress
   useEffect(() => {
@@ -135,15 +149,15 @@ export default function ChallengePage() {
       setTotalPoints(totalPoints);
       setProgress((totalPoints / challenge.totalPoints) * 100);
     }
-  }, [user, challenge, userProgress, participantProgress, selectedUserId]);
+  }, [user?.id, challenge?.id, challenge?.objectives, userProgress, participantProgress, selectedUserId]);
   
   // Reset shown wins when switching users
   useEffect(() => {
     setShownBingoWins(new Set());
   }, [selectedUserId]);
 
-  // Function to check for Bingo wins
-  const checkForBingo = useCallback((progress: UserProgress[]) => {
+  // Function to check for Bingo wins - memoized to prevent recreation
+  const checkForBingo = useCallback((progress: UserProgress[], currentShownWins: Set<string>) => {
     if (!challenge?.isBingo) return false;
 
     const gridSize = Math.sqrt(challenge.objectives.length);
@@ -165,7 +179,7 @@ export default function ChallengePage() {
       }
       if (rowComplete) {
         const winKey = `row-${i}`;
-        if (!shownBingoWins.has(winKey)) {
+        if (!currentShownWins.has(winKey)) {
           setShownBingoWins(prev => new Set([...prev, winKey]));
           return true;
         }
@@ -184,7 +198,7 @@ export default function ChallengePage() {
       }
       if (colComplete) {
         const winKey = `col-${j}`;
-        if (!shownBingoWins.has(winKey)) {
+        if (!currentShownWins.has(winKey)) {
           setShownBingoWins(prev => new Set([...prev, winKey]));
           return true;
         }
@@ -202,7 +216,7 @@ export default function ChallengePage() {
     }
     if (mainDiagComplete) {
       const winKey = 'diag-main';
-      if (!shownBingoWins.has(winKey)) {
+      if (!currentShownWins.has(winKey)) {
         setShownBingoWins(prev => new Set([...prev, winKey]));
         return true;
       }
@@ -219,13 +233,13 @@ export default function ChallengePage() {
     }
     if (antiDiagComplete) {
       const winKey = 'diag-anti';
-      if (!shownBingoWins.has(winKey)) {
+      if (!currentShownWins.has(winKey)) {
         setShownBingoWins(prev => new Set([...prev, winKey]));
         return true;
       }
     }
     return false;
-  }, [challenge, shownBingoWins]);
+  }, [challenge?.id, challenge?.isBingo, challenge?.objectives]); // Remove shownBingoWins dependency
   
   // Check for new completions and trigger bingo animation
   useEffect(() => {
@@ -241,7 +255,7 @@ export default function ChallengePage() {
     });
 
     if (hasNewCompletion) {
-      const hasBingo = checkForBingo(progressToCheck);
+      const hasBingo = checkForBingo(progressToCheck, shownBingoWins);
       if (hasBingo) {
         setShowBingoAnimation(true);
       }
@@ -251,7 +265,7 @@ export default function ChallengePage() {
     if (!selectedUserId) {
       setPreviousProgress(progressToCheck);
     }
-  }, [challenge, selectedUserId, participantProgress, userProgress, checkForBingo, previousProgress, user]);
+  }, [challenge?.isBingo, selectedUserId, participantProgress, userProgress, checkForBingo, previousProgress, user?.id, shownBingoWins]);
   
   if (loading || !challenge) {
     return (
