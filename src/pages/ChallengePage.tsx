@@ -117,6 +117,18 @@ export default function ChallengePage() {
     loadUserProgress();
   }, [challenge?.id, user?.id]); // Only depend on IDs, not the full objects
   
+  // Refresh progress when user progress changes (e.g., after updates)
+  const refreshProgress = useCallback(async () => {
+    if (!challenge || !user) return;
+    
+    try {
+      const progressData = await getChallengeProgress(challenge.id);
+      setUserProgress(progressData);
+    } catch (error) {
+      console.error('Error refreshing progress:', error);
+    }
+  }, [challenge?.id, user?.id, getChallengeProgress]);
+  
   // Load participant progress when selected user changes
   useEffect(() => {
     const loadParticipantProgress = async () => {
@@ -531,6 +543,7 @@ export default function ChallengePage() {
                       }
                       isBingo
                       readOnly={selectedUserId !== null && selectedUserId !== user?.id}
+                      onProgressUpdate={refreshProgress}
                     />
                   ))}
                 </div>
@@ -544,6 +557,7 @@ export default function ChallengePage() {
                       progress={userProgress.find(
                         (p) => p.objectiveId === objective.id
                       )}
+                      onProgressUpdate={refreshProgress}
                     />
                   ))}
                 </div>

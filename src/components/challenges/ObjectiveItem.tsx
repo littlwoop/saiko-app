@@ -33,6 +33,7 @@ interface ObjectiveItemProps {
   progress?: UserProgress;
   isBingo?: boolean;
   readOnly?: boolean;
+  onProgressUpdate?: () => void;
 }
 
 export default function ObjectiveItem({
@@ -40,7 +41,8 @@ export default function ObjectiveItem({
   challengeId,
   progress,
   isBingo,
-  readOnly
+  readOnly,
+  onProgressUpdate
 }: ObjectiveItemProps) {
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
@@ -73,97 +75,79 @@ export default function ObjectiveItem({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     const numericValue = parseFloat(value);
     if (isNaN(numericValue)) return;
 
-    updateProgress(challengeId, objective.id, numericValue, notes);
+    await updateProgress(challengeId, objective.id, numericValue, notes);
     setIsOpen(false);
     setValue("0");
     setNotes("");
+    if (onProgressUpdate) {
+      onProgressUpdate();
+    }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!user) return;
-    updateProgress(challengeId, objective.id, 0);
+    await updateProgress(challengeId, objective.id, 0);
+    if (onProgressUpdate) {
+      onProgressUpdate();
+    }
   };
 
   if (isBingo) {
     return (
       <ContextMenu>
         <ContextMenuTrigger>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Card 
-                className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}
-                onClick={(e) => {
-                  if (isTouchDevice && longPressTimer.current) {
-                    e.preventDefault();
-                  }
-                }}
-                onTouchStart={(e) => {
-                  if (isTouchDevice && !readOnly && !isCompleted) {
-                    longPressTimer.current = setTimeout(() => {
-                      const contextMenuEvent = new MouseEvent('contextmenu', {
-                        bubbles: true,
-                        cancelable: true,
-                        clientX: e.touches[0].clientX,
-                        clientY: e.touches[0].clientY
-                      });
-                      e.currentTarget.dispatchEvent(contextMenuEvent);
-                    }, 500);
-                  }
-                }}
-                onTouchEnd={(e) => {
-                  if (longPressTimer.current) {
-                    clearTimeout(longPressTimer.current);
-                    longPressTimer.current = undefined;
-                  }
-                }}
-                onTouchCancel={(e) => {
-                  if (longPressTimer.current) {
-                    clearTimeout(longPressTimer.current);
-                    longPressTimer.current = undefined;
-                  }
-                }}
-              >
-                <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
-                  <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
-                    {objective.title}
-                  </CardTitle>
-                </CardHeader>
-                {isCompleted && (
-                  <div className="absolute top-1 right-1">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  </div>
-                )}
-              </Card>
-            </DialogTrigger>
-            {!readOnly && !isCompleted && (
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>{t("completeObjective")}</DialogTitle>
-                  <DialogDescription>
-                    {t("confirmCompleteObjective").replace("{objective}", objective.title)}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button
-                    onClick={() => {
-                      if (user) {
-                        updateProgress(challengeId, objective.id, 1);
-                      }
-                    }}
-                  >
-                    {t("completeButton")}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
+          <Card 
+            className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}
+            onClick={(e) => {
+              // Only open dialog on left-click, not right-click
+              if (e.button === 0 && !readOnly && !isCompleted) {
+                setIsOpen(true);
+              }
+            }}
+            onTouchStart={(e) => {
+              if (isTouchDevice && !readOnly && !isCompleted) {
+                longPressTimer.current = setTimeout(() => {
+                  const contextMenuEvent = new MouseEvent('contextmenu', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: e.touches[0].clientX,
+                    clientY: e.touches[0].clientY
+                  });
+                  e.currentTarget.dispatchEvent(contextMenuEvent);
+                }, 500);
+              }
+            }}
+            onTouchEnd={(e) => {
+              if (longPressTimer.current) {
+                clearTimeout(longPressTimer.current);
+                longPressTimer.current = undefined;
+              }
+            }}
+            onTouchCancel={(e) => {
+              if (longPressTimer.current) {
+                clearTimeout(longPressTimer.current);
+                longPressTimer.current = undefined;
+              }
+            }}
+          >
+            <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
+              <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
+                {objective.title}
+              </CardTitle>
+            </CardHeader>
+            {isCompleted && (
+              <div className="absolute top-1 right-1">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
             )}
-          </Dialog>
+          </Card>
         </ContextMenuTrigger>
         {!readOnly && (
           <ContextMenuContent>
@@ -172,6 +156,33 @@ export default function ObjectiveItem({
               {t("resetObjective")}
             </ContextMenuItem>
           </ContextMenuContent>
+        )}
+        {!readOnly && !isCompleted && (
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>{t("completeObjective")}</DialogTitle>
+                <DialogDescription>
+                  {t("confirmCompleteObjective").replace("{objective}", objective.title)}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  onClick={async () => {
+                    if (user) {
+                      await updateProgress(challengeId, objective.id, 1);
+                      if (onProgressUpdate) {
+                        onProgressUpdate();
+                      }
+                      setIsOpen(false);
+                    }
+                  }}
+                >
+                  {t("completeButton")}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         )}
       </ContextMenu>
     );
