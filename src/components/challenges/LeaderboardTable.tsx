@@ -20,15 +20,27 @@ interface LeaderboardEntry {
   position: number;
 }
 
+interface ChallengeObjective {
+  id: string;
+  pointsPerUnit: number;
+  // plus any other fields in your JSONB
+}
+
+interface Challenge {
+  id: number;
+  objectives: ChallengeObjective[];
+}
+
 interface Entry {
   id: string;
   user_id: string;
-  challenge_id: string;
+  challenge_id: number;
   objective_id: string;
   value: number;
   created_at: string;
   notes?: string;
   username: string;
+  challenge: Challenge;
 }
 
 export default function LeaderboardTable({ challengeId, onUserClick }: LeaderboardTableProps) {
@@ -46,7 +58,13 @@ export default function LeaderboardTable({ challengeId, onUserClick }: Leaderboa
         
         let query = supabase
           .from('entries')
-          .select('*');
+          .select(`
+    *,
+    challenge:challenges (
+      id,
+      objectives
+    )
+  `);
           
         if (challengeId) {
           query = query.eq('challenge_id', challengeId);
@@ -88,16 +106,29 @@ export default function LeaderboardTable({ challengeId, onUserClick }: Leaderboa
   
   const leaderboard = useMemo(() => {
     // Calculate total score for each user
-    const userScores = entries.reduce((acc, entry) => {
-      if (!acc[entry.user_id]) {
-        acc[entry.user_id] = {
-          score: 0,
-          username: entry.username
-        };
-      }
-      acc[entry.user_id].score += entry.value;
-      return acc;
-    }, {} as Record<string, { score: number; username: string }>);
+      const userScores = entries.reduce((acc, entry) => {
+    // Find the matching objective in the challenge's objectives array
+    const matchingObjective = entry.challenge.objectives.find(
+      obj => obj.id === entry.objective_id
+    );
+
+    // Default to 0 if not found
+    const pointsPerUnit = matchingObjective?.pointsPerUnit ?? 0;
+
+    // Multiply entry.value by pointsPerUnit
+    const totalPoints = entry.value * pointsPerUnit;
+
+    if (!acc[entry.user_id]) {
+      acc[entry.user_id] = {
+        score: 0,
+        username: entry.username
+      };
+    }
+
+    acc[entry.user_id].score += totalPoints;
+
+    return acc;
+  }, {} as Record<string, { score: number; username: string }>);
     
     // Create leaderboard entries
     const leaderboardEntries: LeaderboardEntry[] = Object.entries(userScores).map(([userId, data]) => {
