@@ -5,13 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { Link, useLocation } from "react-router-dom";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Trophy, UserRound, Activity, Globe, Menu } from "lucide-react";
 import {
@@ -46,21 +46,25 @@ export default function Header() {
 
   const NavLinks = () => (
     <>
-      <Link 
-        to="/challenges" 
+      <Link
+        to="/challenges"
         className={`text-sm font-medium transition-colors hover:text-primary ${
-          location.pathname.includes('/challenges') ? 'text-primary' : 'text-muted-foreground'
+          location.pathname.includes("/challenges")
+            ? "text-primary"
+            : "text-muted-foreground"
         }`}
       >
-        {t('challenges')}
+        {t("challenges")}
       </Link>
-      <Link 
-        to="/leaderboard" 
+      <Link
+        to="/leaderboard"
         className={`text-sm font-medium transition-colors hover:text-primary ${
-          location.pathname === '/leaderboard' ? 'text-primary' : 'text-muted-foreground'
+          location.pathname === "/leaderboard"
+            ? "text-primary"
+            : "text-muted-foreground"
         }`}
       >
-        {t('leaderboard')}
+        {t("leaderboard")}
       </Link>
     </>
   );
@@ -80,12 +84,12 @@ export default function Header() {
             <span className="text-xl font-bold gradient-text">Saiko</span>
           </Link>
         </div>
-        
+
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <NavLinks />
         </nav>
-        
+
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -94,10 +98,10 @@ export default function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setLanguage('en')}>
+              <DropdownMenuItem onClick={() => setLanguage("en")}>
                 English
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage('de')}>
+              <DropdownMenuItem onClick={() => setLanguage("de")}>
                 Deutsch
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -116,17 +120,17 @@ export default function Header() {
                   <NavLinks />
                   {user ? (
                     <>
-                      <Link 
+                      <Link
                         to="/profile"
                         className="text-sm font-medium transition-colors hover:text-primary"
                       >
-                        {t('profile')}
+                        {t("profile")}
                       </Link>
-                      <Link 
+                      <Link
                         to="/my-challenges"
                         className="text-sm font-medium transition-colors hover:text-primary"
                       >
-                        {t('myChallenges')}
+                        {t("myChallenges")}
                       </Link>
                       <button
                         onClick={() => {
@@ -135,22 +139,22 @@ export default function Header() {
                         }}
                         className="text-sm font-medium text-red-500 transition-colors hover:text-red-600"
                       >
-                        {t('logout')}
+                        {t("logout")}
                       </button>
                     </>
                   ) : (
                     <>
-                      <Link 
+                      <Link
                         to="/login"
                         className="text-sm font-medium transition-colors hover:text-primary"
                       >
-                        {t('login')}
+                        {t("login")}
                       </Link>
-                      <Link 
+                      <Link
                         to="/signup"
                         className="text-sm font-medium transition-colors hover:text-primary"
                       >
-                        {t('signup')}
+                        {t("signup")}
                       </Link>
                     </>
                   )}
@@ -158,7 +162,7 @@ export default function Header() {
               </DrawerHeader>
             </DrawerContent>
           </Drawer>
-        
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -175,31 +179,33 @@ export default function Header() {
                       <UserRound className="h-4 w-4 text-muted-foreground" />
                     </div>
                   )}
-                  <span className="hidden sm:inline-block text-sm font-medium">{user.name}</span>
+                  <span className="hidden sm:inline-block text-sm font-medium">
+                    {user.name}
+                  </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("myAccount")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/profile">{t('profile')}</Link>
+                  <Link to="/profile">{t("profile")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/my-challenges">{t('myChallenges')}</Link>
+                  <Link to="/my-challenges">{t("myChallenges")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
-                  {t('logout')}
+                  {t("logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="hidden md:flex items-center gap-2">
               <Button asChild variant="ghost">
-                <Link to="/login">{t('login')}</Link>
+                <Link to="/login">{t("login")}</Link>
               </Button>
               <Button asChild>
-                <Link to="/signup">{t('signup')}</Link>
+                <Link to="/signup">{t("signup")}</Link>
               </Button>
             </div>
           )}

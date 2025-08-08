@@ -1,6 +1,13 @@
 import { useState, useRef } from "react";
 import { Objective, UserProgress } from "@/types";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, CheckCircle, Check, RotateCcw } from "lucide-react";
@@ -42,7 +49,7 @@ export default function ObjectiveItem({
   progress,
   isBingo,
   readOnly,
-  onProgressUpdate
+  onProgressUpdate,
 }: ObjectiveItemProps) {
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
@@ -55,9 +62,12 @@ export default function ObjectiveItem({
   const { t } = useTranslation(language);
 
   const currentValue = progress?.currentValue || 0;
-  const progressPercent = Math.min(100, (currentValue / objective.targetValue) * 100);
+  const progressPercent = Math.min(
+    100,
+    (currentValue / objective.targetValue) * 100,
+  );
   const isCompleted = currentValue >= objective.targetValue;
-  
+
   const pointsEarned = currentValue * objective.pointsPerUnit;
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
 
@@ -103,8 +113,8 @@ export default function ObjectiveItem({
     return (
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card 
-            className={`relative select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}
+          <Card
+            className={`relative select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
             onClick={(e) => {
               // Only open dialog on left-click, not right-click
               if (e.button === 0 && !readOnly && !isCompleted) {
@@ -114,11 +124,11 @@ export default function ObjectiveItem({
             onTouchStart={(e) => {
               if (isTouchDevice && !readOnly && !isCompleted) {
                 longPressTimer.current = setTimeout(() => {
-                  const contextMenuEvent = new MouseEvent('contextmenu', {
+                  const contextMenuEvent = new MouseEvent("contextmenu", {
                     bubbles: true,
                     cancelable: true,
                     clientX: e.touches[0].clientX,
-                    clientY: e.touches[0].clientY
+                    clientY: e.touches[0].clientY,
                   });
                   e.currentTarget.dispatchEvent(contextMenuEvent);
                 }, 500);
@@ -163,7 +173,10 @@ export default function ObjectiveItem({
               <DialogHeader>
                 <DialogTitle>{t("completeObjective")}</DialogTitle>
                 <DialogDescription>
-                  {t("confirmCompleteObjective").replace("{objective}", objective.title)}
+                  {t("confirmCompleteObjective").replace(
+                    "{objective}",
+                    objective.title,
+                  )}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -191,8 +204,8 @@ export default function ObjectiveItem({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <Card 
-          className={`select-none ${isCompleted ? 'border-challenge-teal bg-green-50/30' : ''} ${!readOnly ? 'cursor-pointer' : ''}`}
+        <Card
+          className={`select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
           onTouchStart={handleLongPress}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
@@ -200,11 +213,13 @@ export default function ObjectiveItem({
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
               <CardTitle className="text-base flex items-center gap-2">
-                {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
+                {isCompleted && (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                )}
                 {objective.title}
               </CardTitle>
               <div className="text-sm font-medium">
-                {objective.pointsPerUnit} {t('points')}/{objective.unit}
+                {objective.pointsPerUnit} {t("points")}/{objective.unit}
               </div>
             </div>
             <CardDescription className="line-clamp-2 text-xs">
@@ -217,7 +232,8 @@ export default function ObjectiveItem({
                 <div className="flex items-center gap-1">
                   <Trophy className="h-4 w-4 text-challenge-purple" />
                   <span className="text-sm font-medium">
-                    {Math.floor(pointsEarned)} / {Math.floor(targetPoints)} {t('points')}
+                    {Math.floor(pointsEarned)} / {Math.floor(targetPoints)}{" "}
+                    {t("points")}
                   </span>
                 </div>
                 <span className="text-xs text-muted-foreground">
@@ -231,21 +247,22 @@ export default function ObjectiveItem({
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full">
-                  {t('addProgress')}
+                  {t("addProgress")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <form onSubmit={handleSubmit}>
                   <DialogHeader>
-                    <DialogTitle>{t('addProgress')}</DialogTitle>
+                    <DialogTitle>{t("addProgress")}</DialogTitle>
                     <DialogDescription>
-                      {t('enterProgressFor')} {objective.title}
+                      {t("enterProgressFor")} {objective.title}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="progress-value">
-                        {t('progress')}: {currentValue} / {objective.targetValue} {objective.unit}
+                        {t("progress")}: {currentValue} /{" "}
+                        {objective.targetValue} {objective.unit}
                       </Label>
                       <Input
                         id="progress-value"
@@ -253,23 +270,24 @@ export default function ObjectiveItem({
                         min="0"
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
-                        placeholder={t('enterUnit').replace('{unit}', objective.unit)}
+                        placeholder={t("enterUnit").replace(
+                          "{unit}",
+                          objective.unit,
+                        )}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="notes">
-                        {t('notes')}
-                      </Label>
+                      <Label htmlFor="notes">{t("notes")}</Label>
                       <Textarea
                         id="notes"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder={t('addNotesAboutProgress')}
+                        placeholder={t("addNotesAboutProgress")}
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="submit">{t('saveProgress')}</Button>
+                    <Button type="submit">{t("saveProgress")}</Button>
                   </DialogFooter>
                 </form>
               </DialogContent>

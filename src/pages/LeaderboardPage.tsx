@@ -18,38 +18,40 @@ export default function LeaderboardPage() {
   const { getChallenge } = useChallenges();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  const [selectedChallenge, setSelectedChallenge] = useState<string | undefined>(undefined);
+  const [selectedChallenge, setSelectedChallenge] = useState<
+    string | undefined
+  >(undefined);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
         setLoading(true);
         const { data: challengesData, error } = await supabase
-          .from('challenges')
-          .select('*')
-          .order('created_at', { ascending: false });
-          
+          .from("challenges")
+          .select("*")
+          .order("created_at", { ascending: false });
+
         if (error) {
-          console.error('Error fetching challenges:', error);
+          console.error("Error fetching challenges:", error);
         } else {
           setChallenges(challengesData || []);
         }
       } catch (error) {
-        console.error('Unexpected error:', error);
+        console.error("Unexpected error:", error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchChallenges();
   }, []);
-  
+
   const handleChallengeChange = (value: string) => {
     setSelectedChallenge(value === "all" ? undefined : value);
   };
-  
+
   if (loading) {
     return (
       <div className="container py-8">
@@ -59,7 +61,7 @@ export default function LeaderboardPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="container py-8">
       <div className="flex flex-col gap-6">
@@ -68,7 +70,7 @@ export default function LeaderboardPage() {
             <Trophy className="h-8 w-8 text-challenge-purple" />
             <h1 className="text-3xl font-bold">{t("leaderboard")}</h1>
           </div>
-          
+
           <div className="w-full sm:w-64">
             <Select
               value={selectedChallenge || "all"}
@@ -88,7 +90,7 @@ export default function LeaderboardPage() {
             </Select>
           </div>
         </div>
-        
+
         <LeaderboardTable challengeId={selectedChallenge} />
       </div>
     </div>

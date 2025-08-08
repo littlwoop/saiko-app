@@ -47,21 +47,30 @@ const App = () => (
                   <Route path="leaderboard" element={<LeaderboardPage />} />
 
                   {/* Protected routes */}
-                  <Route path="challenges/create" element={
-                    <ProtectedRoute>
-                      <CreateChallengePage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="profile" element={
-                    <ProtectedRoute>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="my-challenges" element={
-                    <ProtectedRoute>
-                      <ChallengesPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route
+                    path="challenges/create"
+                    element={
+                      <ProtectedRoute>
+                        <CreateChallengePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="profile"
+                    element={
+                      <ProtectedRoute>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="my-challenges"
+                    element={
+                      <ProtectedRoute>
+                        <ChallengesPage />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Catch-all route */}
                   <Route path="*" element={<NotFound />} />

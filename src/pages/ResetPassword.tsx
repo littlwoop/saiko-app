@@ -3,7 +3,14 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Trophy } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -15,7 +22,7 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchParams] = useSearchParams();
-  
+
   const { toast } = useToast();
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -23,10 +30,10 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const verifyToken = async () => {
-      const token = searchParams.get('token');
-      const type = searchParams.get('type');
+      const token = searchParams.get("token");
+      const type = searchParams.get("type");
 
-      if (!token || type !== 'recovery') {
+      if (!token || type !== "recovery") {
         toast({
           title: t("error"),
           description: "Invalid or missing reset token",
@@ -39,7 +46,7 @@ export default function ResetPassword() {
       try {
         const { error } = await supabase.auth.verifyOtp({
           token_hash: token,
-          type: 'recovery'
+          type: "recovery",
         });
 
         if (error) throw error;
@@ -56,10 +63,10 @@ export default function ResetPassword() {
 
     verifyToken();
   }, [searchParams, toast, t, navigate]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password || !confirmPassword) {
       toast({
         title: t("error"),
@@ -68,7 +75,7 @@ export default function ResetPassword() {
       });
       return;
     }
-    
+
     if (password !== confirmPassword) {
       toast({
         title: t("error"),
@@ -77,7 +84,7 @@ export default function ResetPassword() {
       });
       return;
     }
-    
+
     if (password.length < 6) {
       toast({
         title: t("error"),
@@ -86,16 +93,16 @@ export default function ResetPassword() {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const { error } = await supabase.auth.updateUser({
-        password: password
+        password: password,
       });
-      
+
       if (error) throw error;
-      
+
       toast({
         title: t("success"),
         description: t("passwordResetSuccess"),
@@ -112,7 +119,7 @@ export default function ResetPassword() {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <div className="container max-w-md py-12">
       <div className="mb-8 flex justify-center">
@@ -121,7 +128,7 @@ export default function ResetPassword() {
           <span className="text-2xl font-bold gradient-text">Saiko</span>
         </Link>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t("resetPassword")}</CardTitle>
@@ -165,4 +172,4 @@ export default function ResetPassword() {
       </Card>
     </div>
   );
-} 
+}

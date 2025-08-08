@@ -4,7 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Trophy } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -18,16 +25,16 @@ export default function Signup() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
-  
+
   const { signup, checkEmailConfirmation } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name || !email || !emailConfirm || !password) {
       toast({
         title: t("error"),
@@ -36,7 +43,7 @@ export default function Signup() {
       });
       return;
     }
-    
+
     if (email !== emailConfirm) {
       toast({
         title: t("error"),
@@ -45,7 +52,7 @@ export default function Signup() {
       });
       return;
     }
-    
+
     if (password !== passwordConfirm) {
       toast({
         title: t("error"),
@@ -54,7 +61,7 @@ export default function Signup() {
       });
       return;
     }
-    
+
     if (password.length < 6) {
       toast({
         title: t("error"),
@@ -63,9 +70,9 @@ export default function Signup() {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       await signup(name, email, password);
       setShowConfirmationMessage(true);
@@ -99,7 +106,7 @@ export default function Signup() {
       });
     }
   };
-  
+
   if (showConfirmationMessage) {
     return (
       <div className="container max-w-md py-12">
@@ -109,7 +116,7 @@ export default function Signup() {
             <span className="text-2xl font-bold gradient-text">Saiko</span>
           </Link>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">{t("checkEmail")}</CardTitle>
@@ -135,7 +142,7 @@ export default function Signup() {
       </div>
     );
   }
-  
+
   return (
     <div className="container max-w-md py-12">
       <div className="mb-8 flex justify-center">
@@ -144,7 +151,7 @@ export default function Signup() {
           <span className="text-2xl font-bold gradient-text">Saiko</span>
         </Link>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t("createAccount")}</CardTitle>

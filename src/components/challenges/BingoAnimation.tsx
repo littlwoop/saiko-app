@@ -1,13 +1,16 @@
-import { useEffect } from 'react';
-import confetti from 'canvas-confetti';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from "react";
+import confetti from "canvas-confetti";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface BingoAnimationProps {
   isVisible: boolean;
   onComplete?: () => void;
 }
 
-export default function BingoAnimation({ isVisible, onComplete }: BingoAnimationProps) {
+export default function BingoAnimation({
+  isVisible,
+  onComplete,
+}: BingoAnimationProps) {
   useEffect(() => {
     if (isVisible) {
       // Trigger confetti
@@ -28,14 +31,14 @@ export default function BingoAnimation({ isVisible, onComplete }: BingoAnimation
         }
 
         const particleCount = 50 * (timeLeft / duration);
-        
+
         confetti({
           startVelocity: 30,
           spread: 360,
           ticks: 60,
           zIndex: 999,
           particleCount,
-          origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 }
+          origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
         });
       }, 250);
 
@@ -66,4 +69,4 @@ export default function BingoAnimation({ isVisible, onComplete }: BingoAnimation
       )}
     </AnimatePresence>
   );
-} 
+}

@@ -3,7 +3,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Trophy } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,14 +20,14 @@ import { supabase } from "@/lib/supabase";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const { toast } = useToast();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast({
         title: t("error"),
@@ -29,16 +36,16 @@ export default function ForgotPassword() {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      
+
       if (error) throw error;
-      
+
       toast({
         title: t("success"),
         description: t("resetPasswordEmailSent"),
@@ -54,7 +61,7 @@ export default function ForgotPassword() {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <div className="container max-w-md py-12">
       <div className="mb-8 flex justify-center">
@@ -63,7 +70,7 @@ export default function ForgotPassword() {
           <span className="text-2xl font-bold gradient-text">Saiko</span>
         </Link>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t("forgotPassword")}</CardTitle>
@@ -97,4 +104,4 @@ export default function ForgotPassword() {
       </Card>
     </div>
   );
-} 
+}

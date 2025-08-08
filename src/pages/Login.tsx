@@ -4,7 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Trophy } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,16 +21,16 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: t("error"),
@@ -32,9 +39,9 @@ export default function Login() {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       await login(email, password);
       toast({
@@ -53,7 +60,7 @@ export default function Login() {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <div className="container max-w-md py-12">
       <div className="mb-8 flex justify-center">
@@ -62,7 +69,7 @@ export default function Login() {
           <span className="text-2xl font-bold gradient-text">Saiko</span>
         </Link>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{t("loginTitle")}</CardTitle>
@@ -83,7 +90,10 @@ export default function Login() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t("password")}</Label>
-                <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                >
                   {t("forgotPassword")}
                 </Link>
               </div>

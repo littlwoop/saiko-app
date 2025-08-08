@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { User } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -7,9 +13,15 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<{ user: User | null; session: Session | null; }>;
+  signup: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ user: User | null; session: Session | null }>;
   logout: () => void;
-  checkEmailConfirmation: (email: string) => Promise<{ user: null; session: null; messageId?: string | null; }>;
+  checkEmailConfirmation: (
+    email: string,
+  ) => Promise<{ user: null; session: null; messageId?: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,21 +37,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser({
           id: session.user.id,
           email: session.user.email!,
-          name: session.user.user_metadata.name || '',
-          avatarUrl: session.user.user_metadata.avatar_url || '',
+          name: session.user.user_metadata.name || "",
+          avatarUrl: session.user.user_metadata.avatar_url || "",
         });
       }
       setIsLoading(false);
     });
 
     // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
           email: session.user.email!,
-          name: session.user.user_metadata.name || '',
-          avatarUrl: session.user.user_metadata.avatar_url || '',
+          name: session.user.user_metadata.name || "",
+          avatarUrl: session.user.user_metadata.avatar_url || "",
         });
       } else {
         setUser(null);
@@ -67,34 +81,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             name,
           },
-          emailRedirectTo: `${window.location.origin}/login`
+          emailRedirectTo: `${window.location.origin}/login`,
         },
       });
-      
+
       if (error) {
-        console.error('Signup error details:', {
+        console.error("Signup error details:", {
           message: error.message,
           status: error.status,
-          name: error.name
+          name: error.name,
         });
         throw error;
       }
-      
+
       if (!data.user) {
-        throw new Error('No user data returned from signup');
+        throw new Error("No user data returned from signup");
       }
 
       return {
         user: {
           id: data.user.id,
           email: data.user.email!,
-          name: data.user.user_metadata.name || '',
-          avatarUrl: data.user.user_metadata.avatar_url || '',
+          name: data.user.user_metadata.name || "",
+          avatarUrl: data.user.user_metadata.avatar_url || "",
         },
-        session: data.session
+        session: data.session,
       };
     } catch (error) {
-      console.error('Signup failed:', error);
+      console.error("Signup failed:", error);
       throw error;
     }
   };
@@ -102,18 +116,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkEmailConfirmation = async (email: string) => {
     try {
       const { data, error } = await supabase.auth.resend({
-        type: 'signup',
+        type: "signup",
         email,
       });
-      
+
       if (error) {
-        console.error('Resend confirmation error:', error);
+        console.error("Resend confirmation error:", error);
         throw error;
       }
-      
+
       return data;
     } catch (error) {
-      console.error('Resend confirmation failed:', error);
+      console.error("Resend confirmation failed:", error);
       throw error;
     }
   };
@@ -122,23 +136,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Clear the user state first
       setUser(null);
-      
+
       // Attempt to sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('Logout error:', error);
+        console.error("Logout error:", error);
         // Even if there's an error, we want to ensure the user is logged out locally
         setUser(null);
       }
     } catch (error) {
-      console.error('Unexpected logout error:', error);
+      console.error("Unexpected logout error:", error);
       // Ensure user state is cleared even if there's an error
       setUser(null);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout, checkEmailConfirmation }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, signup, logout, checkEmailConfirmation }}
+    >
       {children}
     </AuthContext.Provider>
   );

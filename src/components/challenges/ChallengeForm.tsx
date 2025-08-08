@@ -5,7 +5,14 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 
@@ -24,10 +31,14 @@ interface ChallengeFormProps {
   isSubmitting?: boolean;
 }
 
-export function ChallengeForm({ onSubmit, initialData, isSubmitting }: ChallengeFormProps) {
+export function ChallengeForm({
+  onSubmit,
+  initialData,
+  isSubmitting,
+}: ChallengeFormProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -46,9 +57,9 @@ export function ChallengeForm({ onSubmit, initialData, isSubmitting }: Challenge
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('challengeTitle')}</FormLabel>
+              <FormLabel>{t("challengeTitle")}</FormLabel>
               <FormControl>
-                <Input placeholder={t('enterChallengeTitle')} {...field} />
+                <Input placeholder={t("enterChallengeTitle")} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -60,10 +71,10 @@ export function ChallengeForm({ onSubmit, initialData, isSubmitting }: Challenge
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('challengeDescription')}</FormLabel>
+              <FormLabel>{t("challengeDescription")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder={t('enterChallengeDescription')}
+                  placeholder={t("enterChallengeDescription")}
                   className="min-h-[100px]"
                   {...field}
                 />
@@ -78,9 +89,9 @@ export function ChallengeForm({ onSubmit, initialData, isSubmitting }: Challenge
           name="target"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('challengeTarget')}</FormLabel>
+              <FormLabel>{t("challengeTarget")}</FormLabel>
               <FormControl>
-                <Input placeholder={t('enterChallengeTarget')} {...field} />
+                <Input placeholder={t("enterChallengeTarget")} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,7 +103,7 @@ export function ChallengeForm({ onSubmit, initialData, isSubmitting }: Challenge
           name="deadline"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('challengeDeadline')}</FormLabel>
+              <FormLabel>{t("challengeDeadline")}</FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>
@@ -102,9 +113,9 @@ export function ChallengeForm({ onSubmit, initialData, isSubmitting }: Challenge
         />
 
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? t('saving') : t('saveChallenge')}
+          {isSubmitting ? t("saving") : t("saveChallenge")}
         </Button>
       </form>
     </Form>
   );
-} 
+}

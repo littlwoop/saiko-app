@@ -15,33 +15,40 @@ export const translations = {
     privacyPolicy: "Datenschutzerklärung",
     termsOfService: "Nutzungsbedingungen",
     app: "App",
-    footerDescription: "Erstelle und trete spannenden Herausforderungen mit Freunden bei",
+    footerDescription:
+      "Erstelle und trete spannenden Herausforderungen mit Freunden bei",
 
     // Hero Section
     heroTitlePart1: "Erstelle und meistere",
     heroTitlePart2: "Herausforderungen",
     heroTitlePart3: "mit Freunden",
-    heroSubtitle: "Setze Ziele, verfolge Fortschritte und wetteifere mit Freunden in anpassbaren Herausforderungen, die dich motivieren.",
+    heroSubtitle:
+      "Setze Ziele, verfolge Fortschritte und wetteifere mit Freunden in anpassbaren Herausforderungen, die dich motivieren.",
     getStarted: "Loslegen",
     createChallenge: "Herausforderung erstellen",
     browseChallenges: "Herausforderungen durchsuchen",
 
     // Features
     howItWorks: "So funktioniert's",
-    howItWorksDescription: "Saiko macht es einfach, Herausforderungen zu erstellen, beizutreten und zu meistern",
+    howItWorksDescription:
+      "Saiko macht es einfach, Herausforderungen zu erstellen, beizutreten und zu meistern",
     createChallenges: "Herausforderungen erstellen",
-    createChallengesDescription: "Gestalte individuelle Herausforderungen mit spezifischen Zielen, Vorgaben und Belohnungen",
+    createChallengesDescription:
+      "Gestalte individuelle Herausforderungen mit spezifischen Zielen, Vorgaben und Belohnungen",
     trackProgress: "Fortschritt verfolgen",
-    trackProgressDescription: "Überwache deine Erfolge und siehe Echtzeit-Updates zu deinen Zielen",
+    trackProgressDescription:
+      "Überwache deine Erfolge und siehe Echtzeit-Updates zu deinen Zielen",
     winPoints: "Punkte gewinnen",
-    winPointsDescription: "Sammle Punkte für jeden Meilenstein und konkurriere auf der Bestenliste",
+    winPointsDescription:
+      "Sammle Punkte für jeden Meilenstein und konkurriere auf der Bestenliste",
 
     // Challenge Form
     createNewChallenge: "Neue Herausforderung erstellen",
     challengeTitle: "Titel der Herausforderung",
     challengeTitlePlaceholder: "z.B., 30-Tage Fitness Challenge",
     description: "Beschreibung",
-    descriptionPlaceholder: "Beschreibe, worum es bei dieser Herausforderung geht...",
+    descriptionPlaceholder:
+      "Beschreibe, worum es bei dieser Herausforderung geht...",
     challengeDuration: "Dauer der Herausforderung",
     pickDateRange: "Datumsbereich auswählen",
     challengeObjectives: "Herausforderungsziele",
@@ -49,7 +56,8 @@ export const translations = {
     objectiveTitle: "Zieltitel",
     objectiveTitlePlaceholder: "z.B., Tägliche Schritte",
     objectiveDescription: "Beschreibung",
-    objectiveDescriptionPlaceholder: "Beschreibe, was die Teilnehmer tun müssen...",
+    objectiveDescriptionPlaceholder:
+      "Beschreibe, was die Teilnehmer tun müssen...",
     targetValue: "Zielwert",
     targetValuePlaceholder: "z.B., 10000",
     unit: "Einheit",
@@ -74,7 +82,8 @@ export const translations = {
     noParticipants: "Noch keine Teilnehmer",
     noChallenges: "Du hast noch keine Herausforderungen erstellt",
     noJoinedChallenges: "Du bist noch keiner Herausforderung beigetreten",
-    noJoinedChallengesDescription: "Tritt bestehenden Herausforderungen bei oder erstelle deine eigene",
+    noJoinedChallengesDescription:
+      "Tritt bestehenden Herausforderungen bei oder erstelle deine eigene",
     startFirstChallenge: "Starte jetzt deine erste Herausforderung",
     daysLeft: "Tage übrig",
     createdBy: "Erstellt von",
@@ -84,11 +93,13 @@ export const translations = {
     complete: "abgeschlossen",
     activities: "Aktivitäten",
     noActivities: "Keine Aktivitäten",
-    noActivitiesDescription: "Es wurden noch keine Aktivitäten für diese Herausforderung aufgezeichnet",
+    noActivitiesDescription:
+      "Es wurden noch keine Aktivitäten für diese Herausforderung aufgezeichnet",
     addedValue: "{value} hinzugefügt",
     forObjective: "Für Ziel",
     challengeNotFound: "Herausforderung nicht gefunden",
-    challengeNotFoundDescription: "Die gesuchte Herausforderung konnte nicht gefunden werden.",
+    challengeNotFoundDescription:
+      "Die gesuchte Herausforderung konnte nicht gefunden werden.",
     backToChallenges: "Zurück zu den Herausforderungen",
     duration: "Dauer",
     total: "Gesamt",
@@ -100,7 +111,8 @@ export const translations = {
     updateProfile: "Profil aktualisieren",
     profileUpdated: "Profil aktualisiert",
     profileUpdatedDescription: "Dein Profil wurde erfolgreich aktualisiert.",
-    profileUpdateFailed: "Profilaktualisierung fehlgeschlagen. Bitte versuche es erneut.",
+    profileUpdateFailed:
+      "Profilaktualisierung fehlgeschlagen. Bitte versuche es erneut.",
     displayName: "Anzeigename",
     enterDisplayName: "Anzeigenamen eingeben",
     email: "E-Mail",
@@ -137,7 +149,8 @@ export const translations = {
     myJoinedChallenges: "Beigetretenen",
     createdByMe: "Von mir erstellt",
     noChallengesFound: "Keine Herausforderungen gefunden",
-    noChallengesFoundDescription: "Versuche deine Suche anzupassen oder erstelle eine neue Herausforderung",
+    noChallengesFoundDescription:
+      "Versuche deine Suche anzupassen oder erstelle eine neue Herausforderung",
     noCreatedChallenges: "Du hast noch keine Herausforderungen erstellt",
     noCreatedChallengesDescription: "Starte jetzt deine erste Herausforderung",
 
@@ -154,12 +167,14 @@ export const translations = {
     noCreatedChallengesYet: "Du hast noch keine Herausforderungen erstellt",
 
     // Leaderboard
-    leaderboardDescription: "Siehe die Top-Performer in allen Herausforderungen",
+    leaderboardDescription:
+      "Siehe die Top-Performer in allen Herausforderungen",
     leaderboardRank: "Rang",
     leaderboardPlayer: "Spieler",
     leaderboardPoints: "Punkte",
     leaderboardChallenges: "Herausforderungen",
-    noParticipantsDescription: "Tritt einer Herausforderung bei, um auf der Bestenliste zu erscheinen",
+    noParticipantsDescription:
+      "Tritt einer Herausforderung bei, um auf der Bestenliste zu erscheinen",
     loadingLeaderboard: "Bestenliste wird geladen...",
     errorLoadingLeaderboard: "Fehler beim Laden der Bestenliste",
     tryAgain: "Erneut versuchen",
@@ -191,12 +206,14 @@ export const translations = {
     points: "Pkt",
     resetObjective: "Ziel zurücksetzen",
     completeObjective: "Ziel abschließen",
-    confirmCompleteObjective: "Sind Sie sicher, dass Sie '{objective}' abschließen möchten?",
+    confirmCompleteObjective:
+      "Sind Sie sicher, dass Sie '{objective}' abschließen möchten?",
     completeButton: "Abschließen",
 
     // Signup Form
     createAccount: "Konto erstellen",
-    enterInformation: "Geben Sie Ihre Informationen ein, um ein Konto zu erstellen",
+    enterInformation:
+      "Geben Sie Ihre Informationen ein, um ein Konto zu erstellen",
     enterFullName: "Max Mustermann",
     password: "Passwort",
     enterPassword: "••••••••",
@@ -211,36 +228,45 @@ export const translations = {
     passwordsDoNotMatch: "Passwörter stimmen nicht überein",
     passwordTooShort: "Passwort muss mindestens 6 Zeichen lang sein",
     checkEmail: "E-Mail überprüfen",
-    checkEmailDescription: "Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu bestätigen",
-    emailConfirmationSent: "Eine Bestätigungs-E-Mail wurde an Ihre Adresse gesendet",
+    checkEmailDescription:
+      "Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu bestätigen",
+    emailConfirmationSent:
+      "Eine Bestätigungs-E-Mail wurde an Ihre Adresse gesendet",
     resendEmail: "E-Mail erneut senden",
     emailSent: "E-Mail gesendet",
     emailSentDescription: "Die Bestätigungs-E-Mail wurde erneut gesendet",
-    resendFailed: "E-Mail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut",
+    resendFailed:
+      "E-Mail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut",
     confirmEmail: "E-Mail bestätigen",
     enterConfirmEmail: "E-Mail-Adresse erneut eingeben",
     emailsDoNotMatch: "E-Mail-Adressen stimmen nicht überein",
 
     // Login Form
     loginTitle: "Anmelden",
-    loginDescription: "Geben Sie Ihre E-Mail und Ihr Passwort ein, um auf Ihr Konto zuzugreifen",
+    loginDescription:
+      "Geben Sie Ihre E-Mail und Ihr Passwort ein, um auf Ihr Konto zuzugreifen",
     enterEmailAndPassword: "Bitte geben Sie E-Mail und Passwort ein",
     forgotPassword: "Passwort vergessen?",
     loggingIn: "Wird angemeldet...",
     loginSuccess: "Erfolg!",
     loginSuccessDescription: "Sie wurden erfolgreich angemeldet.",
     loginFailed: "Anmeldung fehlgeschlagen",
-    invalidCredentials: "Ungültige E-Mail oder Passwort. Bitte versuchen Sie es erneut oder registrieren Sie sich, wenn Sie kein Konto haben.",
+    invalidCredentials:
+      "Ungültige E-Mail oder Passwort. Bitte versuchen Sie es erneut oder registrieren Sie sich, wenn Sie kein Konto haben.",
     noAccount: "Noch kein Konto?",
-    demoNote: "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden",
+    demoNote:
+      "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden",
 
     // Forgot Password
     forgotPasswordTitle: "Passwort vergessen",
-    forgotPasswordDescription: "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts",
+    forgotPasswordDescription:
+      "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts",
     sendResetLink: "Link senden",
     sending: "Wird gesendet...",
-    resetPasswordEmailSent: "Der Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet",
-    resetPasswordFailed: "Link konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    resetPasswordEmailSent:
+      "Der Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet",
+    resetPasswordFailed:
+      "Link konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
     rememberPassword: "Passwort wieder eingefallen?",
 
     // Reset Password
@@ -248,21 +274,25 @@ export const translations = {
     resetPasswordDescription: "Geben Sie Ihr neues Passwort unten ein",
     resetting: "Wird zurückgesetzt...",
     passwordResetSuccess: "Ihr Passwort wurde erfolgreich zurückgesetzt",
-    passwordResetFailed: "Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.",
-    enterPasswordAndConfirm: "Bitte geben Sie Ihr Passwort ein und bestätigen Sie es",
+    passwordResetFailed:
+      "Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.",
+    enterPasswordAndConfirm:
+      "Bitte geben Sie Ihr Passwort ein und bestätigen Sie es",
 
     // Avatar Upload
     fileTooLarge: "Datei ist zu groß. Maximale Größe ist 5MB.",
     invalidFileType: "Ungültiger Dateityp. Bitte wählen Sie ein Bild aus.",
     avatarUpdated: "Profilbild wurde erfolgreich aktualisiert.",
-    avatarUpdateFailed: "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+    avatarUpdateFailed:
+      "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
     cropImage: "Bild zuschneiden",
 
     // Progress Updates
     objectiveReset: "Ziel zurückgesetzt",
     progressUpdated: "Fortschritt aktualisiert",
     objectiveResetDescription: "Das Ziel wurde zurückgesetzt.",
-    progressUpdatedDescription: "Dein Fortschritt wurde erfolgreich gespeichert.",
+    progressUpdatedDescription:
+      "Dein Fortschritt wurde erfolgreich gespeichert.",
   },
   en: {
     // Navigation
@@ -286,20 +316,25 @@ export const translations = {
     heroTitlePart1: "Create and master",
     heroTitlePart2: "challenges",
     heroTitlePart3: "with friends",
-    heroSubtitle: "Set goals, track progress, and compete with friends in customizable challenges that motivate you.",
+    heroSubtitle:
+      "Set goals, track progress, and compete with friends in customizable challenges that motivate you.",
     getStarted: "Get Started",
     createChallenge: "Create Challenge",
     browseChallenges: "Browse Challenges",
 
     // Features
     howItWorks: "How It Works",
-    howItWorksDescription: "Saiko makes it easy to create, join, and conquer challenges",
+    howItWorksDescription:
+      "Saiko makes it easy to create, join, and conquer challenges",
     createChallenges: "Create Challenges",
-    createChallengesDescription: "Design custom challenges with specific objectives, targets, and rewards",
+    createChallengesDescription:
+      "Design custom challenges with specific objectives, targets, and rewards",
     trackProgress: "Track Progress",
-    trackProgressDescription: "Monitor your achievements and see real-time updates on your objectives",
+    trackProgressDescription:
+      "Monitor your achievements and see real-time updates on your objectives",
     winPoints: "Win Points",
-    winPointsDescription: "Earn points for every milestone and compete on the leaderboard",
+    winPointsDescription:
+      "Earn points for every milestone and compete on the leaderboard",
 
     // Challenge Form
     createNewChallenge: "Create New Challenge",
@@ -339,7 +374,8 @@ export const translations = {
     noParticipants: "No participants yet",
     noChallenges: "You haven't created any challenges yet",
     noJoinedChallenges: "You haven't joined any challenges yet",
-    noJoinedChallengesDescription: "Join existing challenges or create your own",
+    noJoinedChallengesDescription:
+      "Join existing challenges or create your own",
     startFirstChallenge: "Start your first challenge now",
     daysLeft: "days left",
     createdBy: "Created by",
@@ -349,7 +385,8 @@ export const translations = {
     complete: "complete",
     activities: "Activities",
     noActivities: "No Activities",
-    noActivitiesDescription: "No activities have been recorded for this challenge yet",
+    noActivitiesDescription:
+      "No activities have been recorded for this challenge yet",
     addedValue: "Added {value}",
     forObjective: "For objective",
     challengeNotFound: "Challenge not found",
@@ -402,7 +439,8 @@ export const translations = {
     myJoinedChallenges: "Joined",
     createdByMe: "Created by Me",
     noChallengesFound: "No challenges found",
-    noChallengesFoundDescription: "Try adjusting your search or create a new challenge",
+    noChallengesFoundDescription:
+      "Try adjusting your search or create a new challenge",
     noCreatedChallenges: "You haven't created any challenges yet",
     noCreatedChallengesDescription: "Start your first challenge now",
 
@@ -456,7 +494,8 @@ export const translations = {
     points: "points",
     resetObjective: "Reset Objective",
     completeObjective: "Complete Objective",
-    confirmCompleteObjective: "Are you sure you want to complete '{objective}'?",
+    confirmCompleteObjective:
+      "Are you sure you want to complete '{objective}'?",
     completeButton: "Complete",
 
     // Signup Form
@@ -495,13 +534,16 @@ export const translations = {
     loginSuccess: "Success!",
     loginSuccessDescription: "You have been logged in.",
     loginFailed: "Login Failed",
-    invalidCredentials: "Invalid email or password. Please try again or sign up if you don't have an account.",
+    invalidCredentials:
+      "Invalid email or password. Please try again or sign up if you don't have an account.",
     noAccount: "Don't have an account?",
-    demoNote: "For demo purposes, you can use your registered email with any password",
+    demoNote:
+      "For demo purposes, you can use your registered email with any password",
 
     // Forgot Password
     forgotPasswordTitle: "Forgot Password",
-    forgotPasswordDescription: "Enter your email address and we'll send you a link to reset your password",
+    forgotPasswordDescription:
+      "Enter your email address and we'll send you a link to reset your password",
     sendResetLink: "Send Reset Link",
     sending: "Sending...",
     resetPasswordEmailSent: "Password reset link has been sent to your email",
@@ -528,7 +570,7 @@ export const translations = {
     progressUpdated: "Progress Updated",
     objectiveResetDescription: "The objective has been reset.",
     progressUpdatedDescription: "Your progress has been saved successfully.",
-  }
+  },
 };
 
 export type Language = "de" | "en";
@@ -536,6 +578,7 @@ export type TranslationKey = keyof typeof translations.en;
 
 export const useTranslation = (language: Language = "en") => {
   return {
-    t: (key: TranslationKey) => translations[language][key] || translations.en[key],
+    t: (key: TranslationKey) =>
+      translations[language][key] || translations.en[key],
   };
-}; 
+};

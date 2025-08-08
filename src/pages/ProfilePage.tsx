@@ -19,10 +19,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChallengeCard from "@/components/challenges/ChallengeCard";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import imageCompression from 'browser-image-compression';
+import imageCompression from "browser-image-compression";
 import { Challenge, UserChallenge } from "@/types";
-import ReactCrop, { Crop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import ReactCrop, { Crop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,7 @@ export default function ProfilePage() {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { toast } = useToast();
-  
+
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [isUploading, setIsUploading] = useState(false);
@@ -46,34 +46,34 @@ export default function ProfilePage() {
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [crop, setCrop] = useState<Crop>({
-    unit: '%',
+    unit: "%",
     width: 100,
     height: 100,
     x: 0,
-    y: 0
+    y: 0,
   });
   const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null);
-  
+
   const loadChallenges = async () => {
     if (!user || isLoading) return;
-    
+
     try {
       setIsLoading(true);
-      
+
       // Get all challenges from Supabase
       const { data: challengesData, error: challengesError } = await supabase
-        .from('challenges')
-        .select('*');
-        
+        .from("challenges")
+        .select("*");
+
       if (challengesError) throw challengesError;
-      
+
       // Get user's challenges
       const userChallengesData = await getUserChallenges();
-      
+
       setChallenges(challengesData || []);
       setUserChallenges(userChallengesData);
     } catch (error) {
-      console.error('Error loading challenges:', error);
+      console.error("Error loading challenges:", error);
       toast({
         title: t("error"),
         description: t("error"),
@@ -83,22 +83,22 @@ export default function ProfilePage() {
       setIsLoading(false);
     }
   };
-  
+
   // Load challenges when the user changes
   useEffect(() => {
     if (user) {
       loadChallenges();
     }
   }, [user]);
-  
+
   // Get user's joined challenges
   const userJoinedChallenges = user
-    ? challenges.filter(challenge => challenge.participants.includes(user.id))
+    ? challenges.filter((challenge) => challenge.participants.includes(user.id))
     : [];
-  
+
   // Get challenges created by the user
   const userCreatedChallenges = user
-    ? challenges.filter(challenge => challenge.createdById === user.id)
+    ? challenges.filter((challenge) => challenge.createdById === user.id)
     : [];
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +116,7 @@ export default function ProfilePage() {
     }
 
     // Check file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       toast({
         title: t("error"),
         description: t("invalidFileType"),
@@ -129,27 +129,30 @@ export default function ProfilePage() {
     setCropDialogOpen(true);
   };
 
-  const getCroppedImg = async (image: HTMLImageElement, crop: Crop): Promise<Blob> => {
-    const canvas = document.createElement('canvas');
+  const getCroppedImg = async (
+    image: HTMLImageElement,
+    crop: Crop,
+  ): Promise<Blob> => {
+    const canvas = document.createElement("canvas");
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    
+
     // Calculate the actual pixel values for the crop
     const pixelCrop = {
       x: crop.x * scaleX,
       y: crop.y * scaleY,
       width: crop.width * scaleX,
-      height: crop.height * scaleY
+      height: crop.height * scaleY,
     };
 
     // Set canvas dimensions to match the crop size
     canvas.width = pixelCrop.width;
     canvas.height = pixelCrop.height;
-    
-    const ctx = canvas.getContext('2d');
+
+    const ctx = canvas.getContext("2d");
 
     if (!ctx) {
-      throw new Error('No 2d context');
+      throw new Error("No 2d context");
     }
 
     // Draw the cropped image
@@ -162,17 +165,21 @@ export default function ProfilePage() {
       0,
       0,
       pixelCrop.width,
-      pixelCrop.height
+      pixelCrop.height,
     );
 
     return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error('Canvas is empty'));
-          return;
-        }
-        resolve(blob);
-      }, 'image/jpeg', 0.95); // Increased quality to 0.95
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Canvas is empty"));
+            return;
+          }
+          resolve(blob);
+        },
+        "image/jpeg",
+        0.95,
+      ); // Increased quality to 0.95
     });
   };
 
@@ -186,7 +193,7 @@ export default function ProfilePage() {
       // Get cropped image
       const croppedImageBlob = await getCroppedImg(imageRef, crop);
       const croppedFile = new File([croppedImageBlob], selectedFile.name, {
-        type: 'image/jpeg',
+        type: "image/jpeg",
       });
 
       // Compress the cropped image with better quality settings
@@ -194,21 +201,21 @@ export default function ProfilePage() {
         maxSizeMB: 1,
         maxWidthOrHeight: 1024,
         useWebWorker: true,
-        fileType: 'image/jpeg',
+        fileType: "image/jpeg",
         initialQuality: 0.9, // Increased initial quality
       };
 
       const compressedFile = await imageCompression(croppedFile, options);
 
       // Upload to Supabase Storage
-      const fileExt = 'jpg';
+      const fileExt = "jpg";
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from("avatars")
         .upload(fileName, compressedFile, {
-          cacheControl: '3600',
+          cacheControl: "3600",
           upsert: true,
-          contentType: 'image/jpeg'
+          contentType: "image/jpeg",
         });
 
       if (uploadError) {
@@ -216,9 +223,9 @@ export default function ProfilePage() {
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(fileName);
 
       // Update user metadata
       const { error: updateError } = await supabase.auth.updateUser({
@@ -236,7 +243,7 @@ export default function ProfilePage() {
         description: t("avatarUpdated"),
       });
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      console.error("Error uploading avatar:", error);
       toast({
         title: t("error"),
         description: t("avatarUpdateFailed"),
@@ -247,12 +254,12 @@ export default function ProfilePage() {
       setSelectedFile(null);
     }
   };
-  
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) return;
-    
+
     try {
       // Update user metadata in Supabase
       const { error } = await supabase.auth.updateUser({
@@ -261,17 +268,17 @@ export default function ProfilePage() {
         },
         email: email !== user.email ? email : undefined,
       });
-      
+
       if (error) {
         throw error;
       }
-      
+
       toast({
         title: t("profileUpdated"),
         description: t("profileUpdatedDescription"),
       });
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       toast({
         title: t("error"),
         description: t("profileUpdateFailed"),
@@ -279,16 +286,16 @@ export default function ProfilePage() {
       });
     }
   };
-  
+
   if (!user) {
     return null;
   }
-  
+
   return (
     <div className="container py-8">
       <div className="mx-auto max-w-5xl">
         <h1 className="text-3xl font-bold">{t("myProfile")}</h1>
-        
+
         <div className="mt-8 grid gap-8 md:grid-cols-3">
           <div className="md:col-span-1">
             <Card>
@@ -296,10 +303,10 @@ export default function ProfilePage() {
                 <div className="relative">
                   <Avatar className="h-24 w-24">
                     {user.avatarUrl && (
-                      <AvatarImage 
-                        src={user.avatarUrl} 
+                      <AvatarImage
+                        src={user.avatarUrl}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
                     )}
@@ -327,24 +334,32 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("joinedChallenges")}</span>
+                  <span className="text-muted-foreground">
+                    {t("joinedChallenges")}
+                  </span>
                   <span>{userJoinedChallenges.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("createdChallenges")}</span>
+                  <span className="text-muted-foreground">
+                    {t("createdChallenges")}
+                  </span>
                   <span>{userCreatedChallenges.length}</span>
                 </div>
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="md:col-span-2">
             <Tabs defaultValue="profile">
               <TabsList>
-                <TabsTrigger value="profile">{t("profileInformation")}</TabsTrigger>
-                <TabsTrigger value="challenges">{t("myChallenges")}</TabsTrigger>
+                <TabsTrigger value="profile">
+                  {t("profileInformation")}
+                </TabsTrigger>
+                <TabsTrigger value="challenges">
+                  {t("myChallenges")}
+                </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="profile" className="mt-4">
                 <Card>
                   <CardHeader>
@@ -377,7 +392,11 @@ export default function ProfilePage() {
                         <Button type="submit" onClick={handleUpdateProfile}>
                           {t("saveChanges")}
                         </Button>
-                        <Button type="button" variant="outline" onClick={logout}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={logout}
+                        >
                           {t("logOut")}
                         </Button>
                       </div>
@@ -385,20 +404,26 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="challenges" className="mt-4">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium">{t("joinedChallenges")}</h3>
+                    <h3 className="text-lg font-medium">
+                      {t("joinedChallenges")}
+                    </h3>
                     {isLoading ? (
-                      <p className="mt-2 text-muted-foreground">{t("loading")}</p>
+                      <p className="mt-2 text-muted-foreground">
+                        {t("loading")}
+                      </p>
                     ) : userJoinedChallenges.length > 0 ? (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {userJoinedChallenges.map((challenge) => {
                           const userChallenge = userChallenges.find(
-                            uc => uc.userId === user.id && uc.challengeId === challenge.id
+                            (uc) =>
+                              uc.userId === user.id &&
+                              uc.challengeId === challenge.id,
                           );
-                          
+
                           return (
                             <ChallengeCard
                               key={challenge.id}
@@ -415,18 +440,24 @@ export default function ProfilePage() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div>
-                    <h3 className="text-lg font-medium">{t("createdChallenges")}</h3>
+                    <h3 className="text-lg font-medium">
+                      {t("createdChallenges")}
+                    </h3>
                     {isLoading ? (
-                      <p className="mt-2 text-muted-foreground">{t("loading")}</p>
+                      <p className="mt-2 text-muted-foreground">
+                        {t("loading")}
+                      </p>
                     ) : userCreatedChallenges.length > 0 ? (
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {userCreatedChallenges.map((challenge) => {
                           const userChallenge = userChallenges.find(
-                            uc => uc.userId === user.id && uc.challengeId === challenge.id
+                            (uc) =>
+                              uc.userId === user.id &&
+                              uc.challengeId === challenge.id,
                           );
-                          
+
                           return (
                             <ChallengeCard
                               key={challenge.id}
@@ -462,14 +493,14 @@ export default function ProfilePage() {
                 onChange={(c) => setCrop(c)}
                 aspect={1}
                 className="max-h-[400px] w-full"
-                style={{ maxWidth: '100%', height: 'auto' }}
+                style={{ maxWidth: "100%", height: "auto" }}
               >
                 <img
                   src={URL.createObjectURL(selectedFile)}
                   alt="Crop preview"
                   ref={setImageRef}
                   className="max-h-[400px] w-full object-contain"
-                  style={{ maxWidth: '100%', height: 'auto' }}
+                  style={{ maxWidth: "100%", height: "auto" }}
                 />
               </ReactCrop>
             )}

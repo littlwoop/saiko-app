@@ -6,7 +6,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  
+
   return (
     <footer className="border-t">
       <div className="container py-8 md:py-12">
@@ -23,25 +23,43 @@ export default function Footer() {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 md:col-span-2">
             <div className="flex flex-col gap-2">
               <h3 className="text-base font-medium">{t("app")}</h3>
-              <Link to="/challenges" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                to="/challenges"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 {t("challenges")}
               </Link>
-              <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                to="/leaderboard"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 {t("leaderboard")}
               </Link>
-              <Link to="/my-challenges" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                to="/my-challenges"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 {t("myChallenges")}
               </Link>
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-base font-medium">{t("myAccount")}</h3>
-              <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                to="/login"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 {t("login")}
               </Link>
-              <Link to="/signup" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                to="/signup"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 {t("signup")}
               </Link>
-              <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                to="/profile"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 {t("profile")}
               </Link>
             </div>

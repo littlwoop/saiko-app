@@ -3,7 +3,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 
@@ -20,10 +27,14 @@ interface ProfileFormProps {
   isSubmitting?: boolean;
 }
 
-export function ProfileForm({ onSubmit, initialData, isSubmitting }: ProfileFormProps) {
+export function ProfileForm({
+  onSubmit,
+  initialData,
+  isSubmitting,
+}: ProfileFormProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -40,9 +51,9 @@ export function ProfileForm({ onSubmit, initialData, isSubmitting }: ProfileForm
           name="displayName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('displayName')}</FormLabel>
+              <FormLabel>{t("displayName")}</FormLabel>
               <FormControl>
-                <Input placeholder={t('enterDisplayName')} {...field} />
+                <Input placeholder={t("enterDisplayName")} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -54,9 +65,9 @@ export function ProfileForm({ onSubmit, initialData, isSubmitting }: ProfileForm
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('email')}</FormLabel>
+              <FormLabel>{t("email")}</FormLabel>
               <FormControl>
-                <Input type="email" placeholder={t('enterEmail')} {...field} />
+                <Input type="email" placeholder={t("enterEmail")} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -64,9 +75,9 @@ export function ProfileForm({ onSubmit, initialData, isSubmitting }: ProfileForm
         />
 
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? t('saving') : t('updateProfile')}
+          {isSubmitting ? t("saving") : t("updateProfile")}
         </Button>
       </form>
     </Form>
   );
-} 
+}

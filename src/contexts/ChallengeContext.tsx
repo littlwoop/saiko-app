@@ -9,31 +9,48 @@ import { useLanguage } from "@/contexts/LanguageContext";
 // Debug logging utility
 const debug = {
   log: (...args: unknown[]): void => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[ChallengeContext]', ...args);
+    if (process.env.NODE_ENV === "development") {
+      console.log("[ChallengeContext]", ...args);
     }
   },
   error: (...args: unknown[]): void => {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[ChallengeContext]', ...args);
+    if (process.env.NODE_ENV === "development") {
+      console.error("[ChallengeContext]", ...args);
     }
-  }
+  },
 };
 
 interface ChallengeContextType {
-  createChallenge: (challenge: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => Promise<void>;
+  createChallenge: (
+    challenge: Omit<
+      Challenge,
+      "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
+    >,
+  ) => Promise<void>;
   joinChallenge: (challengeId: string) => Promise<void>;
-  updateProgress: (challengeId: string, objectiveId: string, value: number, notes?: string) => Promise<void>;
+  updateProgress: (
+    challengeId: string,
+    objectiveId: string,
+    value: number,
+    notes?: string,
+  ) => Promise<void>;
   getChallenge: (challengeId: string) => Promise<Challenge | null>;
   getUserChallenges: () => Promise<UserChallenge[]>;
   getChallengeProgress: (challengeId: string) => Promise<UserProgress[]>;
   createMockBingoChallenge: () => Promise<void>;
-  getParticipantProgress: (challengeId: string, userId: string) => Promise<UserProgress[]>;
-  getParticipants: (challengeId: string) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
+  getParticipantProgress: (
+    challengeId: string,
+    userId: string,
+  ) => Promise<UserProgress[]>;
+  getParticipants: (
+    challengeId: string,
+  ) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
   getCreatorAvatar: (userId: string) => Promise<string | undefined>;
 }
 
-const ChallengeContext = createContext<ChallengeContextType | undefined>(undefined);
+const ChallengeContext = createContext<ChallengeContextType | undefined>(
+  undefined,
+);
 
 interface Entry {
   id: string;
@@ -52,33 +69,35 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const { t } = useTranslation(language);
 
   // Get a single challenge by ID
-  const getChallenge = async (challengeId: string): Promise<Challenge | null> => {
+  const getChallenge = async (
+    challengeId: string,
+  ): Promise<Challenge | null> => {
     debug.log(`Getting challenge with ID: ${challengeId}`);
     try {
       const { data, error } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('id', challengeId)
+        .from("challenges")
+        .select("*")
+        .eq("id", challengeId)
         .single();
 
       if (error) {
-        debug.error('Error fetching challenge:', error);
-        toast({ 
-          title: "Error", 
-          description: error.message, 
-          variant: "destructive" 
+        debug.error("Error fetching challenge:", error);
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
         });
         return null;
       }
 
-      debug.log('Successfully fetched challenge:', data);
+      debug.log("Successfully fetched challenge:", data);
       return data;
     } catch (err) {
-      debug.error('Unexpected error:', err);
-      toast({ 
-        title: "Error", 
-        description: "Failed to load challenge", 
-        variant: "destructive" 
+      debug.error("Unexpected error:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load challenge",
+        variant: "destructive",
       });
       return null;
     }
@@ -86,104 +105,116 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get all challenges for the current user
   const getUserChallenges = async (): Promise<UserChallenge[]> => {
-    debug.log('Getting challenges for user:', user?.id);
+    debug.log("Getting challenges for user:", user?.id);
     if (!user) return [];
 
     try {
       const { data: challengesData, error: challengesError } = await supabase
-        .from('challenges')
-        .select('*')
-        .contains('participants', JSON.stringify([user.id]));
+        .from("challenges")
+        .select("*")
+        .contains("participants", JSON.stringify([user.id]));
 
       if (challengesError) {
-        debug.error('Error fetching user challenges:', challengesError);
-        toast({ 
-          title: "Error", 
-          description: challengesError.message, 
-          variant: "destructive" 
+        debug.error("Error fetching user challenges:", challengesError);
+        toast({
+          title: "Error",
+          description: challengesError.message,
+          variant: "destructive",
         });
         return [];
       }
 
-      debug.log('Successfully fetched user challenges:', challengesData);
-      return (challengesData || []).map(challenge => ({
+      debug.log("Successfully fetched user challenges:", challengesData);
+      return (challengesData || []).map((challenge) => ({
         userId: user.id,
         challengeId: challenge.id,
         joinedAt: new Date().toISOString(),
-        totalScore: 0
+        totalScore: 0,
       }));
     } catch (err) {
-      debug.error('Unexpected error:', err);
-      toast({ 
-        title: "Error", 
-        description: "Failed to load user challenges", 
-        variant: "destructive" 
+      debug.error("Unexpected error:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load user challenges",
+        variant: "destructive",
       });
       return [];
     }
   };
 
   // Get progress for a specific challenge
-  const getChallengeProgress = async (challengeId: string): Promise<UserProgress[]> => {
-    debug.log(`Getting progress for challenge: ${challengeId}, user: ${user?.id}`);
+  const getChallengeProgress = async (
+    challengeId: string,
+  ): Promise<UserProgress[]> => {
+    debug.log(
+      `Getting progress for challenge: ${challengeId}, user: ${user?.id}`,
+    );
     if (!user) return [];
 
     try {
       const { data: entriesData, error: entriesError } = await supabase
-        .from('entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('challenge_id', challengeId)
-        .order('created_at', { ascending: false })
+        .from("entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId)
+        .order("created_at", { ascending: false })
         .returns<Entry[]>();
 
       if (entriesError) {
-        debug.error('Error fetching entries:', entriesError);
+        debug.error("Error fetching entries:", entriesError);
         toast({
           title: "Error",
           description: "Failed to load progress data",
-          variant: "destructive"
+          variant: "destructive",
         });
         return [];
       }
 
-      debug.log('Successfully fetched entries:', entriesData);
+      debug.log("Successfully fetched entries:", entriesData);
 
       if (entriesData) {
-        const progressMap = entriesData.reduce((acc, entry) => {
-          const key = `${entry.challenge_id}-${entry.objective_id}`;
-          if (!acc[key]) {
-            acc[key] = {
-              userId: entry.user_id,
-              challengeId: entry.challenge_id,
-              objectiveId: entry.objective_id,
-              currentValue: 0
-            };
-          }
-          acc[key].currentValue += entry.value;
-          return acc;
-        }, {} as Record<string, UserProgress>);
+        const progressMap = entriesData.reduce(
+          (acc, entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (!acc[key]) {
+              acc[key] = {
+                userId: entry.user_id,
+                challengeId: entry.challenge_id,
+                objectiveId: entry.objective_id,
+                currentValue: 0,
+              };
+            }
+            acc[key].currentValue += entry.value;
+            return acc;
+          },
+          {} as Record<string, UserProgress>,
+        );
 
         const progress = Object.values(progressMap);
-        debug.log('Calculated progress:', progress);
+        debug.log("Calculated progress:", progress);
         return progress;
       }
 
       return [];
     } catch (error) {
-      debug.error('Error loading entries:', error);
+      debug.error("Error loading entries:", error);
       toast({
         title: "Error",
         description: "Failed to load challenge progress",
-        variant: "destructive"
+        variant: "destructive",
       });
       return [];
     }
   };
 
   // Create a new challenge
-  const createChallenge = async (challengeData: Omit<Challenge, "id" | "createdById" | "creatorName" | "participants" | "totalPoints">) => {
-    debug.log('Creating new challenge:', challengeData);
+  const createChallenge = async (
+    challengeData: Omit<
+      Challenge,
+      "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
+    >,
+  ) => {
+    debug.log("Creating new challenge:", challengeData);
     if (!user) {
       toast({
         title: "Error",
@@ -194,7 +225,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const totalPoints = challengeData.objectives.reduce((total, objective) => {
-      return total + (objective.targetValue * objective.pointsPerUnit);
+      return total + objective.targetValue * objective.pointsPerUnit;
     }, 0);
 
     const newChallenge = {
@@ -207,18 +238,23 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       isBingo: challengeData.isBingo || false,
     };
 
-    debug.log('Prepared challenge data:', newChallenge);
+    debug.log("Prepared challenge data:", newChallenge);
 
-    const { error } = await supabase
-      .from('challenges')
-      .insert([newChallenge]);
+    const { error } = await supabase.from("challenges").insert([newChallenge]);
 
     if (error) {
-      debug.error('Error creating challenge:', error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      debug.error("Error creating challenge:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
-      debug.log('Successfully created challenge');
-      toast({ title: "Success!", description: "Challenge created successfully" });
+      debug.log("Successfully created challenge");
+      toast({
+        title: "Success!",
+        description: "Challenge created successfully",
+      });
     }
   };
 
@@ -236,24 +272,24 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const { data: challengeData, error: fetchError } = await supabase
-        .from('challenges')
-        .select('participants')
-        .eq('id', challengeId)
+        .from("challenges")
+        .select("participants")
+        .eq("id", challengeId)
         .single();
 
       if (fetchError) {
-        debug.error('Error fetching challenge:', fetchError);
+        debug.error("Error fetching challenge:", fetchError);
         throw fetchError;
       }
 
-      debug.log('Current challenge data:', challengeData);
+      debug.log("Current challenge data:", challengeData);
 
-      const currentParticipants = Array.isArray(challengeData?.participants) 
-        ? challengeData.participants 
+      const currentParticipants = Array.isArray(challengeData?.participants)
+        ? challengeData.participants
         : [];
 
       if (currentParticipants.includes(user.id)) {
-        debug.log('User already joined this challenge');
+        debug.log("User already joined this challenge");
         toast({
           title: "Info",
           description: "You've already joined this challenge",
@@ -262,81 +298,89 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const { error: updateError } = await supabase
-        .from('challenges')
-        .update({ 
-          participants: [...currentParticipants, user.id]
+        .from("challenges")
+        .update({
+          participants: [...currentParticipants, user.id],
         })
-        .eq('id', challengeId);
+        .eq("id", challengeId);
 
       if (updateError) {
-        debug.error('Error updating participants:', updateError);
+        debug.error("Error updating participants:", updateError);
         throw updateError;
       }
 
-      debug.log('Successfully joined challenge');
+      debug.log("Successfully joined challenge");
       toast({
         title: "Success!",
         description: "You've joined the challenge successfully",
       });
     } catch (error) {
-      debug.error('Error joining challenge:', error);
+      debug.error("Error joining challenge:", error);
       toast({
         title: "Error",
         description: "Failed to join challenge",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   // Update progress for a challenge
-  const updateProgress = async (challengeId: string, objectiveId: string, value: number, notes?: string) => {
-    debug.log(`Updating progress - Challenge: ${challengeId}, Objective: ${objectiveId}, Value: ${value}, Notes: ${notes}`);
+  const updateProgress = async (
+    challengeId: string,
+    objectiveId: string,
+    value: number,
+    notes?: string,
+  ) => {
+    debug.log(
+      `Updating progress - Challenge: ${challengeId}, Objective: ${objectiveId}, Value: ${value}, Notes: ${notes}`,
+    );
     if (!user) return;
 
     try {
       if (value === 0) {
-        debug.log('Resetting objective progress');
+        debug.log("Resetting objective progress");
         const { error: deleteError } = await supabase
-          .from('entries')
+          .from("entries")
           .delete()
-          .eq('user_id', user.id)
-          .eq('challenge_id', challengeId)
-          .eq('objective_id', objectiveId);
+          .eq("user_id", user.id)
+          .eq("challenge_id", challengeId)
+          .eq("objective_id", objectiveId);
 
         if (deleteError) {
-          debug.error('Error deleting entries:', deleteError);
+          debug.error("Error deleting entries:", deleteError);
           return;
         }
       } else {
-        debug.log('Creating new progress entry');
-        const { error: insertError } = await supabase
-          .from('entries')
-          .insert({
-            user_id: user.id,
-            challenge_id: challengeId,
-            objective_id: objectiveId,
-            value: value,
-            notes: notes?.trim() || null,
-            username: user.name || `User ${user.id}`
-          });
+        debug.log("Creating new progress entry");
+        const { error: insertError } = await supabase.from("entries").insert({
+          user_id: user.id,
+          challenge_id: challengeId,
+          objective_id: objectiveId,
+          value: value,
+          notes: notes?.trim() || null,
+          username: user.name || `User ${user.id}`,
+        });
 
         if (insertError) {
-          debug.error('Error creating entry:', insertError);
+          debug.error("Error creating entry:", insertError);
           return;
         }
       }
 
-      debug.log('Successfully updated progress');
+      debug.log("Successfully updated progress");
       toast({
         title: value === 0 ? t("objectiveReset") : t("progressUpdated"),
-        description: value === 0 ? t("objectiveResetDescription") : t("progressUpdatedDescription"),
+        description:
+          value === 0
+            ? t("objectiveResetDescription")
+            : t("progressUpdatedDescription"),
       });
     } catch (error) {
-      debug.error('Error updating progress:', error);
+      debug.error("Error updating progress:", error);
       toast({
         title: "Error",
         description: "Failed to update progress. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -349,149 +393,162 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       { title: "60 min Rad", description: "Bike for 60 minutes" },
       { title: "8 km Rad", description: "Bike 8 kilometers" },
       { title: "20 Pullups", description: "Complete 20 pullups" },
-      { title: "30 min Rad", description: "Bike for 30 minutes" }
+      { title: "30 min Rad", description: "Bike for 30 minutes" },
     ].map((obj, i) => ({
       id: crypto.randomUUID(),
       title: obj.title,
       description: obj.description,
       targetValue: 1,
       unit: "Abschluss",
-      pointsPerUnit: 1
+      pointsPerUnit: 1,
     }));
 
     const challengeData = {
       title: "June of Pain - Bingo Edition",
-      description: "5 Felder in einer Reihe (horizontal, vertikal, diagonal) = BINGO! Pro Tag maximal 2 Felder abhaken! Alle Ziele sind einzeln zu bewerten",
-      startDate: new Date('2025-06-01T00:00:00Z').toISOString(),
-      endDate: new Date('2025-06-30T23:59:59Z').toISOString(),
+      description:
+        "5 Felder in einer Reihe (horizontal, vertikal, diagonal) = BINGO! Pro Tag maximal 2 Felder abhaken! Alle Ziele sind einzeln zu bewerten",
+      startDate: new Date("2025-06-01T00:00:00Z").toISOString(),
+      endDate: new Date("2025-06-30T23:59:59Z").toISOString(),
       objectives,
-      isBingo: true
+      isBingo: true,
     };
 
     await createChallenge(challengeData);
   };
 
   // Get progress for a specific participant
-  const getParticipantProgress = async (challengeId: string, userId: string): Promise<UserProgress[]> => {
-    debug.log(`Getting progress for participant - Challenge: ${challengeId}, User: ${userId}`);
+  const getParticipantProgress = async (
+    challengeId: string,
+    userId: string,
+  ): Promise<UserProgress[]> => {
+    debug.log(
+      `Getting progress for participant - Challenge: ${challengeId}, User: ${userId}`,
+    );
     try {
       const { data: entriesData, error: entriesError } = await supabase
-        .from('entries')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('challenge_id', challengeId)
-        .order('created_at', { ascending: false })
+        .from("entries")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("challenge_id", challengeId)
+        .order("created_at", { ascending: false })
         .returns<Entry[]>();
 
       if (entriesError) {
-        debug.error('Error fetching entries:', entriesError);
+        debug.error("Error fetching entries:", entriesError);
         toast({
           title: "Error",
           description: "Failed to load progress data",
-          variant: "destructive"
+          variant: "destructive",
         });
         return [];
       }
 
-      debug.log('Successfully fetched participant entries:', entriesData);
+      debug.log("Successfully fetched participant entries:", entriesData);
 
       if (entriesData) {
-        const progressMap = entriesData.reduce((acc, entry) => {
-          const key = `${entry.challenge_id}-${entry.objective_id}`;
-          if (!acc[key]) {
-            acc[key] = {
-              userId: entry.user_id,
-              challengeId: entry.challenge_id,
-              objectiveId: entry.objective_id,
-              currentValue: 0
-            };
-          }
-          acc[key].currentValue += entry.value;
-          return acc;
-        }, {} as Record<string, UserProgress>);
+        const progressMap = entriesData.reduce(
+          (acc, entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (!acc[key]) {
+              acc[key] = {
+                userId: entry.user_id,
+                challengeId: entry.challenge_id,
+                objectiveId: entry.objective_id,
+                currentValue: 0,
+              };
+            }
+            acc[key].currentValue += entry.value;
+            return acc;
+          },
+          {} as Record<string, UserProgress>,
+        );
 
         const progress = Object.values(progressMap);
-        debug.log('Calculated participant progress:', progress);
+        debug.log("Calculated participant progress:", progress);
         return progress;
       }
 
       return [];
     } catch (error) {
-      debug.error('Error loading entries:', error);
+      debug.error("Error loading entries:", error);
       toast({
         title: "Error",
         description: "Failed to load challenge progress",
-        variant: "destructive"
+        variant: "destructive",
       });
       return [];
     }
   };
 
   // Get participants for a challenge
-  const getParticipants = async (challengeId: string): Promise<Array<{ id: string; name: string; avatar?: string }>> => {
+  const getParticipants = async (
+    challengeId: string,
+  ): Promise<Array<{ id: string; name: string; avatar?: string }>> => {
     debug.log(`Getting participants for challenge: ${challengeId}`);
     try {
       const { data: challengeData, error: challengeError } = await supabase
-        .from('challenges')
-        .select('participants')
-        .eq('id', challengeId)
+        .from("challenges")
+        .select("participants")
+        .eq("id", challengeId)
         .single();
 
       if (challengeError || !challengeData) {
-        debug.error('Error fetching challenge:', challengeError);
+        debug.error("Error fetching challenge:", challengeError);
         return [];
       }
 
-      debug.log('Challenge participants:', challengeData.participants);
+      debug.log("Challenge participants:", challengeData.participants);
 
       const { data: profiles, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select('id, name, avatar_url')
-        .in('id', challengeData.participants);
+        .from("user_profiles")
+        .select("id, name, avatar_url")
+        .in("id", challengeData.participants);
 
       if (profilesError) {
-        debug.error('Error fetching participant profiles:', profilesError);
+        debug.error("Error fetching participant profiles:", profilesError);
         return [];
       }
 
-      debug.log('Participant profiles:', profiles);
+      debug.log("Participant profiles:", profiles);
 
-      const participants = challengeData.participants.map(id => {
-        const profile = profiles?.find(p => p.id === id);
+      const participants = challengeData.participants.map((id) => {
+        const profile = profiles?.find((p) => p.id === id);
         return {
           id,
           name: profile?.name || `User ${id.slice(0, 4)}`,
-          avatar: profile?.avatar_url
+          avatar: profile?.avatar_url,
         };
       });
 
-      debug.log('Processed participants:', participants);
+      debug.log("Processed participants:", participants);
       return participants;
     } catch (error) {
-      debug.error('Error loading participants:', error);
+      debug.error("Error loading participants:", error);
       return [];
     }
   };
 
   // Get creator's avatar
-  const getCreatorAvatar = async (userId: string): Promise<string | undefined> => {
+  const getCreatorAvatar = async (
+    userId: string,
+  ): Promise<string | undefined> => {
     debug.log(`Getting creator avatar for user: ${userId}`);
     try {
       const { data, error } = await supabase
-        .from('user_profiles')
-        .select('avatar_url')
-        .eq('id', userId)
+        .from("user_profiles")
+        .select("avatar_url")
+        .eq("id", userId)
         .single();
 
       if (error) {
-        debug.error('Error fetching creator avatar:', error);
+        debug.error("Error fetching creator avatar:", error);
         return undefined;
       }
 
-      debug.log('Creator avatar URL:', data?.avatar_url);
+      debug.log("Creator avatar URL:", data?.avatar_url);
       return data?.avatar_url;
     } catch (error) {
-      debug.error('Error loading creator avatar:', error);
+      debug.error("Error loading creator avatar:", error);
       return undefined;
     }
   };
@@ -506,7 +563,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     createMockBingoChallenge,
     getParticipantProgress,
     getParticipants,
-    getCreatorAvatar
+    getCreatorAvatar,
   };
 
   return (
@@ -522,4 +579,3 @@ export const useChallenges = () => {
   }
   return context;
 };
-

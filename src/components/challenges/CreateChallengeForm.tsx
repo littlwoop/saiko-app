@@ -12,13 +12,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { Card } from "@/components/ui/card";
 import { CircleX, Trophy, Plus } from "lucide-react";
-import { 
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 export default function CreateChallengeForm() {
   const { createChallenge } = useChallenges();
@@ -26,48 +26,52 @@ export default function CreateChallengeForm() {
   const { t } = useTranslation(language);
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(),
     to: addDays(new Date(), 30),
   });
-  
+
   const [objectives, setObjectives] = useState([
-    { 
-      id: uuidv4(), 
-      title: "", 
-      description: "", 
-      targetValue: 0, 
-      unit: "", 
-      pointsPerUnit: 0 
-    }
+    {
+      id: uuidv4(),
+      title: "",
+      description: "",
+      targetValue: 0,
+      unit: "",
+      pointsPerUnit: 0,
+    },
   ]);
-  
+
   const handleAddObjective = () => {
     setObjectives([
       ...objectives,
-      { 
-        id: uuidv4(), 
-        title: "", 
-        description: "", 
-        targetValue: 0, 
-        unit: "", 
-        pointsPerUnit: 0 
-      }
+      {
+        id: uuidv4(),
+        title: "",
+        description: "",
+        targetValue: 0,
+        unit: "",
+        pointsPerUnit: 0,
+      },
     ]);
   };
-  
-  const handleObjectiveChange = (index: number, field: string, value: string | number) => {
+
+  const handleObjectiveChange = (
+    index: number,
+    field: string,
+    value: string | number,
+  ) => {
     const newObjectives = [...objectives];
     newObjectives[index] = {
       ...newObjectives[index],
-      [field]: value
+      [field]: value,
     };
     setObjectives(newObjectives);
   };
-  
+
   const handleRemoveObjective = (index: number) => {
     if (objectives.length > 1) {
       const newObjectives = [...objectives];
@@ -75,10 +79,10 @@ export default function CreateChallengeForm() {
       setObjectives(newObjectives);
     }
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title || !description || !date?.from || !date?.to) {
       toast({
         title: t("error"),
@@ -87,11 +91,15 @@ export default function CreateChallengeForm() {
       });
       return;
     }
-    
+
     const hasEmptyObjective = objectives.some(
-      obj => !obj.title || !obj.unit || obj.targetValue <= 0 || obj.pointsPerUnit <= 0
+      (obj) =>
+        !obj.title ||
+        !obj.unit ||
+        obj.targetValue <= 0 ||
+        obj.pointsPerUnit <= 0,
     );
-    
+
     if (hasEmptyObjective) {
       toast({
         title: t("error"),
@@ -100,22 +108,22 @@ export default function CreateChallengeForm() {
       });
       return;
     }
-    
+
     createChallenge({
       title,
       description,
       startDate: date.from.toISOString(),
       endDate: date.to.toISOString(),
-      objectives: objectives.map(obj => ({
+      objectives: objectives.map((obj) => ({
         ...obj,
         targetValue: Number(obj.targetValue),
-        pointsPerUnit: Number(obj.pointsPerUnit)
+        pointsPerUnit: Number(obj.pointsPerUnit),
       })),
     });
-    
+
     navigate("/challenges");
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-4">
@@ -129,7 +137,7 @@ export default function CreateChallengeForm() {
             required
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="description">{t("description")}</Label>
           <Textarea
@@ -141,7 +149,7 @@ export default function CreateChallengeForm() {
             className="min-h-[100px]"
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label>{t("challengeDuration")}</Label>
           <Popover>
@@ -177,7 +185,7 @@ export default function CreateChallengeForm() {
           </Popover>
         </div>
       </div>
-      
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">{t("challengeObjectives")}</h3>
@@ -190,7 +198,7 @@ export default function CreateChallengeForm() {
             <Plus className="mr-2 h-4 w-4" /> {t("addObjective")}
           </Button>
         </div>
-        
+
         <div className="space-y-4">
           {objectives.map((objective, index) => (
             <Card key={index} className="p-4 relative">
@@ -206,65 +214,97 @@ export default function CreateChallengeForm() {
                   <span className="sr-only">{t("remove")}</span>
                 </Button>
               )}
-              
+
               <div className="space-y-4 pr-8">
                 <div className="space-y-2">
-                  <Label htmlFor={`objective-${index}-title`}>{t("objectiveTitle")}</Label>
+                  <Label htmlFor={`objective-${index}-title`}>
+                    {t("objectiveTitle")}
+                  </Label>
                   <Input
                     id={`objective-${index}-title`}
                     placeholder={t("objectiveTitlePlaceholder")}
                     value={objective.title}
-                    onChange={(e) => handleObjectiveChange(index, "title", e.target.value)}
+                    onChange={(e) =>
+                      handleObjectiveChange(index, "title", e.target.value)
+                    }
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor={`objective-${index}-description`}>{t("objectiveDescription")}</Label>
+                  <Label htmlFor={`objective-${index}-description`}>
+                    {t("objectiveDescription")}
+                  </Label>
                   <Textarea
                     id={`objective-${index}-description`}
                     placeholder={t("objectiveDescriptionPlaceholder")}
                     value={objective.description}
-                    onChange={(e) => handleObjectiveChange(index, "description", e.target.value)}
+                    onChange={(e) =>
+                      handleObjectiveChange(
+                        index,
+                        "description",
+                        e.target.value,
+                      )
+                    }
                     required
                     className="min-h-[60px]"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-target`}>{t("targetValue")}</Label>
+                    <Label htmlFor={`objective-${index}-target`}>
+                      {t("targetValue")}
+                    </Label>
                     <Input
                       id={`objective-${index}-target`}
                       type="number"
                       min="1"
                       placeholder={t("targetValuePlaceholder")}
                       value={objective.targetValue || ""}
-                      onChange={(e) => handleObjectiveChange(index, "targetValue", Number(e.target.value))}
+                      onChange={(e) =>
+                        handleObjectiveChange(
+                          index,
+                          "targetValue",
+                          Number(e.target.value),
+                        )
+                      }
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-unit`}>{t("unit")}</Label>
+                    <Label htmlFor={`objective-${index}-unit`}>
+                      {t("unit")}
+                    </Label>
                     <Input
                       id={`objective-${index}-unit`}
                       placeholder={t("unitPlaceholder")}
                       value={objective.unit}
-                      onChange={(e) => handleObjectiveChange(index, "unit", e.target.value)}
+                      onChange={(e) =>
+                        handleObjectiveChange(index, "unit", e.target.value)
+                      }
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-points`}>{t("pointsPerUnit")}</Label>
+                    <Label htmlFor={`objective-${index}-points`}>
+                      {t("pointsPerUnit")}
+                    </Label>
                     <Input
                       id={`objective-${index}-points`}
                       type="number"
                       min="1"
                       placeholder={t("pointsPerUnitPlaceholder")}
                       value={objective.pointsPerUnit || ""}
-                      onChange={(e) => handleObjectiveChange(index, "pointsPerUnit", Number(e.target.value))}
+                      onChange={(e) =>
+                        handleObjectiveChange(
+                          index,
+                          "pointsPerUnit",
+                          Number(e.target.value),
+                        )
+                      }
                       required
                     />
                   </div>
@@ -274,7 +314,7 @@ export default function CreateChallengeForm() {
           ))}
         </div>
       </div>
-      
+
       <Button type="submit" className="w-full">
         <Trophy className="mr-2 h-4 w-4" /> {t("createChallenge")}
       </Button>
