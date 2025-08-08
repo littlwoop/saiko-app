@@ -1,9 +1,8 @@
-import { useMemo, useEffect, useState } from "react";
-import { useChallenges } from "@/contexts/ChallengeContext";
-import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { useTranslation } from "@/lib/translations";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useMemo, useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from '@/lib/translations';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -11,9 +10,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Trophy, UserRound } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+} from '@/components/ui/table';
+import { Trophy, UserRound } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface LeaderboardTableProps {
   challengeId?: string;
@@ -50,10 +49,7 @@ interface Entry {
   challenge: Challenge;
 }
 
-export default function LeaderboardTable({
-  challengeId,
-  onUserClick,
-}: LeaderboardTableProps) {
+export default function LeaderboardTable({ challengeId, onUserClick }: LeaderboardTableProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -66,7 +62,7 @@ export default function LeaderboardTable({
       try {
         setLoading(true);
 
-        let query = supabase.from("entries").select(`
+        let query = supabase.from('entries').select(`
     *,
     challenge:challenges (
       id,
@@ -75,40 +71,38 @@ export default function LeaderboardTable({
   `);
 
         if (challengeId) {
-          query = query.eq("challenge_id", challengeId);
+          query = query.eq('challenge_id', challengeId);
         }
 
         const { data: entriesData, error: entriesError } = await query;
 
         if (entriesError) {
-          console.error("Error fetching entries:", entriesError);
+          console.error('Error fetching entries:', entriesError);
         } else {
           setEntries(entriesData || []);
 
           // Fetch user profiles for all unique users
-          const uniqueUserIds = [
-            ...new Set(entriesData?.map((entry) => entry.user_id) || []),
-          ];
+          const uniqueUserIds = [...new Set(entriesData?.map((entry) => entry.user_id) || [])];
           const { data: profiles, error: profilesError } = await supabase
-            .from("user_profiles")
-            .select("id, avatar_url")
-            .in("id", uniqueUserIds);
+            .from('user_profiles')
+            .select('id, avatar_url')
+            .in('id', uniqueUserIds);
 
           if (profilesError) {
-            console.error("Error fetching user profiles:", profilesError);
+            console.error('Error fetching user profiles:', profilesError);
           } else {
             const avatarMap = (profiles || []).reduce(
               (acc, profile) => ({
                 ...acc,
                 [profile.id]: profile.avatar_url,
               }),
-              {},
+              {}
             );
             setUserAvatars(avatarMap);
           }
         }
       } catch (error) {
-        console.error("Unexpected error:", error);
+        console.error('Unexpected error:', error);
       } finally {
         setLoading(false);
       }
@@ -123,7 +117,7 @@ export default function LeaderboardTable({
       (acc, entry) => {
         // Find the matching objective in the challenge's objectives array
         const matchingObjective = entry.challenge.objectives.find(
-          (obj) => obj.id === entry.objective_id,
+          (obj) => obj.id === entry.objective_id
         );
 
         // Default to 0 if not found
@@ -143,20 +137,20 @@ export default function LeaderboardTable({
 
         return acc;
       },
-      {} as Record<string, { score: number; username: string }>,
+      {} as Record<string, { score: number; username: string }>
     );
 
     // Create leaderboard entries
-    const leaderboardEntries: LeaderboardEntry[] = Object.entries(
-      userScores,
-    ).map(([userId, data]) => {
-      return {
-        userId,
-        name: data.username,
-        score: data.score,
-        position: 0, // will be calculated below
-      };
-    });
+    const leaderboardEntries: LeaderboardEntry[] = Object.entries(userScores).map(
+      ([userId, data]) => {
+        return {
+          userId,
+          name: data.username,
+          score: data.score,
+          position: 0, // will be calculated below
+        };
+      }
+    );
 
     // Sort by score (descending)
     leaderboardEntries.sort((a, b) => b.score - a.score);
@@ -181,13 +175,13 @@ export default function LeaderboardTable({
   const getPositionStyle = (position: number) => {
     switch (position) {
       case 1:
-        return "text-yellow-500 font-bold";
+        return 'text-yellow-500 font-bold';
       case 2:
-        return "text-gray-400 font-bold";
+        return 'text-gray-400 font-bold';
       case 3:
-        return "text-amber-700 font-bold";
+        return 'text-amber-700 font-bold';
       default:
-        return "";
+        return '';
     }
   };
 
@@ -195,7 +189,7 @@ export default function LeaderboardTable({
     return (
       <div className="text-center py-10">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
-        <p className="mt-4 text-muted-foreground">{t("loading")}</p>
+        <p className="mt-4 text-muted-foreground">{t('loading')}</p>
       </div>
     );
   }
@@ -204,10 +198,8 @@ export default function LeaderboardTable({
     return (
       <div className="text-center py-10">
         <Trophy className="h-10 w-10 mx-auto text-muted-foreground opacity-50" />
-        <h3 className="mt-4 text-lg font-medium">{t("noParticipants")}</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t("noParticipantsDescription")}
-        </p>
+        <h3 className="mt-4 text-lg font-medium">{t('noParticipants')}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{t('noParticipantsDescription')}</p>
       </div>
     );
   }
@@ -217,13 +209,9 @@ export default function LeaderboardTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-16 text-center">
-              {t("leaderboardRank")}
-            </TableHead>
-            <TableHead>{t("leaderboardPlayer")}</TableHead>
-            <TableHead className="text-right">
-              {t("leaderboardPoints")}
-            </TableHead>
+            <TableHead className="w-16 text-center">{t('leaderboardRank')}</TableHead>
+            <TableHead>{t('leaderboardPlayer')}</TableHead>
+            <TableHead className="text-right">{t('leaderboardPoints')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -231,16 +219,11 @@ export default function LeaderboardTable({
             const isCurrentUser = user && entry.userId === user.id;
 
             return (
-              <TableRow
-                key={entry.userId}
-                className={isCurrentUser ? "bg-muted/40" : ""}
-              >
-                <TableCell
-                  className={`text-center ${getPositionStyle(entry.position)}`}
-                >
-                  {entry.position === 1 && "🥇"}
-                  {entry.position === 2 && "🥈"}
-                  {entry.position === 3 && "🥉"}
+              <TableRow key={entry.userId} className={isCurrentUser ? 'bg-muted/40' : ''}>
+                <TableCell className={`text-center ${getPositionStyle(entry.position)}`}>
+                  {entry.position === 1 && '🥇'}
+                  {entry.position === 2 && '🥈'}
+                  {entry.position === 3 && '🥉'}
                   {entry.position > 3 && entry.position}
                 </TableCell>
                 <TableCell>
@@ -253,8 +236,7 @@ export default function LeaderboardTable({
                         <AvatarImage
                           src={userAvatars[entry.userId]}
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
+                            (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
                       )}
@@ -262,13 +244,13 @@ export default function LeaderboardTable({
                         <UserRound className="h-4 w-4" />
                       </AvatarFallback>
                     </Avatar>
-                    <span className={isCurrentUser ? "font-medium" : ""}>
-                      {entry.name} {isCurrentUser && "(You)"}
+                    <span className={isCurrentUser ? 'font-medium' : ''}>
+                      {entry.name} {isCurrentUser && '(You)'}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {Math.round(entry.score)} {t("leaderboardPoints")}
+                  {Math.round(entry.score)} {t('leaderboardPoints')}
                 </TableCell>
               </TableRow>
             );

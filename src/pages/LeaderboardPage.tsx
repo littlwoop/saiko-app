@@ -1,26 +1,23 @@
-import { useState, useEffect } from "react";
-import { useChallenges } from "@/contexts/ChallengeContext";
-import LeaderboardTable from "@/components/challenges/LeaderboardTable";
+import { useState, useEffect } from 'react';
+import { useChallenges } from '@/contexts/ChallengeContext';
+import LeaderboardTable from '@/components/challenges/LeaderboardTable';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Trophy } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { useTranslation } from "@/lib/translations";
-import { Challenge } from "@/types";
-import { supabase } from "@/lib/supabase";
+} from '@/components/ui/select';
+import { Trophy } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from '@/lib/translations';
+import { Challenge } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export default function LeaderboardPage() {
-  const { getChallenge } = useChallenges();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  const [selectedChallenge, setSelectedChallenge] = useState<
-    string | undefined
-  >(undefined);
+  const [selectedChallenge, setSelectedChallenge] = useState<string | undefined>(undefined);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,17 +26,17 @@ export default function LeaderboardPage() {
       try {
         setLoading(true);
         const { data: challengesData, error } = await supabase
-          .from("challenges")
-          .select("*")
-          .order("created_at", { ascending: false });
+          .from('challenges')
+          .select('*')
+          .order('created_at', { ascending: false });
 
         if (error) {
-          console.error("Error fetching challenges:", error);
+          console.error('Error fetching challenges:', error);
         } else {
           setChallenges(challengesData || []);
         }
       } catch (error) {
-        console.error("Unexpected error:", error);
+        console.error('Unexpected error:', error);
       } finally {
         setLoading(false);
       }
@@ -49,7 +46,7 @@ export default function LeaderboardPage() {
   }, []);
 
   const handleChallengeChange = (value: string) => {
-    setSelectedChallenge(value === "all" ? undefined : value);
+    setSelectedChallenge(value === 'all' ? undefined : value);
   };
 
   if (loading) {
@@ -68,19 +65,16 @@ export default function LeaderboardPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Trophy className="h-8 w-8 text-challenge-purple" />
-            <h1 className="text-3xl font-bold">{t("leaderboard")}</h1>
+            <h1 className="text-3xl font-bold">{t('leaderboard')}</h1>
           </div>
 
           <div className="w-full sm:w-64">
-            <Select
-              value={selectedChallenge || "all"}
-              onValueChange={handleChallengeChange}
-            >
+            <Select value={selectedChallenge || 'all'} onValueChange={handleChallengeChange}>
               <SelectTrigger>
-                <SelectValue placeholder={t("filterByChallenge")} />
+                <SelectValue placeholder={t('filterByChallenge')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("allChallenges")}</SelectItem>
+                <SelectItem value="all">{t('allChallenges')}</SelectItem>
                 {challenges.map((challenge) => (
                   <SelectItem key={challenge.id} value={challenge.id}>
                     {challenge.title}
