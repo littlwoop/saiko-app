@@ -208,7 +208,7 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card
-          className={`select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
+          className={`select-none mb-4 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
           onTouchStart={!readOnly ? handleLongPress : undefined}
           onTouchEnd={!readOnly ? handleTouchEnd : undefined}
           onTouchCancel={!readOnly ? handleTouchEnd : undefined}
@@ -229,7 +229,7 @@ export default function ObjectiveItem({
               {objective.description}
             </CardDescription>
           </CardHeader>
-          <CardContent className="pb-2">
+          <CardContent className="pb-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
