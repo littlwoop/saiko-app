@@ -200,6 +200,7 @@ export const translations = {
     enterProgressFor: "Geben Sie Ihren Fortschritt ein für",
     enterUnit: "{unit} eingeben",
     notes: "Notizen",
+    value: "Wert",
     optional: "optional",
     addNotesAboutProgress: "Fügen Sie Notizen zu Ihrem Fortschritt hinzu...",
     saveProgress: "Fortschritt speichern",
@@ -293,6 +294,19 @@ export const translations = {
     objectiveResetDescription: "Das Ziel wurde zurückgesetzt.",
     progressUpdatedDescription:
       "Dein Fortschritt wurde erfolgreich gespeichert.",
+
+    // Activity Management
+    editActivity: "Aktivität bearbeiten",
+    editActivityFor: "Aktivität bearbeiten für",
+    deleteActivity: "Aktivität löschen",
+    deleteActivityConfirmation: "Sind Sie sicher, dass Sie diese Aktivität löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    pleaseEnterValidValue: "Bitte geben Sie einen gültigen Wert ein",
+    failedToUpdateActivity: "Aktivität konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+    activityUpdated: "Aktivität aktualisiert",
+    activityUpdatedDescription: "Ihre Aktivität wurde erfolgreich aktualisiert.",
+    failedToDeleteActivity: "Aktivität konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    activityDeleted: "Aktivität gelöscht",
+    activityDeletedDescription: "Ihre Aktivität wurde erfolgreich gelöscht.",
   },
   en: {
     // Navigation
@@ -488,6 +502,7 @@ export const translations = {
     enterProgressFor: "Enter your progress for",
     enterUnit: "Enter {unit}",
     notes: "Notes",
+    value: "Value",
     optional: "optional",
     addNotesAboutProgress: "Add any notes about your progress...",
     saveProgress: "Save Progress",
@@ -570,6 +585,19 @@ export const translations = {
     progressUpdated: "Progress Updated",
     objectiveResetDescription: "The objective has been reset.",
     progressUpdatedDescription: "Your progress has been saved successfully.",
+
+    // Activity Management
+    editActivity: "Edit Activity",
+    editActivityFor: "Edit activity for",
+    deleteActivity: "Delete Activity",
+    deleteActivityConfirmation: "Are you sure you want to delete this activity? This action cannot be undone.",
+    pleaseEnterValidValue: "Please enter a valid value",
+    failedToUpdateActivity: "Failed to update activity. Please try again.",
+    activityUpdated: "Activity Updated",
+    activityUpdatedDescription: "Your activity has been updated successfully.",
+    failedToDeleteActivity: "Failed to delete activity. Please try again.",
+    activityDeleted: "Activity Deleted",
+    activityDeletedDescription: "Your activity has been deleted successfully.",
   },
 };
 
