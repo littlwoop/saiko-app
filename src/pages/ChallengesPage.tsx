@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useChallenges } from '@/contexts/ChallengeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -105,6 +105,111 @@ export default function ChallengesPage() {
     ? filteredChallenges.filter((challenge) => !challenge.participants.includes(user.id))
     : filteredChallenges;
 
+  const sortedAllChallenges = useMemo(() => {
+    if (!user) {
+      return filteredChallenges;
+    }
+    const today = new Date();
+    
+    const sorted = [...filteredChallenges].sort((a, b) => {
+      // First, determine the status of each challenge
+      const aStartDate = new Date(a.startDate);
+      const aEndDate = new Date(a.endDate);
+      const bStartDate = new Date(b.startDate);
+      const bEndDate = new Date(b.endDate);
+      
+      const aIsActive = today >= aStartDate && today <= aEndDate;
+      const aIsFuture = today < aStartDate;
+      const aIsPast = today > aEndDate;
+      
+      const bIsActive = today >= bStartDate && today <= bEndDate;
+      const bIsFuture = today < bStartDate;
+      const bIsPast = today > bEndDate;
+      
+      // Priority order: Active > Upcoming > Completed
+      const getStatusPriority = (isActive: boolean, isFuture: boolean, isPast: boolean) => {
+        if (isActive) return 3;
+        if (isFuture) return 2;
+        if (isPast) return 1;
+        return 0;
+      };
+      
+      const aPriority = getStatusPriority(aIsActive, aIsFuture, aIsPast);
+      const bPriority = getStatusPriority(bIsActive, bIsFuture, bIsPast);
+      
+      // If status is different, sort by status priority
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority;
+      }
+      
+      // If status is the same, sort by progress
+      const aUser = userChallenges.find(
+        (uc) => uc.userId === user.id && uc.challengeId === a.id
+      );
+      const bUser = userChallenges.find(
+        (uc) => uc.userId === user.id && uc.challengeId === b.id
+      );
+      const aProgress = aUser ? aUser.totalScore / a.totalPoints : 0;
+      const bProgress = bUser ? bUser.totalScore / b.totalPoints : 0;
+      return bProgress - aProgress;
+    });
+    return sorted;
+  }, [filteredChallenges, user, userChallenges]);
+
+  const sortedJoinedChallenges = useMemo(() => {
+    if (!user) {
+      return [];
+    }
+    const joined = filteredChallenges.filter((challenge) =>
+      challenge.participants.includes(user.id)
+    );
+    const today = new Date();
+    
+    const sorted = [...joined].sort((a, b) => {
+      // First, determine the status of each challenge
+      const aStartDate = new Date(a.startDate);
+      const aEndDate = new Date(a.endDate);
+      const bStartDate = new Date(b.startDate);
+      const bEndDate = new Date(b.endDate);
+      
+      const aIsActive = today >= aStartDate && today <= aEndDate;
+      const aIsFuture = today < aStartDate;
+      const aIsPast = today > aEndDate;
+      
+      const bIsActive = today >= bStartDate && today <= bEndDate;
+      const bIsFuture = today < bStartDate;
+      const bIsPast = today > bEndDate;
+      
+      // Priority order: Active > Upcoming > Completed
+      const getStatusPriority = (isActive: boolean, isFuture: boolean, isPast: boolean) => {
+        if (isActive) return 3;
+        if (isFuture) return 2;
+        if (isPast) return 1;
+        return 0;
+      };
+      
+      const aPriority = getStatusPriority(aIsActive, aIsFuture, aIsPast);
+      const bPriority = getStatusPriority(bIsActive, bIsFuture, bIsPast);
+      
+      // If status is different, sort by status priority
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority;
+      }
+      
+      // If status is the same, sort by progress
+      const aUser = userChallenges.find(
+        (uc) => uc.userId === user.id && uc.challengeId === a.id
+      );
+      const bUser = userChallenges.find(
+        (uc) => uc.userId === user.id && uc.challengeId === b.id
+      );
+      const aProgress = aUser ? aUser.totalScore / a.totalPoints : 0;
+      const bProgress = bUser ? bUser.totalScore / b.totalPoints : 0;
+      return bProgress - aProgress;
+    });
+    return sorted;
+  }, [filteredChallenges, user, userChallenges]);
+
   if (loading) {
     return (
       <div className="container py-10">
@@ -152,10 +257,10 @@ export default function ChallengesPage() {
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
-            {filteredChallenges.length > 0 ? (
+            {sortedAllChallenges.length > 0 ? (
               <div className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredChallenges.map((challenge) => {
+                  {sortedAllChallenges.map((challenge) => {
                     const userChallenge = userChallenges.find(
                       (uc) => user && uc.userId === user.id && uc.challengeId === challenge.id
                     );
@@ -200,9 +305,9 @@ export default function ChallengesPage() {
 
           {user && (
             <TabsContent value="joined" className="mt-6">
-              {userJoinedChallenges.length > 0 ? (
+              {sortedJoinedChallenges.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {userJoinedChallenges.map((challenge) => {
+                  {sortedJoinedChallenges.map((challenge) => {
                     const userChallenge = userChallenges.find(
                       (uc) => uc.userId === user.id && uc.challengeId === challenge.id
                     );

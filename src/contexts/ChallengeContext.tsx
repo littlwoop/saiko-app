@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { calculateTotalPoints } from "@/lib/points";
 
 // Debug logging utility
 const debug = {
@@ -125,12 +126,27 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       }
 
       debug.log("Successfully fetched user challenges:", challengesData);
-      return (challengesData || []).map((challenge) => ({
-        userId: user.id,
-        challengeId: challenge.id,
-        joinedAt: new Date().toISOString(),
-        totalScore: 0,
-      }));
+      
+      // Calculate actual progress for each challenge
+      const userChallengesWithProgress = await Promise.all(
+        (challengesData || []).map(async (challenge) => {
+          const progress = await getChallengeProgress(challenge.id);
+          const totalScore = calculateTotalPoints(
+            challenge.objectives,
+            progress,
+            challenge.capedPoints
+          );
+          
+          return {
+            userId: user.id,
+            challengeId: challenge.id,
+            joinedAt: new Date().toISOString(),
+            totalScore,
+          };
+        })
+      );
+
+      return userChallengesWithProgress;
     } catch (err) {
       debug.error("Unexpected error:", err);
       toast({
