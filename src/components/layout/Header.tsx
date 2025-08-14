@@ -48,7 +48,7 @@ export default function Header() {
     <>
       <Link
         to="/challenges"
-        className={`text-sm font-medium transition-colors hover:text-primary ${
+        className={`text-sm font-medium transition-colors hover:text-primary select-none ${
           location.pathname.includes("/challenges")
             ? "text-primary"
             : "text-muted-foreground"
@@ -58,7 +58,7 @@ export default function Header() {
       </Link>
       <Link
         to="/leaderboard"
-        className={`text-sm font-medium transition-colors hover:text-primary ${
+        className={`text-sm font-medium transition-colors hover:text-primary select-none ${
           location.pathname === "/leaderboard"
             ? "text-primary"
             : "text-muted-foreground"
@@ -122,13 +122,13 @@ export default function Header() {
                     <>
                       <Link
                         to="/profile"
-                        className="text-sm font-medium transition-colors hover:text-primary"
+                        className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("profile")}
                       </Link>
                       <Link
                         to="/my-challenges"
-                        className="text-sm font-medium transition-colors hover:text-primary"
+                        className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("myChallenges")}
                       </Link>
@@ -137,7 +137,7 @@ export default function Header() {
                           logout();
                           setIsMobileMenuOpen(false);
                         }}
-                        className="text-sm font-medium text-red-500 transition-colors hover:text-red-600"
+                        className="text-sm font-medium text-red-500 transition-colors hover:text-red-600 select-none"
                       >
                         {t("logout")}
                       </button>
@@ -146,13 +146,13 @@ export default function Header() {
                     <>
                       <Link
                         to="/login"
-                        className="text-sm font-medium transition-colors hover:text-primary"
+                        className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("login")}
                       </Link>
                       <Link
                         to="/signup"
-                        className="text-sm font-medium transition-colors hover:text-primary"
+                        className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("signup")}
                       </Link>

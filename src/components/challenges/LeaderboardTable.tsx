@@ -223,7 +223,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
             const isCurrentUser = user && entry.userId === user.id;
 
             return (
-              <TableRow key={entry.userId} className={isCurrentUser ? 'bg-muted/40' : ''}>
+              <TableRow key={entry.userId} className={`select-none ${isCurrentUser ? 'bg-muted/40' : ''}`}>
                 <TableCell className={`text-center ${getPositionStyle(entry.position)}`}>
                   {entry.position === 1 && '🥇'}
                   {entry.position === 2 && '🥈'}
@@ -232,7 +232,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                 </TableCell>
                 <TableCell>
                   <div
-                    className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 select-none"
                     onClick={() => onUserClick?.(entry.userId)}
                   >
                     <Avatar className="h-8 w-8">

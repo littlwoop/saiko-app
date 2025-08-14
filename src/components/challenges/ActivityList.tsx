@@ -379,7 +379,7 @@ export default function ActivityList({
               return (
                 <TableRow 
                   key={activity.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-muted/50 select-none"
                   onTouchStart={(e) => handleLongPress(activity, e)}
                   onTouchEnd={handleTouchEnd}
                   onTouchCancel={handleTouchCancel}

@@ -35,7 +35,7 @@ export function ChallengeDetail({
   const { t } = useTranslation(language);
 
   return (
-    <Card>
+    <Card className="select-none">
       <CardHeader>
         <CardTitle>{challenge.title}</CardTitle>
         <CardDescription>{challenge.description}</CardDescription>
