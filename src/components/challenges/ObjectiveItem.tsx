@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
+import { calculatePoints } from "@/lib/points";
 
 interface ObjectiveItemProps {
   objective: Objective;
@@ -40,6 +41,7 @@ interface ObjectiveItemProps {
   progress?: UserProgress;
   isBingo?: boolean;
   readOnly?: boolean;
+  capedPoints?: boolean;
   onProgressUpdate?: () => void;
 }
 
@@ -49,6 +51,7 @@ export default function ObjectiveItem({
   progress,
   isBingo,
   readOnly,
+  capedPoints = false,
   onProgressUpdate,
 }: ObjectiveItemProps) {
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
@@ -68,7 +71,7 @@ export default function ObjectiveItem({
   );
   const isCompleted = currentValue >= objective.targetValue;
 
-  const pointsEarned = currentValue * objective.pointsPerUnit;
+  const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
 
   const handleLongPress = () => {

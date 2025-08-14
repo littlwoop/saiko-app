@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { calculateTotalPoints } from "@/lib/points";
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
@@ -175,15 +176,11 @@ export default function ChallengePage() {
     if (user && challenge) {
       const progressToUse = selectedUserId ? participantProgress : userProgress;
 
-      const totalPoints = progressToUse.reduce((sum, progress) => {
-        const objective = challenge.objectives.find(
-          (o) => o.id === progress.objectiveId,
-        );
-        if (objective) {
-          return sum + progress.currentValue * objective.pointsPerUnit;
-        }
-        return sum;
-      }, 0);
+      const totalPoints = calculateTotalPoints(
+        challenge.objectives,
+        progressToUse,
+        challenge.capedPoints
+      );
 
       setTotalPoints(totalPoints);
       setProgress((totalPoints / challenge.totalPoints) * 100);
@@ -192,6 +189,7 @@ export default function ChallengePage() {
     user?.id,
     challenge?.id,
     challenge?.objectives,
+    challenge?.capedPoints,
     userProgress,
     participantProgress,
     selectedUserId,
@@ -656,6 +654,7 @@ export default function ChallengePage() {
                             )
                       }
                       isBingo
+                      capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id
                       }
@@ -679,6 +678,7 @@ export default function ChallengePage() {
                               (p) => p.objectiveId === objective.id,
                             )
                       }
+                      capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id
                       }
@@ -692,6 +692,7 @@ export default function ChallengePage() {
             <TabsContent value="leaderboard" className="mt-6">
               <LeaderboardTable
                 challengeId={challenge.id}
+                capedPoints={challenge.capedPoints}
                 onUserClick={(userId) => {
                   setSelectedUserId(userId);
                   setActiveTab("objectives");

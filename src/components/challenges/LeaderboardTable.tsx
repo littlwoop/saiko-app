@@ -13,9 +13,11 @@ import {
 } from '@/components/ui/table';
 import { Trophy, UserRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { calculatePoints } from '@/lib/points';
 
 interface LeaderboardTableProps {
   challengeId?: string;
+  capedPoints?: boolean;
   onUserClick?: (userId: string) => void;
 }
 
@@ -28,8 +30,11 @@ interface LeaderboardEntry {
 
 interface ChallengeObjective {
   id: string;
+  title: string;
+  description: string;
+  targetValue: number;
+  unit: string;
   pointsPerUnit: number;
-  // plus any other fields in your JSONB
 }
 
 interface Challenge {
@@ -49,7 +54,7 @@ interface Entry {
   challenge: Challenge;
 }
 
-export default function LeaderboardTable({ challengeId, onUserClick }: LeaderboardTableProps) {
+export default function LeaderboardTable({ challengeId, capedPoints = false, onUserClick }: LeaderboardTableProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -120,11 +125,10 @@ export default function LeaderboardTable({ challengeId, onUserClick }: Leaderboa
           (obj) => obj.id === entry.objective_id
         );
 
-        // Default to 0 if not found
-        const pointsPerUnit = matchingObjective?.pointsPerUnit ?? 0;
-
-        // Multiply entry.value by pointsPerUnit
-        const totalPoints = entry.value * pointsPerUnit;
+        // Calculate points with optional capping
+        const totalPoints = matchingObjective 
+          ? calculatePoints(matchingObjective, entry.value, capedPoints)
+          : 0;
 
         if (!acc[entry.user_id]) {
           acc[entry.user_id] = {

@@ -28,6 +28,7 @@ export interface Challenge {
   participants: string[];
   totalPoints: number;
   isBingo?: boolean;
+  capedPoints?: boolean;
 }
 
 export interface UserProgress {

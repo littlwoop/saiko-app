@@ -11,6 +11,7 @@ import { useChallenges } from "@/contexts/ChallengeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CircleX, Trophy, Plus } from "lucide-react";
 import {
   Popover,
@@ -33,6 +34,7 @@ export default function CreateChallengeForm() {
     from: new Date(),
     to: addDays(new Date(), 30),
   });
+  const [capedPoints, setCapedPoints] = useState(false);
 
   const [objectives, setObjectives] = useState([
     {
@@ -114,6 +116,7 @@ export default function CreateChallengeForm() {
       description,
       startDate: date.from.toISOString(),
       endDate: date.to.toISOString(),
+      capedPoints,
       objectives: objectives.map((obj) => ({
         ...obj,
         targetValue: Number(obj.targetValue),
@@ -183,6 +186,17 @@ export default function CreateChallengeForm() {
               />
             </PopoverContent>
           </Popover>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="capedPoints"
+            checked={capedPoints}
+            onCheckedChange={(checked) => setCapedPoints(checked as boolean)}
+          />
+          <Label htmlFor="capedPoints" className="text-sm font-normal">
+            {t("capedPoints")}
+          </Label>
         </div>
       </div>
 
