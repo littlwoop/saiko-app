@@ -206,9 +206,9 @@ export default function ObjectiveItem({
       <ContextMenuTrigger>
         <Card
           className={`select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
-          onTouchStart={handleLongPress}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
+          onTouchStart={!readOnly ? handleLongPress : undefined}
+          onTouchEnd={!readOnly ? handleTouchEnd : undefined}
+          onTouchCancel={!readOnly ? handleTouchEnd : undefined}
         >
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
@@ -244,54 +244,56 @@ export default function ObjectiveItem({
             </div>
           </CardContent>
           <CardFooter>
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full">
-                  {t("addProgress")}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <form onSubmit={handleSubmit}>
-                  <DialogHeader>
-                    <DialogTitle>{t("addProgress")}</DialogTitle>
-                    <DialogDescription>
-                      {t("enterProgressFor")} {objective.title}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="progress-value">
-                        {t("progress")}: {currentValue} /{" "}
-                        {objective.targetValue} {objective.unit}
-                      </Label>
-                      <Input
-                        id="progress-value"
-                        type="number"
-                        min="0"
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                        placeholder={t("enterUnit").replace(
-                          "{unit}",
-                          objective.unit,
-                        )}
-                      />
+            {!readOnly && (
+              <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    {t("addProgress")}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <form onSubmit={handleSubmit}>
+                    <DialogHeader>
+                      <DialogTitle>{t("addProgress")}</DialogTitle>
+                      <DialogDescription>
+                        {t("enterProgressFor")} {objective.title}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="progress-value">
+                          {t("progress")}: {currentValue} /{" "}
+                          {objective.targetValue} {objective.unit}
+                        </Label>
+                        <Input
+                          id="progress-value"
+                          type="number"
+                          min="0"
+                          value={value}
+                          onChange={(e) => setValue(e.target.value)}
+                          placeholder={t("enterUnit").replace(
+                            "{unit}",
+                            objective.unit,
+                          )}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="notes">{t("notes")}</Label>
+                        <Textarea
+                          id="notes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder={t("addNotesAboutProgress")}
+                        />
+                      </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="notes">{t("notes")}</Label>
-                      <Textarea
-                        id="notes"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder={t("addNotesAboutProgress")}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit">{t("saveProgress")}</Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                    <DialogFooter>
+                      <Button type="submit">{t("saveProgress")}</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
           </CardFooter>
         </Card>
       </ContextMenuTrigger>

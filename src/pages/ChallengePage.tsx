@@ -613,7 +613,7 @@ export default function ChallengePage() {
             </div>
 
             <TabsContent value="objectives" className="mt-6">
-              {hasJoined && (
+              {(hasJoined || selectedUserId) && (
                 <div
                   className={`mb-6 space-y-2 rounded-lg border p-4 text-card-foreground ${progress >= 100 ? "border-challenge-teal bg-green-50/30" : "bg-card"}`}
                 >
@@ -621,7 +621,10 @@ export default function ChallengePage() {
                     <div className="flex items-center gap-2">
                       <Award className="h-5 w-5 text-challenge-purple" />
                       <span className="font-medium">
-                        {t("challengeProgress")}
+                        {selectedUserId 
+                          ? participants.find(p => p.id === selectedUserId)?.name + "'s " + t("challengeProgress").toLowerCase()
+                          : t("challengeProgress")
+                        }
                       </span>
                       {progress >= 100 && (
                         <CheckCircle className="h-4 w-4 text-green-600" />
@@ -667,9 +670,18 @@ export default function ChallengePage() {
                       key={objective.id}
                       objective={objective}
                       challengeId={challenge.id}
-                      progress={userProgress.find(
-                        (p) => p.objectiveId === objective.id,
-                      )}
+                      progress={
+                        selectedUserId
+                          ? participantProgress.find(
+                              (p) => p.objectiveId === objective.id,
+                            )
+                          : userProgress.find(
+                              (p) => p.objectiveId === objective.id,
+                            )
+                      }
+                      readOnly={
+                        selectedUserId !== null && selectedUserId !== user?.id
+                      }
                       onProgressUpdate={refreshProgress}
                     />
                   ))}
@@ -780,11 +792,11 @@ export default function ChallengePage() {
                 </div>
               )}
 
-              {hasJoined && (
+              {(hasJoined || selectedUserId) && (
                 <div className="pt-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
-                      {t("yourPoints")}
+                      {selectedUserId ? t("points") : t("yourPoints")}
                     </span>
                     <span className="font-medium">
                       {Math.round(totalPoints)}
@@ -883,11 +895,11 @@ export default function ChallengePage() {
                 </div>
               )}
 
-              {hasJoined && (
+              {(hasJoined || selectedUserId) && (
                 <div className="pt-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
-                      {t("yourPoints")}
+                      {selectedUserId ? t("points") : t("yourPoints")}
                     </span>
                     <span className="font-medium">
                       {Math.round(totalPoints)}
