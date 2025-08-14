@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Trophy, Star, Award } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,6 +10,19 @@ export default function Index() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const navigate = useNavigate();
+
+  // Redirect logged-in users to challenges page
+  useEffect(() => {
+    if (user) {
+      navigate("/challenges", { replace: true });
+    }
+  }, [user, navigate]);
+
+  // Don't render anything if user is logged in (will redirect)
+  if (user) {
+    return null;
+  }
 
   return (
     <>
