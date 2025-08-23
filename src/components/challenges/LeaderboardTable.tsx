@@ -294,8 +294,8 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                         </span>
                       )}
                       
-                      {/* Show completion order for top 3 finishers (only if not already in top 3 positions) */}
-                      {capedPoints && completionOrder.has(entry.userId) && entry.position > 3 && (
+                      {/* Show completion order for top 3 finishers (only if multiple users completed and not in top 3 positions) */}
+                      {capedPoints && completionOrder.has(entry.userId) && entry.position > 3 && completionOrder.size > 1 && (
                         <span 
                           className={`ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-sm font-bold ${
                             completionOrder.get(entry.userId) === 1 
