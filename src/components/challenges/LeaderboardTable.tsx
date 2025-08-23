@@ -185,6 +185,34 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     });
   }, [entries]);
 
+  // Calculate completion order for users who reached 100%
+  const completionOrder = useMemo(() => {
+    if (!capedPoints || entries.length === 0) return new Map();
+    
+    const totalPoints = entries[0]?.challenge?.totalPoints || 0;
+    const completedUsers = leaderboard
+      .filter(entry => entry.score >= totalPoints)
+      .sort((a, b) => {
+        // Find the earliest entry for each user to determine completion time
+        const aEarliestEntry = entries
+          .filter(e => e.user_id === a.userId)
+          .sort((e1, e2) => new Date(e1.created_at).getTime() - new Date(e2.created_at).getTime())[0];
+        const bEarliestEntry = entries
+          .filter(e => e.user_id === b.userId)
+          .sort((e1, e2) => new Date(e1.created_at).getTime() - new Date(e2.created_at).getTime())[0];
+        
+        return new Date(aEarliestEntry.created_at).getTime() - new Date(bEarliestEntry.created_at).getTime();
+      })
+      .slice(0, 3); // Only track top 3
+    
+    const orderMap = new Map();
+    completedUsers.forEach((user, index) => {
+      orderMap.set(user.userId, index + 1);
+    });
+    
+    return orderMap;
+  }, [leaderboard, entries, capedPoints]);
+
   const getPositionStyle = (position: number) => {
     switch (position) {
       case 1:
@@ -263,6 +291,22 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                       {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (
                         <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-sm font-bold" title="100% Complete">
                           ✓
+                        </span>
+                      )}
+                      
+                      {/* Show completion order for top 3 finishers */}
+                      {capedPoints && completionOrder.has(entry.userId) && (
+                        <span 
+                          className={`ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-sm font-bold ${
+                            completionOrder.get(entry.userId) === 1 
+                              ? 'bg-yellow-100 text-yellow-700' 
+                              : completionOrder.get(entry.userId) === 2 
+                              ? 'bg-gray-100 text-gray-700' 
+                              : 'bg-amber-100 text-amber-700'
+                          }`}
+                          title={`${completionOrder.get(entry.userId) === 1 ? '1st' : completionOrder.get(entry.userId) === 2 ? '2nd' : '3rd'} to complete`}
+                        >
+                          {completionOrder.get(entry.userId) === 1 ? '🥇' : completionOrder.get(entry.userId) === 2 ? '🥈' : '🥉'}
                         </span>
                       )}
                     </span>
