@@ -289,7 +289,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                       {entry.name} {isCurrentUser && '(You)'}
                       {/* Show checkmark for 100% completion */}
                       {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (
-                        <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-sm font-bold" title="100% Complete">
+                        <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-sm font-bold" title={`100% ${t('complete')}`}>
                           ✓
                         </span>
                       )}
@@ -304,7 +304,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                               ? 'bg-gray-100 text-gray-700' 
                               : 'bg-amber-100 text-amber-700'
                           }`}
-                          title={`${completionOrder.get(entry.userId) === 1 ? '1st' : completionOrder.get(entry.userId) === 2 ? '2nd' : '3rd'} to complete`}
+                          title={`${completionOrder.get(entry.userId) === 1 ? '1st' : completionOrder.get(entry.userId) === 2 ? '2nd' : '3rd'} ${t('complete')}`}
                         >
                           {completionOrder.get(entry.userId) === 1 ? '🥇' : completionOrder.get(entry.userId) === 2 ? '🥈' : '🥉'}
                         </span>
