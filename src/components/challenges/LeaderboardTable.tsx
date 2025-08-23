@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Trophy, UserRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { calculatePoints } from '@/lib/points';
+import { calculateTotalPoints } from '@/lib/points';
 
 interface LeaderboardTableProps {
   challengeId?: string;
@@ -25,6 +25,7 @@ interface LeaderboardEntry {
   userId: string;
   name: string;
   score: number;
+  uncappedScore: number;
   position: number;
 }
 
@@ -84,6 +85,8 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         if (entriesError) {
           console.error('Error fetching entries:', entriesError);
         } else {
+          console.log('Raw entries data:', entriesData);
+          console.log('Sample entry challenge data:', entriesData?.[0]?.challenge);
           setEntries(entriesData || []);
 
           // Fetch user profiles for all unique users
@@ -117,44 +120,50 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
   }, [challengeId]);
 
   const leaderboard = useMemo(() => {
-    // Calculate total score for each user
-    const userScores = entries.reduce(
-      (acc, entry) => {
-        // Find the matching objective in the challenge's objectives array
-        const matchingObjective = entry.challenge.objectives.find(
-          (obj) => obj.id === entry.objective_id
-        );
+    // Group entries by user and objective to get total progress per objective
+    const userProgressMap = new Map<string, Map<string, number>>();
+    
+    entries.forEach(entry => {
+      if (!userProgressMap.has(entry.user_id)) {
+        userProgressMap.set(entry.user_id, new Map());
+      }
+      
+      const userObjectives = userProgressMap.get(entry.user_id)!;
+      const currentValue = userObjectives.get(entry.objective_id) || 0;
+      userObjectives.set(entry.objective_id, currentValue + entry.value);
+    });
 
-        // Calculate points with optional capping
-        const totalPoints = matchingObjective 
-          ? calculatePoints(matchingObjective, entry.value, capedPoints)
-          : 0;
+    // Calculate scores for each user using the same logic as the individual page
+    const userScores = Array.from(userProgressMap.entries()).map(([userId, objectivesMap]) => {
+      const progress = Array.from(objectivesMap.entries()).map(([objectiveId, currentValue]) => ({
+        objectiveId,
+        currentValue
+      }));
 
-        if (!acc[entry.user_id]) {
-          acc[entry.user_id] = {
-            score: 0,
-            username: entry.username,
-          };
-        }
+      // Get the first entry's challenge data (all entries have the same challenge data)
+      const firstEntry = entries.find(e => e.user_id === userId);
+      const objectives = firstEntry?.challenge.objectives || [];
 
-        acc[entry.user_id].score += totalPoints;
+      // Calculate both capped and uncapped points using the same function
+      const cappedScore = calculateTotalPoints(objectives, progress, true);
+      const uncappedScore = calculateTotalPoints(objectives, progress, false);
 
-        return acc;
-      },
-      {} as Record<string, { score: number; username: string }>
-    );
+      return {
+        userId,
+        username: firstEntry?.username || 'Unknown',
+        score: cappedScore,
+        uncappedScore: uncappedScore
+      };
+    });
 
     // Create leaderboard entries
-    const leaderboardEntries: LeaderboardEntry[] = Object.entries(userScores).map(
-      ([userId, data]) => {
-        return {
-          userId,
-          name: data.username,
-          score: data.score,
-          position: 0, // will be calculated below
-        };
-      }
-    );
+    const leaderboardEntries: LeaderboardEntry[] = userScores.map((data, index) => ({
+      userId: data.userId,
+      name: data.username,
+      score: data.score,
+      uncappedScore: data.uncappedScore,
+      position: 0, // will be calculated below
+    }));
 
     // Sort by score (descending)
     leaderboardEntries.sort((a, b) => b.score - a.score);
@@ -255,6 +264,11 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {Math.round(entry.score)} {t('leaderboardPoints')}
+                  {capedPoints && entry.uncappedScore !== entry.score && (
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({Math.round(entry.uncappedScore)})
+                    </span>
+                  )}
                 </TableCell>
               </TableRow>
             );
