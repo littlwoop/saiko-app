@@ -41,6 +41,7 @@ interface ChallengeObjective {
 interface Challenge {
   id: number;
   objectives: ChallengeObjective[];
+  totalPoints: number;
 }
 
 interface Entry {
@@ -72,7 +73,8 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     *,
     challenge:challenges (
       id,
-      objectives
+      objectives,
+      totalPoints
     )
   `);
 
@@ -85,8 +87,6 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         if (entriesError) {
           console.error('Error fetching entries:', entriesError);
         } else {
-          console.log('Raw entries data:', entriesData);
-          console.log('Sample entry challenge data:', entriesData?.[0]?.challenge);
           setEntries(entriesData || []);
 
           // Fetch user profiles for all unique users
@@ -259,6 +259,12 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                     </Avatar>
                     <span className={isCurrentUser ? 'font-medium' : ''}>
                       {entry.name} {isCurrentUser && '(You)'}
+                      {/* Show checkmark for 100% completion */}
+                      {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (
+                        <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-sm font-bold" title="100% Complete">
+                          ✓
+                        </span>
+                      )}
                     </span>
                   </div>
                 </TableCell>
