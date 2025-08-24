@@ -44,3 +44,27 @@ export interface UserChallenge {
   joinedAt: string;
   totalScore: number;
 }
+
+export interface DailyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  targetValue: number;
+  unit: string;
+  points: number;
+  category: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyChallengeEntry {
+  id: string;
+  userId: string;
+  dailyChallengeId: string;
+  completedAt: string;
+  completedDate: string;
+  valueAchieved?: number;
+  pointsEarned: number;
+  notes?: string;
+}

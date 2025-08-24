@@ -3,6 +3,7 @@ import { Challenge, Objective, UserChallenge, UserProgress } from "@/types";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+import { dailyChallengesService } from "@/lib/daily-challenges";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { calculateTotalPoints } from "@/lib/points";
@@ -48,6 +49,7 @@ interface ChallengeContextType {
   ) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
   getCreatorAvatar: (userId: string) => Promise<string | undefined>;
   getUserActivityDates: (startDate: string, endDate: string) => Promise<string[]>;
+  completeDailyChallenge: (dailyChallengeId: string, valueAchieved?: number, notes?: string) => Promise<void>;
 }
 
 const ChallengeContext = createContext<ChallengeContextType | undefined>(
@@ -570,6 +572,40 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Complete a daily challenge
+  const completeDailyChallenge = async (
+    dailyChallengeId: string, 
+    valueAchieved?: number, 
+    notes?: string
+  ): Promise<void> => {
+    debug.log(`Completing daily challenge: ${dailyChallengeId}`);
+    if (!user) return;
+
+    try {
+      // Use the daily challenges service to complete the challenge
+      await dailyChallengesService.completeDailyChallenge(
+        user.id,
+        dailyChallengeId,
+        valueAchieved,
+        notes
+      );
+
+      debug.log("Successfully completed daily challenge");
+      toast({
+        title: "Challenge Completed! 🎉",
+        description: "Great job! You've completed today's challenge.",
+        variant: "default",
+      });
+    } catch (error) {
+      debug.error("Unexpected error completing daily challenge:", error);
+      toast({
+        title: "Error",
+        description: "Failed to complete challenge",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Get user activity dates within a date range
   const getUserActivityDates = async (startDate: string, endDate: string): Promise<string[]> => {
     debug.log(`Getting user activity dates from ${startDate} to ${endDate}`);
@@ -614,6 +650,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     getParticipants,
     getCreatorAvatar,
     getUserActivityDates,
+    completeDailyChallenge,
   };
 
   return (

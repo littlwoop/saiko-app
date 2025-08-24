@@ -38,6 +38,7 @@ export const translations = {
     ends: "Endet",
     daysLeft: "Tage übrig",
     weeklyActivity: "Wöchentliche Aktivität",
+    dailyChallenge: "Tägliche Herausforderung",
 
     // Features
     howItWorks: "So funktioniert's",
@@ -360,6 +361,7 @@ export const translations = {
     ends: "Ends",
     daysLeft: "d left",
     weeklyActivity: "Weekly Activity",
+    dailyChallenge: "Daily Challenge",
 
     // Features
     howItWorks: "How It Works",

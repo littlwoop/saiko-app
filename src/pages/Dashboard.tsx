@@ -5,18 +5,21 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, Calendar, Target, Check, Minus } from "lucide-react";
-import { Challenge, UserChallenge } from "@/types";
+import { Challenge, UserChallenge, DailyChallenge } from "@/types";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
+import { dailyChallengesService } from "@/lib/daily-challenges";
 
 interface DashboardChallenge extends Challenge {
   userProgress: UserChallenge;
 }
 
 export default function Dashboard() {
-  const { getUserChallenges, getChallenge, getUserActivityDates } = useChallenges();
+  const { getUserChallenges, getChallenge, getUserActivityDates, completeDailyChallenge } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -24,6 +27,11 @@ export default function Dashboard() {
   
   const [activeChallenges, setActiveChallenges] = useState<DashboardChallenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [todaysChallenge, setTodaysChallenge] = useState<DailyChallenge | null>(null);
+  const [isChallengeLoading, setIsChallengeLoading] = useState(true);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [isFlyingOut, setIsFlyingOut] = useState(false);
 
   useEffect(() => {
     const loadActiveChallenges = async () => {
@@ -67,6 +75,26 @@ export default function Dashboard() {
 
     loadActiveChallenges();
   }, [user, getUserChallenges, getChallenge]);
+
+  // Load today's random challenge
+  useEffect(() => {
+    const loadTodaysChallenge = async () => {
+      if (!user) return;
+      
+      try {
+        setIsChallengeLoading(true);
+        const challenge = await dailyChallengesService.getTodaysRandomChallenge(user.id);
+        console.log('Initial daily challenge loaded:', challenge); // Debug log
+        setTodaysChallenge(challenge);
+      } catch (error) {
+        console.error("Error loading today's challenge:", error);
+      } finally {
+        setIsChallengeLoading(false);
+      }
+    };
+
+    loadTodaysChallenge();
+  }, [user]);
 
   const calculateProgress = (challenge: DashboardChallenge) => {
     const totalPossible = challenge.totalPoints;
@@ -136,6 +164,69 @@ export default function Dashboard() {
     return streakData;
   };
 
+  const getDailyChallenge = () => {
+    if (!todaysChallenge) {
+      return {
+        title: "Challenge für heute erledigt! 🎉",
+        target: "N/A",
+        points: 0
+      };
+    }
+
+    return {
+      title: todaysChallenge.title,
+      description: todaysChallenge.description,
+      target: `${todaysChallenge.targetValue} ${todaysChallenge.unit}`,
+      points: todaysChallenge.points
+    };
+  };
+
+  const handleChallengeClick = () => {
+    if (todaysChallenge) {
+      setShowCompletionDialog(true);
+    }
+  };
+
+  const handleCompleteChallenge = async () => {
+    if (!todaysChallenge) return;
+    
+    setIsCompleting(true);
+    try {
+      await completeDailyChallenge(todaysChallenge.id);
+      setShowCompletionDialog(false);
+      
+      // Start the fly-out animation
+      setIsFlyingOut(true);
+      
+      // After animation, check if there are any more challenges available for today
+      setTimeout(async () => {
+        try {
+          // Check if there are any more challenges available for today
+          const newChallenge = await dailyChallengesService.getTodaysRandomChallenge(user!.id);
+          console.log('New challenge after completion:', newChallenge); // Debug log
+          
+          // If no new challenge is available, set to null to show completion message
+          if (!newChallenge) {
+            console.log('No more challenges available for today');
+            setTodaysChallenge(null); // Explicitly set to null
+          } else {
+            setTodaysChallenge(newChallenge);
+          }
+          
+          setIsFlyingOut(false);
+        } catch (error) {
+          console.error("Error loading new daily challenge:", error);
+          setIsFlyingOut(false);
+        }
+      }, 1000); // Match the CSS animation duration
+      
+    } catch (error) {
+      console.error("Error completing challenge:", error);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -184,6 +275,52 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Daily Challenge */}
+        <div className="mb-6 sm:mb-8">
+          <Card 
+            className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 transition-all duration-300 ${
+              todaysChallenge 
+                ? 'cursor-pointer hover:shadow-lg' 
+                : 'cursor-default'
+            } ${isFlyingOut ? 'animate-fly-out' : ''}`}
+            onClick={todaysChallenge ? handleChallengeClick : undefined}
+          >
+            <CardContent className="p-3 sm:p-6">
+              {isChallengeLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">
+                      {getDailyChallenge().title}
+                    </h3>
+                    <p className="text-gray-600 mb-2 sm:mb-4 text-xs sm:text-sm leading-relaxed">
+                      {getDailyChallenge().description}
+                    </p>
+                    {/* <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Target className="w-4 h-4" />
+                        {getDailyChallenge().target}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Trophy className="w-4 h-4" />
+                        {getDailyChallenge().points} pts
+                      </span>
+                    </div> */}
+                  </div>
+                  <div className="flex-shrink-0">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
+                      Daily
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
       {activeChallenges.length === 0 ? (
@@ -251,9 +388,37 @@ export default function Dashboard() {
                  </Card>
                </Link>
              );
-          })}
+                     })}
         </div>
       )}
+
+      {/* Completion Confirmation Dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{todaysChallenge?.title}</DialogTitle>
+            <DialogDescription>{todaysChallenge?.description}</DialogDescription>
+
+          </DialogHeader>
+
+          <DialogFooter>
+
+            <Button
+              onClick={handleCompleteChallenge}
+              disabled={isCompleting}
+            >
+              {isCompleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Completing...
+                </>
+              ) : (
+                "Complete Challenge"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
