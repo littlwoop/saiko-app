@@ -92,10 +92,33 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Improve touch handling on mobile */
+  html {
+    touch-action: pan-x pan-y;
+  }
+
+  /* Prevent overscroll bounce on iOS */
+  body {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 @layer utilities {
   .gradient-text {
     @apply bg-gradient-to-r from-challenge-purple via-challenge-teal to-challenge-coral bg-clip-text text-transparent;
+  }
+
+  /* Pull to refresh specific styles */
+  .pull-to-refresh-container {
+    overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  .pull-to-refresh-indicator {
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 }

@@ -133,12 +133,6 @@ export default function Header() {
                   {user ? (
                     <>
                       <Link
-                        to="/dashboard"
-                        className="text-sm font-medium transition-colors hover:text-primary select-none"
-                      >
-                        Dashboard
-                      </Link>
-                      <Link
                         to="/profile"
                         className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
