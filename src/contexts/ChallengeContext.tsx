@@ -47,6 +47,7 @@ interface ChallengeContextType {
     challengeId: string,
   ) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
   getCreatorAvatar: (userId: string) => Promise<string | undefined>;
+  getUserActivityDates: (startDate: string, endDate: string) => Promise<string[]>;
 }
 
 const ChallengeContext = createContext<ChallengeContextType | undefined>(
@@ -569,6 +570,38 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Get user activity dates within a date range
+  const getUserActivityDates = async (startDate: string, endDate: string): Promise<string[]> => {
+    debug.log(`Getting user activity dates from ${startDate} to ${endDate}`);
+    if (!user) return [];
+
+    try {
+      const { data: entriesData, error: entriesError } = await supabase
+        .from("entries")
+        .select("created_at")
+        .eq("user_id", user.id)
+        .gte("created_at", startDate)
+        .lte("created_at", endDate)
+        .order("created_at", { ascending: false });
+
+      if (entriesError) {
+        debug.error("Error fetching user activity dates:", entriesError);
+        return [];
+      }
+
+      // Extract unique dates from entries
+      const activityDates = entriesData?.map(entry => 
+        entry.created_at.split('T')[0]
+      ) || [];
+
+      // Remove duplicates and return
+      return [...new Set(activityDates)];
+    } catch (error) {
+      debug.error("Error loading user activity dates:", error);
+      return [];
+    }
+  };
+
   const value = {
     createChallenge,
     joinChallenge,
@@ -580,6 +613,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     getParticipantProgress,
     getParticipants,
     getCreatorAvatar,
+    getUserActivityDates,
   };
 
   return (

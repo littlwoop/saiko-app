@@ -37,6 +37,7 @@ export const translations = {
     points: "Pkt",
     ends: "Endet",
     daysLeft: "Tage übrig",
+    weeklyActivity: "Wöchentliche Aktivität",
 
     // Features
     howItWorks: "So funktioniert's",
@@ -358,6 +359,7 @@ export const translations = {
     points: "pts",
     ends: "Ends",
     daysLeft: "d left",
+    weeklyActivity: "Weekly Activity",
 
     // Features
     howItWorks: "How It Works",

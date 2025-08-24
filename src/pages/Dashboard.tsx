@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Calendar, Target } from "lucide-react";
+import { Trophy, Calendar, Target, Check, Minus } from "lucide-react";
 import { Challenge, UserChallenge } from "@/types";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -16,7 +16,7 @@ interface DashboardChallenge extends Challenge {
 }
 
 export default function Dashboard() {
-  const { getUserChallenges, getChallenge } = useChallenges();
+  const { getUserChallenges, getChallenge, getUserActivityDates } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -84,6 +84,58 @@ export default function Dashboard() {
     return diffDays > 0 ? diffDays : 0;
   };
 
+  const [userActivityDates, setUserActivityDates] = useState<Set<string>>(new Set());
+
+  // Load user activity data to determine which days have actual entries
+  useEffect(() => {
+    const loadUserActivity = async () => {
+      if (!user) return;
+      
+      try {
+        // Get the date range for the last 7 days
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 6);
+        
+        const startDate = sevenDaysAgo.toISOString().split('T')[0];
+        const endDate = today.toISOString().split('T')[0];
+        
+        // Get actual user activity dates from the database
+        const activityDates = await getUserActivityDates(startDate, endDate);
+        setUserActivityDates(new Set(activityDates));
+      } catch (error) {
+        console.error("Error loading user activity:", error);
+      }
+    };
+
+    if (activeChallenges.length > 0) {
+      loadUserActivity();
+    }
+  }, [activeChallenges, user, getUserActivityDates]);
+
+  const getStreakData = () => {
+    const today = new Date();
+    const streakData = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      
+      // Check if the user actually made an entry on this specific date
+      const dateKey = date.toISOString().split('T')[0];
+      const hasActivity = userActivityDates.has(dateKey);
+      
+      streakData.push({
+        date,
+        hasActivity,
+        isToday: i === 0,
+        dayName: date.toLocaleDateString('en-US', { weekday: 'short' })
+      });
+    }
+    
+    return streakData;
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -99,11 +151,40 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-                 <h1 className="text-3xl font-bold tracking-tight mb-2">
-           {t("welcomeBack").replace("{name}", user?.name || "")}
-         </h1>
-      </div>
+                     <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
+            {t("welcomeBack").replace("{name}", user?.name || "")}
+          </h1>
+        </div>
+
+               {/* Streak History */}
+        <div className="mb-8">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            {getStreakData().map((day, index) => (
+              <div
+                key={index}
+                className={`flex flex-col items-center p-2 sm:p-3 rounded-lg border ${
+                  day.hasActivity 
+                    ? 'bg-green-50 border-green-200 text-green-700' 
+                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                } ${day.isToday ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+              >
+                <span className="text-xs font-medium mb-1 hidden sm:block">{day.dayName}</span>
+                <span className="text-xs font-medium mb-1 sm:hidden">{day.dayName.charAt(0)}</span>
+                <div className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center">
+                  {day.hasActivity ? (
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                  ) : (
+                    <Minus className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                  )}
+                </div>
+                {/* <span className="text-xs mt-1">
+                  {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span> */}
+              </div>
+            ))}
+          </div>
+        </div>
 
       {activeChallenges.length === 0 ? (
                  <div className="text-center py-16">
@@ -128,19 +209,19 @@ export default function Dashboard() {
                          return (
                <Link to={`/challenges/${challenge.id}`} key={challenge.id}>
                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                   <CardHeader className="pb-3">
-                     <div className="flex items-start justify-between">
-                       <CardTitle className="text-lg leading-tight line-clamp-2">
-                         {challenge.title}
-                       </CardTitle>
-                       <Badge 
-                         variant={daysRemaining <= 3 ? "destructive" : daysRemaining <= 7 ? "secondary" : "default"}
-                         className="ml-2 flex-shrink-0"
-                       >
-                         {daysRemaining} {t("daysLeft")}
-                       </Badge>
-                     </div>
-                   </CardHeader>
+                                       <CardHeader className="pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <CardTitle className="text-lg leading-tight line-clamp-2">
+                          {challenge.title}
+                        </CardTitle>
+                        <Badge 
+                          variant={daysRemaining <= 3 ? "destructive" : daysRemaining <= 7 ? "secondary" : "default"}
+                          className="self-start sm:self-auto"
+                        >
+                          {daysRemaining} {t("daysLeft")}
+                        </Badge>
+                      </div>
+                    </CardHeader>
                    
                    <CardContent className="space-y-4">
                      <div className="space-y-2">
