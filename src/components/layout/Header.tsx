@@ -46,6 +46,18 @@ export default function Header() {
 
   const NavLinks = () => (
     <>
+      {user && (
+        <Link
+          to="/dashboard"
+          className={`text-sm font-medium transition-colors hover:text-primary select-none ${
+            location.pathname === "/dashboard"
+              ? "text-primary"
+              : "text-muted-foreground"
+          }`}
+        >
+          Dashboard
+        </Link>
+      )}
       <Link
         to="/challenges"
         className={`text-sm font-medium transition-colors hover:text-primary select-none ${
@@ -121,6 +133,12 @@ export default function Header() {
                   {user ? (
                     <>
                       <Link
+                        to="/dashboard"
+                        className="text-sm font-medium transition-colors hover:text-primary select-none"
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
                         to="/profile"
                         className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
@@ -187,6 +205,9 @@ export default function Header() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t("myAccount")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/profile">{t("profile")}</Link>
                 </DropdownMenuItem>

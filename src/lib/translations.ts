@@ -27,6 +27,16 @@ export const translations = {
     getStarted: "Loslegen",
     createChallenge: "Herausforderung erstellen",
     browseChallenges: "Herausforderungen durchsuchen",
+    goToDashboard: "Zum Dashboard",
+    welcomeBack: "Willkommen zurück, {name}! 👋",
+    trackProgress: "Verfolge deinen Fortschritt bei aktiven Herausforderungen",
+    noActiveChallenges: "Keine aktiven Herausforderungen",
+    noActiveChallengesDescription: "Du hast noch keine aktiven Herausforderungen. Tritt einer bei, um loszulegen!",
+    progress: "Fortschritt",
+    objectives: "Ziele",
+    points: "Pkt",
+    ends: "Endet",
+    daysLeft: "Tage übrig",
 
     // Features
     howItWorks: "So funktioniert's",
@@ -338,6 +348,16 @@ export const translations = {
     getStarted: "Get Started",
     createChallenge: "Create Challenge",
     browseChallenges: "Browse Challenges",
+    goToDashboard: "Go to Dashboard",
+    welcomeBack: "Welcome back, {name}! 👋",
+    trackProgress: "Track your progress on active challenges",
+    noActiveChallenges: "No active challenges",
+    noActiveChallengesDescription: "You don't have any active challenges yet. Join one to get started!",
+    progress: "Progress",
+    objectives: "objectives",
+    points: "pts",
+    ends: "Ends",
+    daysLeft: "d left",
 
     // Features
     howItWorks: "How It Works",

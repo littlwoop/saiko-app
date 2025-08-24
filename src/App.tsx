@@ -20,6 +20,7 @@ import CreateChallengePage from "@/pages/CreateChallengePage";
 import ChallengePage from "@/pages/ChallengePage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
 import ProfilePage from "@/pages/ProfilePage";
+import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,14 @@ const App = () => (
                   <Route path="leaderboard" element={<LeaderboardPage />} />
 
                   {/* Protected routes */}
+                  <Route
+                    path="dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="challenges/create"
                     element={

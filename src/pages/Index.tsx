@@ -12,10 +12,10 @@ export default function Index() {
   const { t } = useTranslation(language);
   const navigate = useNavigate();
 
-  // Redirect logged-in users to challenges page
+  // Redirect logged-in users to dashboard
   useEffect(() => {
     if (user) {
-      navigate("/challenges", { replace: true });
+      navigate("/dashboard", { replace: true });
     }
   }, [user, navigate]);
 
@@ -43,9 +43,9 @@ export default function Index() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               {user ? (
                 <Button asChild size="lg">
-                  <Link to="/challenges">
+                  <Link to="/dashboard">
                     <Trophy className="mr-2 h-5 w-5" />
-                    {t("browseChallenges")}
+                    {t("goToDashboard")}
                   </Link>
                 </Button>
               ) : (
