@@ -58,6 +58,7 @@ export default function ObjectiveItem({
   const [notes, setNotes] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [completionsToAdd, setCompletionsToAdd] = useState("1");
   const longPressTimer = useRef<NodeJS.Timeout>();
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
@@ -70,6 +71,7 @@ export default function ObjectiveItem({
     (currentValue / objective.targetValue) * 100,
   );
   const isCompleted = currentValue >= objective.targetValue;
+  const completionCount = isBingo ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
 
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
@@ -120,12 +122,12 @@ export default function ObjectiveItem({
             className={`relative select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
             onClick={(e) => {
               // Only open dialog on left-click, not right-click
-              if (e.button === 0 && !readOnly && !isCompleted) {
+              if (e.button === 0 && !readOnly) {
                 setIsOpen(true);
               }
             }}
             onTouchStart={(e) => {
-              if (isTouchDevice && !readOnly && !isCompleted) {
+              if (isTouchDevice && !readOnly) {
                 longPressTimer.current = setTimeout(() => {
                   const contextMenuEvent = new MouseEvent("contextmenu", {
                     bubbles: true,
@@ -155,9 +157,15 @@ export default function ObjectiveItem({
                 {objective.title}
               </CardTitle>
             </CardHeader>
-            {isCompleted && (
+            {completionCount > 0 && (
               <div className="absolute top-1 right-1">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                {completionCount === 1 ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <div className="bg-green-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {completionCount}
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -170,7 +178,7 @@ export default function ObjectiveItem({
             </ContextMenuItem>
           </ContextMenuContent>
         )}
-        {!readOnly && !isCompleted && (
+        {!readOnly && (
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -180,21 +188,46 @@ export default function ObjectiveItem({
                     "{objective}",
                     objective.title,
                   )}
+                  {completionCount > 0 && (
+                    <span className="block mt-2 text-sm text-muted-foreground">
+                      {t("currentCompletions")}: {completionCount}
+                    </span>
+                  )}
                 </DialogDescription>
               </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="completions-to-add">
+                    {t("addCompletions")}:
+                  </Label>
+                  <Input
+                    id="completions-to-add"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={completionsToAdd}
+                    onChange={(e) => setCompletionsToAdd(e.target.value)}
+                    className="w-20"
+                  />
+                </div>
+              </div>
               <DialogFooter>
                 <Button
                   onClick={async () => {
                     if (user) {
-                      await updateProgress(challengeId, objective.id, 1);
-                      if (onProgressUpdate) {
-                        onProgressUpdate();
+                      const completions = parseInt(completionsToAdd);
+                      if (completions > 0) {
+                        await updateProgress(challengeId, objective.id, completions);
+                        if (onProgressUpdate) {
+                          onProgressUpdate();
+                        }
+                        setIsOpen(false);
+                        setCompletionsToAdd("1"); // Reset to default
                       }
-                      setIsOpen(false);
                     }
                   }}
                 >
-                  {t("completeButton")}
+                  {t("addCompletions")}
                 </Button>
               </DialogFooter>
             </DialogContent>

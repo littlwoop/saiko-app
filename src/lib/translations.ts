@@ -211,6 +211,8 @@ export const translations = {
     confirmCompleteObjective:
       "Sind Sie sicher, dass Sie '{objective}' abschließen möchten?",
     completeButton: "Abschließen",
+    currentCompletions: "Aktuelle Abschlüsse",
+    addCompletions: "Abschlüsse hinzufügen",
 
     // Signup Form
     createAccount: "Konto erstellen",
@@ -514,6 +516,8 @@ export const translations = {
     confirmCompleteObjective:
       "Are you sure you want to complete '{objective}'?",
     completeButton: "Complete",
+    currentCompletions: "Current Completions",
+    addCompletions: "Add Completions",
 
     // Signup Form
     createAccount: "Create Account",
