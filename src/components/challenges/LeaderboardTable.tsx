@@ -367,7 +367,9 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       <Table>
         <TableHeader>
           <TableRow>
-                         <TableHead className="w-16 text-center">{t('leaderboardRank')}</TableHead>
+                         <TableHead className="w-16 text-center">
+               {capedPoints ? '' : t('leaderboardRank')}
+             </TableHead>
              <TableHead>{t('leaderboardPlayer')}</TableHead>
              {capedPoints && (
                <TableHead className="w-24 text-center"></TableHead>
@@ -384,20 +386,31 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
 
             return (
               <TableRow key={entry.userId} className={`select-none ${isCurrentUser ? 'bg-muted/40' : ''}`}>
-                <TableCell className={`text-center ${getPositionStyle(entry.position)}`}>
-                  {entry.position === 1 && '🥇'}
-                  {entry.position === 2 && '🥈'}
-                  {entry.position === 3 && '🥉'}
-                  {entry.position > 3 && entry.position}
-                  {/* Show completion order badge for top 3 finishers who aren't in top 3 positions */}
-                  {capedPoints && completionInfo && completionInfo.order <= 3 && entry.position > 3 && (
-                    <div className="mt-1">
-                      <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${getCompletionOrderStyle(completionInfo.order)}`}>
-                        {getCompletionOrderIcon(completionInfo.order)}
-                      </span>
-                    </div>
-                  )}
-                </TableCell>
+                                 <TableCell className="text-center">
+                   {capedPoints ? (
+                     // Show completion order when capedPoints is true
+                     completionInfo ? (
+                       <div 
+                         className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold border-2 ${getCompletionOrderStyle(completionInfo.order)} cursor-help`}
+                         title={`${getCompletionOrderIcon(completionInfo.order)} ${completionInfo.order === 1 ? '1st' : completionInfo.order === 2 ? '2nd' : '3rd'} to finish - ${new Date(completionInfo.time).toLocaleString()}`}
+                       >
+                         {getCompletionOrderIcon(completionInfo.order)}
+                       </div>
+                     ) : entry.score >= (entries[0]?.challenge?.totalPoints || 0) ? (
+                       <span className="text-muted-foreground text-sm">-</span>
+                     ) : (
+                       <span className="text-muted-foreground text-sm">-</span>
+                     )
+                   ) : (
+                     // Show regular rank when capedPoints is false
+                     <>
+                       {entry.position === 1 && '🥇'}
+                       {entry.position === 2 && '🥈'}
+                       {entry.position === 3 && '🥉'}
+                       {entry.position > 3 && entry.position}
+                     </>
+                   )}
+                 </TableCell>
                 <TableCell>
                   <div
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 select-none"
@@ -427,22 +440,11 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                     </span>
                   </div>
                 </TableCell>
-                {capedPoints && (
-                  <TableCell className="text-center">
-                    {completionInfo ? (
-                      <div 
-                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold border-2 ${getCompletionOrderStyle(completionInfo.order)} cursor-help`}
-                                                 title={`${getCompletionOrderIcon(completionInfo.order)} ${completionInfo.order === 1 ? '1st' : completionInfo.order === 2 ? '2nd' : '3rd'} to finish - ${new Date(completionInfo.time).toLocaleString()}`}
-                      >
-                        {getCompletionOrderIcon(completionInfo.order)}
-                      </div>
-                    ) : entry.score >= (entries[0]?.challenge?.totalPoints || 0) ? (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                )}
+                                 {capedPoints && (
+                   <TableCell className="text-center">
+                     {/* Empty cell for spacing when completion is shown in first column */}
+                   </TableCell>
+                 )}
                                  <TableCell className="text-right font-medium">
                    {Math.round(entry.score)}
                    {capedPoints && entry.uncappedScore !== entry.score && (
