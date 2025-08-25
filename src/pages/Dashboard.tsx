@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trophy, Calendar, Target, Check, Minus } from "lucide-react";
+import { Trophy, Check, Minus } from "lucide-react";
 import { Challenge, UserChallenge, DailyChallenge } from "@/types";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -179,7 +179,7 @@ export default function Dashboard() {
         date,
         hasActivity,
         isToday: i === 0,
-        dayName: date.toLocaleDateString('en-US', { weekday: 'short' })
+        dayName: date.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', { weekday: 'short' })
       });
     }
     
@@ -189,8 +189,8 @@ export default function Dashboard() {
   const getDailyChallenge = () => {
     if (!todaysChallenge) {
       return {
-        title: "Challenge für heute erledigt! 🎉",
-        target: "N/A",
+        title: t("challengeCompleted"),
+        target: t("notApplicable"),
         points: 0
       };
     }
@@ -262,7 +262,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-pulse text-center">
             <div className="h-12 w-12 mx-auto rounded-full bg-primary/20"></div>
-            <p className="mt-4 text-sm text-muted-foreground">Loading dashboard...</p>
+            <p className="mt-4 text-sm text-muted-foreground">{t("loadingDashboard")}</p>
           </div>
         </div>
       </div>
@@ -305,6 +305,11 @@ export default function Dashboard() {
 
       {/* Daily Challenge */}
       <div className="mb-4 sm:mb-6 lg:mb-8">
+        <div className="mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">
+            {t("dailyChallengeTitle")}
+          </h2>
+        </div>
         <Card 
           className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 transition-all duration-300 ${
             todaysChallenge 
@@ -327,10 +332,15 @@ export default function Dashboard() {
                   <p className="text-gray-600 mb-2 sm:mb-3 lg:mb-4 text-xs sm:text-sm leading-relaxed">
                     {getDailyChallenge().description}
                   </p>
+                  {todaysChallenge && (
+                    <p className="text-xs sm:text-sm text-blue-600 font-medium">
+                      {t("tapToComplete")}
+                    </p>
+                  )}
                 </div>
                 <div className="flex-shrink-0">
                   <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200 text-xs sm:text-sm">
-                    Daily
+                    {t("dailyChallenge")}
                   </Badge>
                 </div>
               </div>
@@ -408,10 +418,10 @@ export default function Dashboard() {
               {isCompleting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Completing...
+                  {t("completing")}
                 </>
               ) : (
-                "Complete Challenge"
+                t("completeChallenge")
               )}
             </Button>
           </DialogFooter>

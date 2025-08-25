@@ -39,6 +39,9 @@ export const translations = {
     daysLeft: "Tage übrig",
     weeklyActivity: "Wöchentliche Aktivität",
     dailyChallenge: "Tägliche Herausforderung",
+    dailyChallengeTitle: "Tägliche Herausforderung",
+    tapToComplete: "Tippen zum Abschließen",
+    challengeCompleted: "Herausforderung für heute erledigt! 🎉",
 
     // Features
     howItWorks: "So funktioniert's",
@@ -144,6 +147,10 @@ export const translations = {
     morePages: "Weitere Seiten",
     loadMore: "Mehr laden",
     uploading: "Wird hochgeladen...",
+    loadingDashboard: "Dashboard wird geladen...",
+    completing: "Wird abgeschlossen...",
+    completeChallenge: "Herausforderung abschließen",
+    notApplicable: "N/V",
 
     target: "Ziel",
     deadline: "Frist",
@@ -362,6 +369,9 @@ export const translations = {
     daysLeft: "d left",
     weeklyActivity: "Weekly Activity",
     dailyChallenge: "Daily Challenge",
+    dailyChallengeTitle: "Daily Challenge",
+    tapToComplete: "Tap to complete",
+    challengeCompleted: "Challenge completed for today! 🎉",
 
     // Features
     howItWorks: "How It Works",
@@ -463,6 +473,10 @@ export const translations = {
     morePages: "More Pages",
     loadMore: "Load More",
     uploading: "Uploading...",
+    loadingDashboard: "Loading dashboard...",
+    completing: "Completing...",
+    completeChallenge: "Complete Challenge",
+    notApplicable: "N/A",
 
     target: "Target",
     deadline: "Deadline",
