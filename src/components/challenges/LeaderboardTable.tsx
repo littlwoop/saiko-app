@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Trophy, UserRound } from 'lucide-react';
+import { Trophy, UserRound, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { calculateTotalPoints } from '@/lib/points';
 
@@ -27,6 +27,8 @@ interface LeaderboardEntry {
   score: number;
   uncappedScore: number;
   position: number;
+  completionOrder?: number;
+  completionTime?: string;
 }
 
 interface ChallengeObjective {
@@ -165,8 +167,72 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       position: 0, // will be calculated below
     }));
 
-    // Sort by score (descending)
-    leaderboardEntries.sort((a, b) => b.score - a.score);
+    // If capedPoints is true, sort by completion order first, then by score
+    if (capedPoints) {
+      // Calculate completion order first
+      const totalPoints = entries[0]?.challenge?.totalPoints || 0;
+      const challengeObjectives = entries[0]?.challenge?.objectives || [];
+      
+      if (challengeObjectives.length > 0) {
+        // Get completion times for all users
+        const userCompletionTimes = new Map<string, string | null>();
+        
+        leaderboardEntries.forEach(entry => {
+          const userEntries = entries.filter(e => e.user_id === entry.userId);
+          const objectiveProgress = new Map<string, number>();
+          let completionTime: string | null = null;
+          
+          // Sort entries by timestamp to track progress chronologically
+          const sortedEntries = userEntries.sort((e1, e2) => 
+            new Date(e1.created_at).getTime() - new Date(e2.created_at).getTime()
+          );
+          
+          // Track when this user first reached 100% completion
+          for (const entry of sortedEntries) {
+            const currentValue = objectiveProgress.get(entry.objective_id) || 0;
+            objectiveProgress.set(entry.objective_id, currentValue + entry.value);
+            
+            // Check if all objectives are now complete
+            const allObjectivesComplete = challengeObjectives.every(objective => {
+              const currentProgress = objectiveProgress.get(objective.id) || 0;
+              return currentProgress >= objective.targetValue;
+            });
+            
+            // If this is the first time all objectives are complete, record the completion time
+            if (allObjectivesComplete && !completionTime) {
+              completionTime = entry.created_at;
+            }
+          }
+          
+          userCompletionTimes.set(entry.userId, completionTime);
+        });
+        
+        // Sort by completion time first (earliest first), then by score (highest first)
+        leaderboardEntries.sort((a, b) => {
+          const aCompletionTime = userCompletionTimes.get(a.userId);
+          const bCompletionTime = userCompletionTimes.get(b.userId);
+          
+          // If both users completed, sort by completion time
+          if (aCompletionTime && bCompletionTime) {
+            const timeDiff = new Date(aCompletionTime).getTime() - new Date(bCompletionTime).getTime();
+            if (timeDiff !== 0) return timeDiff;
+          }
+          
+          // If only one completed, completed users come first
+          if (aCompletionTime && !bCompletionTime) return -1;
+          if (!aCompletionTime && bCompletionTime) return 1;
+          
+          // If neither completed or both completed at same time, sort by score
+          return b.score - a.score;
+        });
+      } else {
+        // Fallback to score sorting if no objectives
+        leaderboardEntries.sort((a, b) => b.score - a.score);
+      }
+    } else {
+      // Sort by score (descending) when not using capped points
+      leaderboardEntries.sort((a, b) => b.score - a.score);
+    }
 
     // Assign positions (handling ties)
     let currentPosition = 1;
@@ -183,31 +249,56 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         position: currentPosition,
       };
     });
-  }, [entries]);
+  }, [entries, capedPoints]);
 
   // Calculate completion order for users who reached 100%
   const completionOrder = useMemo(() => {
     if (!capedPoints || entries.length === 0) return new Map();
     
     const totalPoints = entries[0]?.challenge?.totalPoints || 0;
-    const completedUsers = leaderboard
-      .filter(entry => entry.score >= totalPoints)
-      .sort((a, b) => {
-        // Find the earliest entry for each user to determine completion time
-        const aEarliestEntry = entries
-          .filter(e => e.user_id === a.userId)
-          .sort((e1, e2) => new Date(e1.created_at).getTime() - new Date(e2.created_at).getTime())[0];
-        const bEarliestEntry = entries
-          .filter(e => e.user_id === b.userId)
-          .sort((e1, e2) => new Date(e1.created_at).getTime() - new Date(e2.created_at).getTime())[0];
-        
-        return new Date(aEarliestEntry.created_at).getTime() - new Date(bEarliestEntry.created_at).getTime();
-      })
-      .slice(0, 3); // Only track top 3
+    const challengeObjectives = entries[0]?.challenge?.objectives || [];
     
+    if (challengeObjectives.length === 0) return new Map();
+    
+    // Since the leaderboard is now sorted by completion time, we can derive completion order from position
     const orderMap = new Map();
-    completedUsers.forEach((user, index) => {
-      orderMap.set(user.userId, index + 1);
+    
+    leaderboard.forEach((entry, index) => {
+      if (entry.score >= totalPoints) {
+        // Calculate the actual completion time for this user
+        const userEntries = entries.filter(e => e.user_id === entry.userId);
+        const objectiveProgress = new Map<string, number>();
+        let completionTime: string | null = null;
+        
+        // Sort entries by timestamp to track progress chronologically
+        const sortedEntries = userEntries.sort((e1, e2) => 
+          new Date(e1.created_at).getTime() - new Date(e2.created_at).getTime()
+        );
+        
+        // Track when this user first reached 100% completion
+        for (const entry of sortedEntries) {
+          const currentValue = objectiveProgress.get(entry.objective_id) || 0;
+          objectiveProgress.set(entry.objective_id, currentValue + entry.value);
+          
+          // Check if all objectives are now complete
+          const allObjectivesComplete = challengeObjectives.every(objective => {
+            const currentProgress = objectiveProgress.get(objective.id) || 0;
+            return currentProgress >= objective.targetValue;
+          });
+          
+          // If this is the first time all objectives are complete, record the completion time
+          if (allObjectivesComplete && !completionTime) {
+            completionTime = entry.created_at;
+          }
+        }
+        
+        if (completionTime) {
+          orderMap.set(entry.userId, {
+            order: index + 1, // Position in leaderboard (sorted by completion time)
+            time: completionTime
+          });
+        }
+      }
     });
     
     return orderMap;
@@ -223,6 +314,32 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         return 'text-amber-700 font-bold';
       default:
         return '';
+    }
+  };
+
+  const getCompletionOrderStyle = (order: number) => {
+    switch (order) {
+      case 1:
+        return 'bg-yellow-100 text-yellow-700 border-yellow-300 shadow-sm';
+      case 2:
+        return 'bg-gray-100 text-gray-700 border-gray-300 shadow-sm';
+      case 3:
+        return 'bg-amber-100 text-amber-700 border-amber-300 shadow-sm';
+      default:
+        return 'bg-blue-100 text-blue-700 border-blue-300 shadow-sm';
+    }
+  };
+
+  const getCompletionOrderIcon = (order: number) => {
+    switch (order) {
+      case 1:
+        return '🥇';
+      case 2:
+        return '🥈';
+      case 3:
+        return '🥉';
+      default:
+        return `${order}`;
     }
   };
 
@@ -250,14 +367,20 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-16 text-center">{t('leaderboardRank')}</TableHead>
-            <TableHead>{t('leaderboardPlayer')}</TableHead>
-            <TableHead className="text-right">{t('leaderboardPoints')}</TableHead>
+                         <TableHead className="w-16 text-center">{t('leaderboardRank')}</TableHead>
+             <TableHead>{t('leaderboardPlayer')}</TableHead>
+             {capedPoints && (
+               <TableHead className="w-24 text-center"></TableHead>
+             )}
+             <TableHead className="text-right">{t('leaderboardPoints')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {leaderboard.map((entry) => {
             const isCurrentUser = user && entry.userId === user.id;
+            const completionInfo = completionOrder.get(entry.userId);
+            
+            
 
             return (
               <TableRow key={entry.userId} className={`select-none ${isCurrentUser ? 'bg-muted/40' : ''}`}>
@@ -266,6 +389,14 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                   {entry.position === 2 && '🥈'}
                   {entry.position === 3 && '🥉'}
                   {entry.position > 3 && entry.position}
+                  {/* Show completion order badge for top 3 finishers who aren't in top 3 positions */}
+                  {capedPoints && completionInfo && completionInfo.order <= 3 && entry.position > 3 && (
+                    <div className="mt-1">
+                      <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${getCompletionOrderStyle(completionInfo.order)}`}>
+                        {getCompletionOrderIcon(completionInfo.order)}
+                      </span>
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div
@@ -287,31 +418,31 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                     </Avatar>
                     <span className={isCurrentUser ? 'font-medium' : ''}>
                       {entry.name} {isCurrentUser && '(You)'}
-                      {/* Show checkmark for 100% completion */}
-                      {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (
-                        <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-sm font-bold" title={`100% ${t('complete')}`}>
-                          ✓
-                        </span>
-                      )}
-                      
-                      {/* Show completion order for top 3 finishers (only if multiple users completed and not in top 3 positions) */}
-                      {capedPoints && completionOrder.has(entry.userId) && entry.position > 3 && completionOrder.size > 1 && (
-                        <span 
-                          className={`ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-sm font-bold ${
-                            completionOrder.get(entry.userId) === 1 
-                              ? 'bg-yellow-100 text-yellow-700' 
-                              : completionOrder.get(entry.userId) === 2 
-                              ? 'bg-gray-100 text-gray-700' 
-                              : 'bg-amber-100 text-amber-700'
-                          }`}
-                          title={`${completionOrder.get(entry.userId) === 1 ? '1st' : completionOrder.get(entry.userId) === 2 ? '2nd' : '3rd'} ${t('complete')}`}
-                        >
-                          {completionOrder.get(entry.userId) === 1 ? '🥇' : completionOrder.get(entry.userId) === 2 ? '🥈' : '🥉'}
-                        </span>
-                      )}
+                                             {/* Show checkmark for 100% completion (but not for top 3 finishers who already have completion badges) */}
+                       {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (!completionInfo || completionInfo.order > 3) && (
+                         <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-sm font-bold" title={`100% ${t('complete')}`}>
+                           ✓
+                         </span>
+                       )}
                     </span>
                   </div>
                 </TableCell>
+                {capedPoints && (
+                  <TableCell className="text-center">
+                    {completionInfo ? (
+                      <div 
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold border-2 ${getCompletionOrderStyle(completionInfo.order)} cursor-help`}
+                                                 title={`${getCompletionOrderIcon(completionInfo.order)} ${completionInfo.order === 1 ? '1st' : completionInfo.order === 2 ? '2nd' : '3rd'} to finish - ${new Date(completionInfo.time).toLocaleString()}`}
+                      >
+                        {getCompletionOrderIcon(completionInfo.order)}
+                      </div>
+                    ) : entry.score >= (entries[0]?.challenge?.totalPoints || 0) ? (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                )}
                 <TableCell className="text-right font-medium">
                   {Math.round(entry.score)} {t('leaderboardPoints')}
                   {capedPoints && entry.uncappedScore !== entry.score && (
@@ -328,3 +459,4 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     </div>
   );
 }
+

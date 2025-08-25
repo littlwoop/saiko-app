@@ -191,6 +191,7 @@ export const translations = {
       "Siehe die Top-Performer in allen Herausforderungen",
     leaderboardRank: "Rang",
     leaderboardPlayer: "Spieler",
+    leaderboardFinish: "Fertig",
     leaderboardPoints: "Punkte",
     leaderboardChallenges: "Herausforderungen",
     noParticipantsDescription:
@@ -516,6 +517,7 @@ export const translations = {
     leaderboardDescription: "See the top performers across all challenges",
     leaderboardRank: "Rank",
     leaderboardPlayer: "Player",
+    leaderboardFinish: "Finish",
     leaderboardPoints: "Points",
     leaderboardChallenges: "Challenges",
     noParticipantsDescription: "Join a challenge to appear on the leaderboard",
