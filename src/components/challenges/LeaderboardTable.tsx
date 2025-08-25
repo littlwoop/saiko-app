@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useChallenges } from '@/contexts/ChallengeContext';
 import { useTranslation } from '@/lib/translations';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -62,7 +63,10 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const { getParticipants } = useChallenges();
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [participants, setParticipants] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [challengeData, setChallengeData] = useState<{ objectives: ChallengeObjective[]; totalPoints: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
 
@@ -70,6 +74,23 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     const fetchData = async () => {
       try {
         setLoading(true);
+
+        // Fetch all participants for the challenge
+        if (challengeId) {
+          const participantsData = await getParticipants(challengeId);
+          setParticipants(participantsData);
+          
+          // Also fetch challenge data to get objectives and total points
+          const { data: challengeDataResult, error: challengeError } = await supabase
+            .from('challenges')
+            .select('objectives, totalPoints')
+            .eq('id', challengeId)
+            .single();
+            
+          if (!challengeError && challengeDataResult) {
+            setChallengeData(challengeDataResult);
+          }
+        }
 
         let query = supabase.from('entries').select(`
     *,
@@ -91,24 +112,26 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         } else {
           setEntries(entriesData || []);
 
-          // Fetch user profiles for all unique users
-          const uniqueUserIds = [...new Set(entriesData?.map((entry) => entry.user_id) || [])];
-          const { data: profiles, error: profilesError } = await supabase
-            .from('user_profiles')
-            .select('id, avatar_url')
-            .in('id', uniqueUserIds);
+          // Fetch user profiles for all participants (not just those with entries)
+          if (participants.length > 0) {
+            const participantIds = participants.map(p => p.id);
+            const { data: profiles, error: profilesError } = await supabase
+              .from('user_profiles')
+              .select('id, avatar_url')
+              .in('id', participantIds);
 
-          if (profilesError) {
-            console.error('Error fetching user profiles:', profilesError);
-          } else {
-            const avatarMap = (profiles || []).reduce(
-              (acc, profile) => ({
-                ...acc,
-                [profile.id]: profile.avatar_url,
-              }),
-              {}
-            );
-            setUserAvatars(avatarMap);
+            if (profilesError) {
+              console.error('Error fetching user profiles:', profilesError);
+            } else {
+              const avatarMap = (profiles || []).reduce(
+                (acc, profile) => ({
+                  ...acc,
+                  [profile.id]: profile.avatar_url,
+                }),
+                {}
+              );
+              setUserAvatars(avatarMap);
+            }
           }
         }
       } catch (error) {
@@ -119,7 +142,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     };
 
     fetchData();
-  }, [challengeId]);
+  }, [challengeId, getParticipants]);
 
   const leaderboard = useMemo(() => {
     // Group entries by user and objective to get total progress per objective
@@ -135,24 +158,35 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       userObjectives.set(entry.objective_id, currentValue + entry.value);
     });
 
-    // Calculate scores for each user using the same logic as the individual page
-    const userScores = Array.from(userProgressMap.entries()).map(([userId, objectivesMap]) => {
+    // Create leaderboard entries for ALL participants, including those with 0 points
+    const userScores = participants.map(participant => {
+      const objectivesMap = userProgressMap.get(participant.id);
+      
+      if (!objectivesMap) {
+        // User has no entries, return 0 points
+        return {
+          userId: participant.id,
+          username: participant.name,
+          score: 0,
+          uncappedScore: 0
+        };
+      }
+
       const progress = Array.from(objectivesMap.entries()).map(([objectiveId, currentValue]) => ({
         objectiveId,
         currentValue
       }));
 
-      // Get the first entry's challenge data (all entries have the same challenge data)
-      const firstEntry = entries.find(e => e.user_id === userId);
-      const objectives = firstEntry?.challenge.objectives || [];
+      // Use the challenge data we fetched separately
+      const objectives = challengeData?.objectives || [];
 
       // Calculate both capped and uncapped points using the same function
       const cappedScore = calculateTotalPoints(objectives, progress, true);
       const uncappedScore = calculateTotalPoints(objectives, progress, false);
 
       return {
-        userId,
-        username: firstEntry?.username || 'Unknown',
+        userId: participant.id,
+        username: participant.name,
         score: cappedScore,
         uncappedScore: uncappedScore
       };
@@ -170,8 +204,8 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     // If capedPoints is true, sort by completion order first, then by score
     if (capedPoints) {
       // Calculate completion order first
-      const totalPoints = entries[0]?.challenge?.totalPoints || 0;
-      const challengeObjectives = entries[0]?.challenge?.objectives || [];
+      const totalPoints = challengeData?.totalPoints || 0;
+      const challengeObjectives = challengeData?.objectives || [];
       
       if (challengeObjectives.length > 0) {
         // Get completion times for all users
@@ -179,6 +213,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         
         leaderboardEntries.forEach(entry => {
           const userEntries = entries.filter(e => e.user_id === entry.userId);
+          
+          if (userEntries.length === 0) {
+            // User has no entries, so no completion time
+            userCompletionTimes.set(entry.userId, null);
+            return;
+          }
+          
           const objectiveProgress = new Map<string, number>();
           let completionTime: string | null = null;
           
@@ -249,14 +290,14 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         position: currentPosition,
       };
     });
-  }, [entries, capedPoints]);
+  }, [entries, participants, capedPoints, challengeData]);
 
   // Calculate completion order for users who reached 100%
   const completionOrder = useMemo(() => {
-    if (!capedPoints || entries.length === 0) return new Map();
+    if (!capedPoints || !challengeData) return new Map();
     
-    const totalPoints = entries[0]?.challenge?.totalPoints || 0;
-    const challengeObjectives = entries[0]?.challenge?.objectives || [];
+    const totalPoints = challengeData.totalPoints || 0;
+    const challengeObjectives = challengeData.objectives || [];
     
     if (challengeObjectives.length === 0) return new Map();
     
@@ -267,6 +308,12 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       if (entry.score >= totalPoints) {
         // Calculate the actual completion time for this user
         const userEntries = entries.filter(e => e.user_id === entry.userId);
+        
+        if (userEntries.length === 0) {
+          // User has no entries, so no completion time
+          return;
+        }
+        
         const objectiveProgress = new Map<string, number>();
         let completionTime: string | null = null;
         
@@ -302,7 +349,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     });
     
     return orderMap;
-  }, [leaderboard, entries, capedPoints]);
+  }, [leaderboard, entries, capedPoints, challengeData]);
 
   const getPositionStyle = (position: number) => {
     switch (position) {
@@ -394,7 +441,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                        >
                          {getCompletionOrderIcon(completionInfo.order)}
                        </div>
-                     ) : entry.score >= (entries[0]?.challenge?.totalPoints || 0) ? (
+                     ) : entry.score >= (challengeData?.totalPoints || 0) ? (
                        <span className="text-muted-foreground text-xs">-</span>
                      ) : (
                        <span className="text-muted-foreground text-xs">-</span>
@@ -431,7 +478,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                         {entry.name}
                         {isCurrentUser && <span className="ml-1">(You)</span>}
                         {/* Show checkmark for 100% completion (but not for top 3 finishers who already have completion badges) */}
-                        {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (!completionInfo || completionInfo.order > 3) && (
+                        {capedPoints && entry.score >= (challengeData?.totalPoints || 0) && (!completionInfo || completionInfo.order > 3) && (
                           <span className="ml-1 md:ml-2 inline-flex items-center justify-center w-4 h-4 md:w-6 md:h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold" title={`100% ${t('complete')}`}>
                             ✓
                           </span>
