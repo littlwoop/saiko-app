@@ -1,18 +1,7 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useTranslation } from '@/lib/translations';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Trophy, UserRound, Clock } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+rt { supabase } from '@/lib/supabase';
 import { calculateTotalPoints } from '@/lib/points';
 
 interface LeaderboardTableProps {
@@ -362,21 +351,19 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     );
   }
 
-  return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-                         <TableHead className="w-16 text-center">
+     return (
+     <div className="rounded-md border overflow-x-auto">
+       <Table className="min-w-full">
+         <TableHeader>
+           <TableRow>
+             <TableHead className="w-12 md:w-16 text-center px-2 md:px-4">
                {capedPoints ? '' : t('leaderboardRank')}
              </TableHead>
-             <TableHead>{t('leaderboardPlayer')}</TableHead>
-             {capedPoints && (
-               <TableHead className="w-24 text-center"></TableHead>
-             )}
-             <TableHead className="text-right">Pts</TableHead>
-          </TableRow>
-        </TableHeader>
+             <TableHead className="px-2 md:px-4">Player</TableHead>
+             
+             <TableHead className="w-16 md:w-20 text-right px-2 md:px-4">Pts</TableHead>
+           </TableRow>
+         </TableHeader>
         <TableBody>
           {leaderboard.map((entry) => {
             const isCurrentUser = user && entry.userId === user.id;
@@ -384,22 +371,22 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
             
             
 
-            return (
-              <TableRow key={entry.userId} className={`select-none ${isCurrentUser ? 'bg-muted/40' : ''}`}>
-                                 <TableCell className="text-center">
+                         return (
+               <TableRow key={entry.userId} className={`select-none ${isCurrentUser ? 'bg-muted/40' : ''}`}>
+                 <TableCell className="text-center px-2 md:px-4">
                    {capedPoints ? (
                      // Show completion order when capedPoints is true
                      completionInfo ? (
                        <div 
-                         className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold border-2 ${getCompletionOrderStyle(completionInfo.order)} cursor-help`}
+                         className={`inline-flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full text-xs md:text-sm font-bold border-2 ${getCompletionOrderStyle(completionInfo.order)} cursor-help`}
                          title={`${getCompletionOrderIcon(completionInfo.order)} ${completionInfo.order === 1 ? '1st' : completionInfo.order === 2 ? '2nd' : '3rd'} to finish - ${new Date(completionInfo.time).toLocaleString()}`}
                        >
                          {getCompletionOrderIcon(completionInfo.order)}
                        </div>
                      ) : entry.score >= (entries[0]?.challenge?.totalPoints || 0) ? (
-                       <span className="text-muted-foreground text-sm">-</span>
+                       <span className="text-muted-foreground text-xs">-</span>
                      ) : (
-                       <span className="text-muted-foreground text-sm">-</span>
+                       <span className="text-muted-foreground text-xs">-</span>
                      )
                    ) : (
                      // Show regular rank when capedPoints is false
@@ -411,50 +398,47 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                      </>
                    )}
                  </TableCell>
-                <TableCell>
-                  <div
-                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 select-none"
-                    onClick={() => onUserClick?.(entry.userId)}
-                  >
-                    <Avatar className="h-8 w-8">
-                      {userAvatars[entry.userId] && (
-                        <AvatarImage
-                          src={userAvatars[entry.userId]}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      )}
-                      <AvatarFallback>
-                        <UserRound className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className={isCurrentUser ? 'font-medium' : ''}>
-                      {entry.name} {isCurrentUser && '(You)'}
-                                             {/* Show checkmark for 100% completion (but not for top 3 finishers who already have completion badges) */}
-                       {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (!completionInfo || completionInfo.order > 3) && (
-                         <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-sm font-bold" title={`100% ${t('complete')}`}>
-                           ✓
-                         </span>
+                 <TableCell className="px-2 md:px-4">
+                   <div
+                     className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 select-none"
+                     onClick={() => onUserClick?.(entry.userId)}
+                   >
+                     <Avatar className="h-6 w-6 md:h-8 md:w-8">
+                       {userAvatars[entry.userId] && (
+                         <AvatarImage
+                           src={userAvatars[entry.userId]}
+                           onError={(e) => {
+                             (e.target as HTMLImageElement).style.display = 'none';
+                           }}
+                         />
                        )}
-                    </span>
-                  </div>
-                </TableCell>
-                                 {capedPoints && (
-                   <TableCell className="text-center">
-                     {/* Empty cell for spacing when completion is shown in first column */}
-                   </TableCell>
-                 )}
-                                 <TableCell className="text-right font-medium">
-                   {Math.round(entry.score)}
+                       <AvatarFallback>
+                         <UserRound className="h-3 w-3 md:h-4 md:w-4" />
+                       </AvatarFallback>
+                     </Avatar>
+                                           <span className={`text-sm md:text-base ${isCurrentUser ? 'font-medium' : ''} break-words`}>
+                        {entry.name}
+                        {isCurrentUser && <span className="ml-1">(You)</span>}
+                        {/* Show checkmark for 100% completion (but not for top 3 finishers who already have completion badges) */}
+                        {capedPoints && entry.score >= (entries[0]?.challenge?.totalPoints || 0) && (!completionInfo || completionInfo.order > 3) && (
+                          <span className="ml-1 md:ml-2 inline-flex items-center justify-center w-4 h-4 md:w-6 md:h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold" title={`100% ${t('complete')}`}>
+                            ✓
+                          </span>
+                        )}
+                      </span>
+                   </div>
+                 </TableCell>
+                 
+                 <TableCell className="text-right font-medium px-2 md:px-4">
+                   <span className="text-sm md:text-base">{Math.round(entry.score)}</span>
                    {capedPoints && entry.uncappedScore !== entry.score && (
-                     <span className="text-sm text-muted-foreground ml-2">
+                     <span className="text-xs md:text-sm text-muted-foreground ml-1 md:ml-2">
                        ({Math.round(entry.uncappedScore)})
                      </span>
                    )}
                  </TableCell>
-              </TableRow>
-            );
+               </TableRow>
+             );
           })}
         </TableBody>
       </Table>
