@@ -332,8 +332,8 @@ export default function ChallengePage() {
           <div className="h-8 w-64 rounded bg-muted"></div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="space-y-6">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="h-8 w-64 rounded bg-muted"></div>
@@ -361,25 +361,7 @@ export default function ChallengePage() {
             </div>
           </div>
 
-          <div className="hidden lg:block">
-            <div className="sticky top-20 rounded-lg border bg-card p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="h-7 w-7 rounded-full bg-muted"></div>
-                <div className="h-5 w-40 rounded bg-muted"></div>
-              </div>
 
-              <div className="h-6 w-32 rounded bg-muted mb-6"></div>
-
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="h-5 w-24 rounded bg-muted"></div>
-                    <div className="h-5 w-16 rounded bg-muted"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -413,8 +395,8 @@ export default function ChallengePage() {
         {t("challenges")}
       </Link>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="space-y-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h1 className="text-2xl sm:text-3xl font-bold">
@@ -710,214 +692,6 @@ export default function ChallengePage() {
               />
             </TabsContent>
           </Tabs>
-        </div>
-
-        <div className="block lg:hidden">
-          <div className="rounded-lg border bg-card p-4 text-card-foreground">
-            <h2 className="text-lg font-semibold mb-2">
-              {t("challengeStats")}
-            </h2>
-            <div className="flex items-center gap-2 mb-2">
-              <Avatar className="h-6 w-6">
-                {creatorAvatar && (
-                  <AvatarImage
-                    src={creatorAvatar}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                )}
-                <AvatarFallback>
-                  <UserRound className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm text-muted-foreground">
-                {t("createdBy")}{" "}
-                <span className="font-medium text-foreground">
-                  {challenge.creatorName}
-                </span>
-              </span>
-            </div>
-
-            <div className="mt-4 space-y-4">
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("status")}</span>
-                  <span className="font-medium">
-                    {isActive && t("active")}
-                    {isFuture && t("upcoming")}
-                    {isPast && t("completed")}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t("participants")}
-                  </span>
-                  <span className="font-medium">
-                    {challenge.participants.length}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t("totalPoints")}
-                  </span>
-                  <span className="font-medium">{challenge.totalPoints}</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t("objectives")}
-                  </span>
-                  <span className="font-medium">
-                    {challenge.objectives.length}
-                  </span>
-                </div>
-              </div>
-
-              {isActive && (
-                <div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {t("daysLeft")}
-                    </span>
-                    <span className="font-medium">{daysLeft}</span>
-                  </div>
-                </div>
-              )}
-
-              {(hasJoined || selectedUserId) && (
-                <div className="pt-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {selectedUserId ? t("points") : t("yourPoints")}
-                    </span>
-                    <span className="font-medium">
-                      {Math.round(totalPoints)}
-                    </span>
-                  </div>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span>
-                        {Math.round(progress)}% {t("complete")}
-                      </span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden lg:block">
-          <div className="sticky top-20 rounded-lg border bg-card p-6 text-card-foreground">
-            <div className="flex items-center gap-2 mb-6">
-              <Avatar className="h-7 w-7">
-                {creatorAvatar && (
-                  <AvatarImage
-                    src={creatorAvatar}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                )}
-                <AvatarFallback>
-                  <UserRound className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-base text-muted-foreground">
-                {t("createdBy")}{" "}
-                <span className="font-medium text-foreground">
-                  {challenge.creatorName}
-                </span>
-              </span>
-            </div>
-            <h2 className="text-xl font-semibold">{t("challengeStats")}</h2>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t("status")}</span>
-                  <span className="font-medium">
-                    {isActive && t("active")}
-                    {isFuture && t("upcoming")}
-                    {isPast && t("completed")}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t("participants")}
-                  </span>
-                  <span className="font-medium">
-                    {challenge.participants.length}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t("totalPoints")}
-                  </span>
-                  <span className="font-medium">{challenge.totalPoints}</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t("objectives")}
-                  </span>
-                  <span className="font-medium">
-                    {challenge.objectives.length}
-                  </span>
-                </div>
-              </div>
-
-              {isActive && (
-                <div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {t("daysLeft")}
-                    </span>
-                    <span className="font-medium">{daysLeft}</span>
-                  </div>
-                </div>
-              )}
-
-              {(hasJoined || selectedUserId) && (
-                <div className="pt-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {selectedUserId ? t("points") : t("yourPoints")}
-                    </span>
-                    <span className="font-medium">
-                      {Math.round(totalPoints)}
-                    </span>
-                  </div>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span>
-                        {Math.round(progress)}% {t("complete")}
-                      </span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
