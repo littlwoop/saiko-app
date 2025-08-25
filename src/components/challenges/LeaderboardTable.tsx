@@ -372,7 +372,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
              {capedPoints && (
                <TableHead className="w-24 text-center"></TableHead>
              )}
-             <TableHead className="text-right">{t('leaderboardPoints')}</TableHead>
+             <TableHead className="text-right">Pts</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -443,14 +443,14 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                     )}
                   </TableCell>
                 )}
-                <TableCell className="text-right font-medium">
-                  {Math.round(entry.score)} {t('leaderboardPoints')}
-                  {capedPoints && entry.uncappedScore !== entry.score && (
-                    <span className="text-sm text-muted-foreground ml-2">
-                      ({Math.round(entry.uncappedScore)})
-                    </span>
-                  )}
-                </TableCell>
+                                 <TableCell className="text-right font-medium">
+                   {Math.round(entry.score)}
+                   {capedPoints && entry.uncappedScore !== entry.score && (
+                     <span className="text-sm text-muted-foreground ml-2">
+                       ({Math.round(entry.uncappedScore)})
+                     </span>
+                   )}
+                 </TableCell>
               </TableRow>
             );
           })}
