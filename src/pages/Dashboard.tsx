@@ -305,11 +305,11 @@ export default function Dashboard() {
 
       {/* Daily Challenge */}
       <div className="mb-4 sm:mb-6 lg:mb-8">
-        <div className="mb-3 sm:mb-4">
+        {/* <div className="mb-3 sm:mb-4">
           <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">
             {t("dailyChallengeTitle")}
           </h2>
-        </div>
+        </div> */}
         <Card 
           className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 transition-all duration-300 ${
             todaysChallenge 
