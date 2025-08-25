@@ -1,7 +1,18 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-rt { supabase } from '@/lib/supabase';
+import { useTranslation } from '@/lib/translations';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Trophy, UserRound, Clock } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { calculateTotalPoints } from '@/lib/points';
 
 interface LeaderboardTableProps {
