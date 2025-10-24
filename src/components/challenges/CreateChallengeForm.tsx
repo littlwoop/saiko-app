@@ -18,8 +18,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
+import { ChallengeType } from "@/types";
 
 export default function CreateChallengeForm() {
   const { createChallenge } = useChallenges();
@@ -35,6 +43,7 @@ export default function CreateChallengeForm() {
     to: addDays(new Date(), 30),
   });
   const [capedPoints, setCapedPoints] = useState(false);
+  const [challengeType, setChallengeType] = useState<ChallengeType>("standard");
 
   const [objectives, setObjectives] = useState([
     {
@@ -116,6 +125,7 @@ export default function CreateChallengeForm() {
       description,
       startDate: date.from.toISOString(),
       endDate: date.to.toISOString(),
+      challengeType,
       capedPoints,
       objectives: objectives.map((obj) => ({
         ...obj,
@@ -186,6 +196,19 @@ export default function CreateChallengeForm() {
               />
             </PopoverContent>
           </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="challengeType">{t("challengeType")}</Label>
+          <Select value={challengeType} onValueChange={(value: ChallengeType) => setChallengeType(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder={t("selectChallengeType")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="standard">{t("standardChallenge")}</SelectItem>
+              <SelectItem value="bingo">{t("bingoChallenge")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-center space-x-2">

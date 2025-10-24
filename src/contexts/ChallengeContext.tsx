@@ -254,7 +254,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       participants: [],
       totalPoints,
       objectives: challengeData.objectives,
-      isBingo: challengeData.isBingo || false,
+      challengeType: challengeData.challengeType || "standard",
     };
 
     debug.log("Prepared challenge data:", newChallenge);
@@ -429,7 +429,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       startDate: new Date("2025-06-01T00:00:00Z").toISOString(),
       endDate: new Date("2025-06-30T23:59:59Z").toISOString(),
       objectives,
-      isBingo: true,
+      challengeType: "bingo",
     };
 
     await createChallenge(challengeData);

@@ -203,7 +203,7 @@ export default function ChallengePage() {
   // Function to check for Bingo wins - memoized to prevent recreation
   const checkForBingo = useCallback(
     (progress: UserProgress[], currentShownWins: Set<string>) => {
-      if (!challenge?.isBingo) return false;
+      if (challenge?.challengeType !== "bingo" && challenge?.objectives?.length !== 25) return false;
 
       const gridSize = Math.sqrt(challenge.objectives.length);
       const completedObjectives = new Set(
@@ -285,12 +285,12 @@ export default function ChallengePage() {
       }
       return false;
     },
-    [challenge?.id, challenge?.isBingo, challenge?.objectives],
+    [challenge?.id, challenge?.challengeType, challenge?.objectives],
   ); // Remove shownBingoWins dependency
 
   // Check for new completions and trigger bingo animation
   useEffect(() => {
-    if (!challenge?.isBingo || !user) return;
+    if ((challenge?.challengeType !== "bingo" && challenge?.objectives?.length !== 25) || !user) return;
 
     const progressToCheck = selectedUserId ? participantProgress : userProgress;
     const prevProgress = selectedUserId ? [] : previousProgress;
@@ -315,7 +315,7 @@ export default function ChallengePage() {
       setPreviousProgress(progressToCheck);
     }
   }, [
-    challenge?.isBingo,
+    challenge?.challengeType,
     selectedUserId,
     participantProgress,
     userProgress,
@@ -514,7 +514,7 @@ export default function ChallengePage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  {challenge.isBingo && (
+                  {(challenge.challengeType === "bingo" || challenge?.objectives?.length === 25) && (
                     <Select
                       value={selectedUserId || ""}
                       onValueChange={(value) => setSelectedUserId(value)}
@@ -558,7 +558,7 @@ export default function ChallengePage() {
                       {t("activities")}
                     </TabsTrigger>
                   </TabsList>
-                  {challenge.isBingo && (
+                  {(challenge.challengeType === "bingo" || challenge?.objectives?.length === 25) && (
                     <Select
                       value={selectedUserId || ""}
                       onValueChange={(value) => setSelectedUserId(value)}
@@ -619,7 +619,7 @@ export default function ChallengePage() {
                 </div>
               )}
 
-              {challenge.isBingo ? (
+              {(challenge?.challengeType === "bingo" || (challenge?.objectives?.length === 25)) ? (
                 <div className="grid grid-cols-5 gap-1 p-0.5">
                   {challenge.objectives.map((objective) => (
                     <ObjectiveItem
@@ -635,7 +635,7 @@ export default function ChallengePage() {
                               (p) => p.objectiveId === objective.id,
                             )
                       }
-                      isBingo
+                      challengeType={challenge.challengeType || (challenge?.objectives?.length === 25 ? "bingo" : "standard")}
                       capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id
@@ -660,6 +660,7 @@ export default function ChallengePage() {
                               (p) => p.objectiveId === objective.id,
                             )
                       }
+                      challengeType={challenge.challengeType || (challenge?.objectives?.length === 25 ? "bingo" : "standard")}
                       capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id

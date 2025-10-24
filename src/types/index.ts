@@ -15,6 +15,8 @@ export interface Objective {
   currentValue?: number;
 }
 
+export type ChallengeType = "standard" | "bingo";
+
 export interface Challenge {
   id: string;
   title: string;
@@ -27,7 +29,7 @@ export interface Challenge {
   objectives: Objective[];
   participants: string[];
   totalPoints: number;
-  isBingo?: boolean;
+  challengeType: ChallengeType;
   capedPoints?: boolean;
 }
 

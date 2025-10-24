@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Objective, UserProgress } from "@/types";
+import { Objective, UserProgress, ChallengeType } from "@/types";
 import {
   Card,
   CardContent,
@@ -39,7 +39,7 @@ interface ObjectiveItemProps {
   objective: Objective;
   challengeId: string;
   progress?: UserProgress;
-  isBingo?: boolean;
+  challengeType: ChallengeType;
   readOnly?: boolean;
   capedPoints?: boolean;
   onProgressUpdate?: () => void;
@@ -49,7 +49,7 @@ export default function ObjectiveItem({
   objective,
   challengeId,
   progress,
-  isBingo,
+  challengeType,
   readOnly,
   capedPoints = false,
   onProgressUpdate,
@@ -71,7 +71,7 @@ export default function ObjectiveItem({
     (currentValue / objective.targetValue) * 100,
   );
   const isCompleted = currentValue >= objective.targetValue;
-  const completionCount = isBingo ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
+  const completionCount = challengeType === "bingo" ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
 
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
@@ -114,7 +114,7 @@ export default function ObjectiveItem({
     }
   };
 
-  if (isBingo) {
+  if (challengeType === "bingo") {
     return (
       <ContextMenu>
         <ContextMenuTrigger>
