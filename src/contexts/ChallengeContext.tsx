@@ -518,6 +518,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       debug.log("Challenge participants:", challengeData.participants);
 
+      // Try to fetch from user_profiles table first
       const { data: profiles, error: profilesError } = await supabase
         .from("user_profiles")
         .select("id, name, avatar_url")
@@ -525,7 +526,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       if (profilesError) {
         debug.error("Error fetching participant profiles:", profilesError);
-        return [];
+        // If user_profiles table doesn't exist or has no data, return basic participant info
+        return challengeData.participants.map((id) => ({
+          id,
+          name: `User ${id.slice(0, 4)}`,
+          avatar: undefined,
+        }));
       }
 
       debug.log("Participant profiles:", profiles);
@@ -544,6 +550,35 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       debug.error("Error loading participants:", error);
       return [];
+    }
+  };
+
+  // Create or update user profile
+  const createOrUpdateUserProfile = async (
+    userId: string,
+    name: string,
+    avatarUrl?: string,
+  ): Promise<void> => {
+    debug.log(`Creating/updating user profile for: ${userId}`);
+    try {
+      const { error } = await supabase
+        .from("user_profiles")
+        .upsert({
+          id: userId,
+          name,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        debug.error("Error creating/updating user profile:", error);
+        throw error;
+      }
+
+      debug.log("Successfully created/updated user profile");
+    } catch (error) {
+      debug.error("Error creating/updating user profile:", error);
+      throw error;
     }
   };
 
@@ -648,6 +683,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     createMockBingoChallenge,
     getParticipantProgress,
     getParticipants,
+    createOrUpdateUserProfile,
     getCreatorAvatar,
     getUserActivityDates,
     completeDailyChallenge,

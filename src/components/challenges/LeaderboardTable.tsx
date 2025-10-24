@@ -80,6 +80,16 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           const participantsData = await getParticipants(challengeId);
           setParticipants(participantsData);
           
+          // Create avatar map from participants data (which already includes avatars)
+          const avatarMap = participantsData.reduce(
+            (acc, participant) => ({
+              ...acc,
+              [participant.id]: participant.avatar,
+            }),
+            {}
+          );
+          setUserAvatars(avatarMap);
+          
           // Also fetch challenge data to get objectives and total points
           const { data: challengeDataResult, error: challengeError } = await supabase
             .from('challenges')
@@ -111,28 +121,6 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           console.error('Error fetching entries:', entriesError);
         } else {
           setEntries(entriesData || []);
-
-          // Fetch user profiles for all participants (not just those with entries)
-          if (participants.length > 0) {
-            const participantIds = participants.map(p => p.id);
-            const { data: profiles, error: profilesError } = await supabase
-              .from('user_profiles')
-              .select('id, avatar_url')
-              .in('id', participantIds);
-
-            if (profilesError) {
-              console.error('Error fetching user profiles:', profilesError);
-            } else {
-              const avatarMap = (profiles || []).reduce(
-                (acc, profile) => ({
-                  ...acc,
-                  [profile.id]: profile.avatar_url,
-                }),
-                {}
-              );
-              setUserAvatars(avatarMap);
-            }
-          }
         }
       } catch (error) {
         console.error('Unexpected error:', error);

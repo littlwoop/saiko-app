@@ -98,6 +98,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("No user data returned from signup");
       }
 
+      // Create user profile in user_profiles table
+      try {
+        const { error: profileError } = await supabase
+          .from("user_profiles")
+          .upsert({
+            id: data.user.id,
+            name,
+            avatar_url: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (profileError) {
+          console.error("Error creating user profile:", profileError);
+          // Don't throw here, as the user is still created successfully
+        }
+      } catch (profileError) {
+        console.error("Error creating user profile:", profileError);
+        // Don't throw here, as the user is still created successfully
+      }
+
       return {
         user: {
           id: data.user.id,

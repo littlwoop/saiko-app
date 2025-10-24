@@ -238,6 +238,10 @@ export default function ProfilePage() {
         throw updateError;
       }
 
+      // Also update the user_profiles table
+      const { createOrUpdateUserProfile } = useChallenges();
+      await createOrUpdateUserProfile(user.id, user.name, publicUrl);
+
       toast({
         title: t("success"),
         description: t("avatarUpdated"),
@@ -272,6 +276,10 @@ export default function ProfilePage() {
       if (error) {
         throw error;
       }
+
+      // Also update the user_profiles table
+      const { createOrUpdateUserProfile } = useChallenges();
+      await createOrUpdateUserProfile(user.id, name, user.avatarUrl);
 
       toast({
         title: t("profileUpdated"),
