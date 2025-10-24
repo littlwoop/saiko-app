@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Objective, UserProgress, ChallengeType } from "@/types";
 import {
   Card,
@@ -34,6 +34,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculatePoints } from "@/lib/points";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ObjectiveItemProps {
   objective: Objective;
@@ -63,11 +65,13 @@ export default function ObjectiveItem({
   const [isOpen, setIsOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [completionsToAdd, setCompletionsToAdd] = useState("1");
+  const [hasEntryToday, setHasEntryToday] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout>();
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const { toast } = useToast();
 
   const currentValue = progress?.currentValue || 0;
   
@@ -88,6 +92,13 @@ export default function ObjectiveItem({
 
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
+
+  // Check for today's entry on component mount
+  useEffect(() => {
+    if (challenge_type === "completion" && user) {
+      hasEntryForToday().then(setHasEntryToday);
+    }
+  }, [challenge_type, user, challengeId, objective.id]);
 
   const handleLongPress = () => {
     if (isTouchDevice && !readOnly) {
@@ -127,8 +138,35 @@ export default function ObjectiveItem({
     }
   };
 
+  const hasEntryForToday = async () => {
+    if (!user) return false;
+    
+    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+    
+    try {
+      const { data: entries, error } = await supabase
+        .from('entries')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .eq('challenge_id', challengeId)
+        .eq('objective_id', objective.id)
+        .gte('created_at', `${today}T00:00:00.000Z`)
+        .lt('created_at', `${today}T23:59:59.999Z`);
+      
+      if (error) {
+        console.error('Error checking today\'s entries:', error);
+        return false;
+      }
+      
+      return entries && entries.length > 0;
+    } catch (error) {
+      console.error('Error checking today\'s entries:', error);
+      return false;
+    }
+  };
+
   const handleQuickAdd = async () => {
-    if (!user || readOnly) return;
+    if (!user || readOnly || hasEntryToday) return;
     
     // For bingo challenges, add 1 completion
     if (challenge_type === "bingo") {
@@ -137,6 +175,7 @@ export default function ObjectiveItem({
       // For completion challenges, add 1 day of progress
       const newValue = currentValue + 1;
       await updateProgress(challengeId, objective.id, newValue);
+      setHasEntryToday(true); // Mark as completed for today
     } else {
       // For standard challenges, add 1 unit of progress
       const newValue = currentValue + 1;
@@ -286,8 +325,10 @@ export default function ObjectiveItem({
 
     return (
       <Card 
-        className={`select-none mb-4 transition-colors ${isCompleted ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"} ${!readOnly ? "cursor-pointer hover:shadow-md" : ""}`}
-        onClick={!readOnly ? (e) => {
+        className={`select-none mb-4 transition-colors ${
+          isCompleted || hasEntryToday ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"
+        } ${!readOnly && !hasEntryToday ? "cursor-pointer hover:shadow-md" : ""}`}
+        onClick={!readOnly && !hasEntryToday ? (e) => {
           if (e.detail === 1) {
             handleQuickAdd();
           }
@@ -305,10 +346,10 @@ export default function ObjectiveItem({
           <CardDescription className="text-sm text-gray-500 mt-1">
             {formattedDate}
           </CardDescription>
-          {isCompleted && (
+          {(isCompleted || hasEntryToday) && (
             <div className="mt-2">
               <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full inline-block">
-                {t("complete")}
+                {hasEntryToday ? "Completed today" : t("complete")}
               </div>
             </div>
           )}
