@@ -335,6 +335,11 @@ export const translations = {
     failedToDeleteActivity: "Aktivität konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     activityDeleted: "Aktivität gelöscht",
     activityDeletedDescription: "Ihre Aktivität wurde erfolgreich gelöscht.",
+
+    // Daily Progress Grid
+    dailyProgress: "Täglicher Fortschritt",
+    completed: "Abgeschlossen",
+    notCompleted: "Nicht abgeschlossen",
   },
   en: {
     // Navigation
@@ -654,6 +659,11 @@ export const translations = {
     failedToDeleteActivity: "Failed to delete activity. Please try again.",
     activityDeleted: "Activity Deleted",
     activityDeletedDescription: "Your activity has been deleted successfully.",
+
+    // Daily Progress Grid
+    dailyProgress: "Daily Progress",
+    completed: "Completed",
+    notCompleted: "Not completed",
   },
 };
 

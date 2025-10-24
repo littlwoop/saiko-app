@@ -37,6 +37,50 @@ import { calculatePoints } from "@/lib/points";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 
+interface DailyProgressGridProps {
+  startDate?: string;
+  endDate?: string;
+  completedDays: Set<string>;
+  t: (key: string) => string;
+}
+
+const DailyProgressGrid = ({ startDate, endDate, completedDays, t }: DailyProgressGridProps) => {
+  if (!startDate || !endDate) return null;
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const today = new Date().toISOString().split('T')[0];
+  
+  
+  const days = [];
+  for (let i = 0; i < totalDays; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const dateString = date.toISOString().split('T')[0];
+    const isCompleted = completedDays.has(dateString);
+    const isToday = dateString === today;
+    days.push({ date: dateString, isCompleted, isToday });
+  }
+
+  return (
+    <div className="mt-2">
+      <div className="text-xs text-gray-500 mb-2">{t("dailyProgress")}</div>
+      <div className="flex flex-wrap gap-1">
+        {days.map((day, index) => (
+          <div
+            key={index}
+            className={`w-8 h-8 ${
+              day.isCompleted ? 'bg-green-500' : 'bg-gray-200'
+            }`}
+            title={`${day.date} - ${day.isCompleted ? t("completed") : t("notCompleted")}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 interface ObjectiveItemProps {
   objective: Objective;
   challengeId: number;
@@ -66,6 +110,7 @@ export default function ObjectiveItem({
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [completionsToAdd, setCompletionsToAdd] = useState("1");
   const [hasEntryToday, setHasEntryToday] = useState(false);
+  const [dailyEntries, setDailyEntries] = useState<Set<string>>(new Set());
   const longPressTimer = useRef<NodeJS.Timeout>();
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
@@ -97,8 +142,9 @@ export default function ObjectiveItem({
   useEffect(() => {
     if (challenge_type === "completion" && user) {
       hasEntryForToday().then(setHasEntryToday);
+      getDailyEntries().then((entries) => setDailyEntries(entries));
     }
-  }, [challenge_type, user, challengeId, objective.id]);
+  }, [challenge_type, user, challengeId, objective.id, challengeStartDate, challengeEndDate]);
 
   const handleLongPress = () => {
     if (isTouchDevice && !readOnly) {
@@ -140,9 +186,9 @@ export default function ObjectiveItem({
 
   const hasEntryForToday = async () => {
     if (!user) return false;
-    
+
     const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-    
+
     try {
       const { data: entries, error } = await supabase
         .from('entries')
@@ -152,16 +198,63 @@ export default function ObjectiveItem({
         .eq('objective_id', objective.id)
         .gte('created_at', `${today}T00:00:00.000Z`)
         .lt('created_at', `${today}T23:59:59.999Z`);
-      
+
       if (error) {
         console.error('Error checking today\'s entries:', error);
         return false;
       }
-      
+
       return entries && entries.length > 0;
     } catch (error) {
       console.error('Error checking today\'s entries:', error);
       return false;
+    }
+  };
+
+  const getDailyEntries = async (): Promise<Set<string>> => {
+    if (!user || !challengeStartDate || !challengeEndDate) return new Set<string>();
+
+    console.log('getDailyEntries called with:', { challengeStartDate, challengeEndDate });
+
+    try {
+      // Validate and format dates properly
+      const startDate = new Date(challengeStartDate);
+      const endDate = new Date(challengeEndDate);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.error('Invalid date format:', { challengeStartDate, challengeEndDate });
+        return new Set<string>();
+      }
+      
+      const startDateTime = startDate.toISOString();
+      const endDateTime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString(); // End of day
+      
+      const { data: entries, error } = await supabase
+        .from('entries')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .eq('challenge_id', challengeId)
+        .eq('objective_id', objective.id)
+        .gte('created_at', startDateTime)
+        .lte('created_at', endDateTime);
+
+      if (error) {
+        console.error('Error fetching daily entries:', error);
+        return new Set<string>();
+      }
+
+      const entryDates = new Set<string>();
+      if (entries) {
+        entries.forEach(entry => {
+          const date = entry.created_at.split('T')[0];
+          entryDates.add(date);
+        });
+      }
+
+      return entryDates;
+    } catch (error) {
+      console.error('Error fetching daily entries:', error);
+      return new Set<string>();
     }
   };
 
@@ -176,6 +269,13 @@ export default function ObjectiveItem({
       const newValue = currentValue + 1;
       await updateProgress(challengeId, objective.id, newValue);
       setHasEntryToday(true); // Mark as completed for today
+      
+      // Update daily entries with today's date
+      const today = new Date().toISOString().split('T')[0];
+      setDailyEntries(prev => new Set([...prev, today]));
+      
+      // Also refresh from database to ensure consistency
+      getDailyEntries().then((entries) => setDailyEntries(entries));
     } else {
       // For standard challenges, add 1 unit of progress
       const newValue = currentValue + 1;
@@ -324,37 +424,45 @@ export default function ObjectiveItem({
     });
 
     return (
-      <Card 
-        className={`select-none mb-4 transition-colors ${
-          isCompleted || hasEntryToday ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"
-        } ${!readOnly && !hasEntryToday ? "cursor-pointer hover:shadow-md" : ""}`}
-        onClick={!readOnly && !hasEntryToday ? (e) => {
-          if (e.detail === 1) {
-            handleQuickAdd();
-          }
-        } : undefined}
-      >
-        <CardHeader className="pb-3 text-center">
-          <CardTitle className="text-base font-medium leading-tight flex items-center justify-center gap-2">
-            {isCompleted && (
-              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-            )}
-            <span className={isCompleted ? "line-through text-gray-600" : "text-gray-900"}>
-              {objective.title}
-            </span>
-          </CardTitle>
-          <CardDescription className="text-sm text-gray-500 mt-1">
-            {formattedDate}
-          </CardDescription>
-          {(isCompleted || hasEntryToday) && (
-            <div className="mt-2">
-              <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full inline-block">
-                {hasEntryToday ? "Completed today" : t("complete")}
+      <>
+        <Card 
+          className={`select-none mb-4 transition-colors ${
+            isCompleted || hasEntryToday ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"
+          } ${!readOnly && !hasEntryToday ? "cursor-pointer hover:shadow-md" : ""}`}
+          onClick={!readOnly && !hasEntryToday ? (e) => {
+            if (e.detail === 1) {
+              handleQuickAdd();
+            }
+          } : undefined}
+        >
+          <CardHeader className="pb-3 text-center">
+            <CardTitle className="text-base font-medium leading-tight flex items-center justify-center gap-2">
+              {isCompleted && (
+                <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+              )}
+              <span className={isCompleted ? "line-through text-gray-600" : "text-gray-900"}>
+                {objective.title}
+              </span>
+            </CardTitle>
+            <CardDescription className="text-sm text-gray-500 mt-1">
+              {formattedDate}
+            </CardDescription>
+            {(isCompleted || hasEntryToday) && (
+              <div className="mt-2">
+                <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full inline-block">
+                  {hasEntryToday ? "Completed today" : t("complete")}
+                </div>
               </div>
-            </div>
-          )}
-        </CardHeader>
-      </Card>
+            )}
+          </CardHeader>
+        </Card>
+        <DailyProgressGrid 
+          startDate={challengeStartDate}
+          endDate={challengeEndDate}
+          completedDays={dailyEntries}
+          t={t}
+        />
+      </>
     );
   }
 
