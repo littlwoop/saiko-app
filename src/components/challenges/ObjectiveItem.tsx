@@ -37,9 +37,9 @@ import { calculatePoints } from "@/lib/points";
 
 interface ObjectiveItemProps {
   objective: Objective;
-  challengeId: string;
+  challengeId: number;
   progress?: UserProgress;
-  challengeType: ChallengeType;
+  challenge_type: ChallengeType;
   readOnly?: boolean;
   capedPoints?: boolean;
   onProgressUpdate?: () => void;
@@ -49,7 +49,7 @@ export default function ObjectiveItem({
   objective,
   challengeId,
   progress,
-  challengeType,
+  challenge_type,
   readOnly,
   capedPoints = false,
   onProgressUpdate,
@@ -71,7 +71,7 @@ export default function ObjectiveItem({
     (currentValue / objective.targetValue) * 100,
   );
   const isCompleted = currentValue >= objective.targetValue;
-  const completionCount = challengeType === "bingo" ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
+  const completionCount = challenge_type === "bingo" ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
 
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
@@ -114,7 +114,7 @@ export default function ObjectiveItem({
     }
   };
 
-  if (challengeType === "bingo") {
+  if (challenge_type === "bingo") {
     return (
       <ContextMenu>
         <ContextMenuTrigger>

@@ -57,7 +57,7 @@ interface Activity {
 }
 
 interface ActivityListProps {
-  challengeId: string;
+  challengeId: number;
   onUserClick?: (userId: string) => void;
 }
 

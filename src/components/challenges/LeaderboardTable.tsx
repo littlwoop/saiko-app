@@ -17,7 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { calculateTotalPoints } from '@/lib/points';
 
 interface LeaderboardTableProps {
-  challengeId?: string;
+  challengeId?: number;
   capedPoints?: boolean;
   onUserClick?: (userId: string) => void;
 }

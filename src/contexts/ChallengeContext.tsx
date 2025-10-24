@@ -29,23 +29,23 @@ interface ChallengeContextType {
       "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
     >,
   ) => Promise<void>;
-  joinChallenge: (challengeId: string) => Promise<void>;
+  joinChallenge: (challengeId: number) => Promise<void>;
   updateProgress: (
-    challengeId: string,
+    challengeId: number,
     objectiveId: string,
     value: number,
     notes?: string,
   ) => Promise<void>;
-  getChallenge: (challengeId: string) => Promise<Challenge | null>;
+  getChallenge: (challengeId: number) => Promise<Challenge | null>;
   getUserChallenges: () => Promise<UserChallenge[]>;
-  getChallengeProgress: (challengeId: string) => Promise<UserProgress[]>;
+  getChallengeProgress: (challengeId: number) => Promise<UserProgress[]>;
   createMockBingoChallenge: () => Promise<void>;
   getParticipantProgress: (
-    challengeId: string,
+    challengeId: number,
     userId: string,
   ) => Promise<UserProgress[]>;
   getParticipants: (
-    challengeId: string,
+    challengeId: number,
   ) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
   getCreatorAvatar: (userId: string) => Promise<string | undefined>;
   getUserActivityDates: (startDate: string, endDate: string) => Promise<string[]>;
@@ -74,7 +74,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get a single challenge by ID
   const getChallenge = async (
-    challengeId: string,
+    challengeId: number,
   ): Promise<Challenge | null> => {
     debug.log(`Getting challenge with ID: ${challengeId}`);
     try {
@@ -163,7 +163,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get progress for a specific challenge
   const getChallengeProgress = async (
-    challengeId: string,
+    challengeId: number,
   ): Promise<UserProgress[]> => {
     debug.log(
       `Getting progress for challenge: ${challengeId}, user: ${user?.id}`,
@@ -254,7 +254,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       participants: [],
       totalPoints,
       objectives: challengeData.objectives,
-      challengeType: challengeData.challengeType || "standard",
+      challenge_type: challengeData.challenge_type || "standard",
     };
 
     debug.log("Prepared challenge data:", newChallenge);
@@ -278,7 +278,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Join a challenge
-  const joinChallenge = async (challengeId: string) => {
+  const joinChallenge = async (challengeId: number) => {
     debug.log(`Joining challenge: ${challengeId}, user: ${user?.id}`);
     if (!user) {
       toast({
@@ -345,7 +345,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Update progress for a challenge
   const updateProgress = async (
-    challengeId: string,
+    challengeId: number,
     objectiveId: string,
     value: number,
     notes?: string,
@@ -429,7 +429,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       startDate: new Date("2025-06-01T00:00:00Z").toISOString(),
       endDate: new Date("2025-06-30T23:59:59Z").toISOString(),
       objectives,
-      challengeType: "bingo",
+      challenge_type: "bingo",
     };
 
     await createChallenge(challengeData);
@@ -437,7 +437,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get progress for a specific participant
   const getParticipantProgress = async (
-    challengeId: string,
+    challengeId: number,
     userId: string,
   ): Promise<UserProgress[]> => {
     debug.log(
@@ -501,7 +501,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get participants for a challenge
   const getParticipants = async (
-    challengeId: string,
+    challengeId: number,
   ): Promise<Array<{ id: string; name: string; avatar?: string }>> => {
     debug.log(`Getting participants for challenge: ${challengeId}`);
     try {

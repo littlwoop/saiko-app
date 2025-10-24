@@ -18,7 +18,7 @@ export interface Objective {
 export type ChallengeType = "standard" | "bingo";
 
 export interface Challenge {
-  id: string;
+  id: number;
   title: string;
   description: string;
   createdById: string;
@@ -29,20 +29,20 @@ export interface Challenge {
   objectives: Objective[];
   participants: string[];
   totalPoints: number;
-  challengeType: ChallengeType;
+  challenge_type: ChallengeType;
   capedPoints?: boolean;
 }
 
 export interface UserProgress {
   userId: string;
-  challengeId: string;
+  challengeId: number;
   objectiveId: string;
   currentValue: number;
 }
 
 export interface UserChallenge {
   userId: string;
-  challengeId: string;
+  challengeId: number;
   joinedAt: string;
   totalScore: number;
 }

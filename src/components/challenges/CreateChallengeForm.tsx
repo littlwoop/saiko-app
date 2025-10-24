@@ -25,9 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { ChallengeType } from "@/types";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateChallengeForm() {
   const { createChallenge } = useChallenges();
@@ -43,7 +43,7 @@ export default function CreateChallengeForm() {
     to: addDays(new Date(), 30),
   });
   const [capedPoints, setCapedPoints] = useState(false);
-  const [challengeType, setChallengeType] = useState<ChallengeType>("standard");
+  const [challenge_type, setChallengeType] = useState<ChallengeType>("standard");
 
   const [objectives, setObjectives] = useState([
     {
@@ -125,7 +125,7 @@ export default function CreateChallengeForm() {
       description,
       startDate: date.from.toISOString(),
       endDate: date.to.toISOString(),
-      challengeType,
+      challenge_type,
       capedPoints,
       objectives: objectives.map((obj) => ({
         ...obj,
@@ -200,7 +200,7 @@ export default function CreateChallengeForm() {
 
         <div className="space-y-2">
           <Label htmlFor="challengeType">{t("challengeType")}</Label>
-          <Select value={challengeType} onValueChange={(value: ChallengeType) => setChallengeType(value)}>
+          <Select value={challenge_type} onValueChange={(value: ChallengeType) => setChallengeType(value)}>
             <SelectTrigger>
               <SelectValue placeholder={t("selectChallengeType")} />
             </SelectTrigger>
