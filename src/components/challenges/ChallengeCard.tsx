@@ -13,6 +13,7 @@ import { Award, Calendar, Trophy } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { calculateTotalPoints } from "@/lib/points";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
@@ -37,6 +38,7 @@ export default function ChallengeCard({
   const { t } = useTranslation(language);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [displayValue, setDisplayValue] = useState({ current: 0, total: 0 });
   const navigate = useNavigate();
 
   const locale = language === "de" ? de : enUS;
@@ -60,17 +62,31 @@ export default function ChallengeCard({
       if (hasJoined) {
         setLoading(true);
         try {
-          const progressData = await getChallengeProgress(challenge.id);
-          const totalPoints = progressData.reduce((sum, progress) => {
-            const objective = challenge.objectives.find(
-              (o) => o.id === progress.objectiveId,
-            );
-            if (objective) {
-              return sum + progress.currentValue * objective.pointsPerUnit;
-            }
-            return sum;
-          }, 0);
-          setProgress((totalPoints / challenge.totalPoints) * 100);
+          const progressData = await getChallengeProgress(challenge.id, challenge.challenge_type);
+          const totalPoints = calculateTotalPoints(
+            challenge.objectives,
+            progressData,
+            challenge.capedPoints,
+            challenge.challenge_type
+          );
+          // For completion challenges, calculate progress based on days completed vs total days
+          if (challenge.challenge_type === "completion") {
+            const startDate = new Date(challenge.startDate);
+            const endDate = new Date(challenge.endDate);
+            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Calculate total days completed across all objectives
+            const totalDaysCompleted = progressData.reduce((sum, progressItem) => {
+              return sum + progressItem.currentValue;
+            }, 0);
+            
+            setProgress((totalDaysCompleted / totalDays) * 100);
+            setDisplayValue({ current: totalDaysCompleted, total: totalDays });
+          } else {
+            // For standard/bingo challenges, use points-based progress
+            setProgress((totalPoints / challenge.totalPoints) * 100);
+            setDisplayValue({ current: totalPoints, total: challenge.totalPoints });
+          }
         } catch (error) {
           console.error("Error loading progress:", error);
         } finally {
@@ -160,9 +176,11 @@ export default function ChallengeCard({
           {hasJoined && (
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t("yourPoints")}</span>
+                <span className="text-muted-foreground">
+                  {challenge.challenge_type === "completion" ? t("yourProgress") : t("yourPoints")}
+                </span>
                 <span className="font-medium">
-                  {userScore} / {challenge.totalPoints}
+                  {displayValue.current} / {displayValue.total}
                 </span>
               </div>
               <div className="flex items-center justify-between">

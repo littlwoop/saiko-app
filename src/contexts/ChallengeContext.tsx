@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from "react";
-import { Challenge, Objective, UserChallenge, UserProgress } from "@/types";
+import { Challenge, Objective, UserChallenge, UserProgress, ChallengeType } from "@/types";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -38,7 +38,7 @@ interface ChallengeContextType {
   ) => Promise<void>;
   getChallenge: (challengeId: number) => Promise<Challenge | null>;
   getUserChallenges: () => Promise<UserChallenge[]>;
-  getChallengeProgress: (challengeId: number) => Promise<UserProgress[]>;
+  getChallengeProgress: (challengeId: number, challengeType?: ChallengeType) => Promise<UserProgress[]>;
   createMockBingoChallenge: () => Promise<void>;
   getParticipantProgress: (
     challengeId: number,
@@ -59,7 +59,7 @@ const ChallengeContext = createContext<ChallengeContextType | undefined>(
 interface Entry {
   id: string;
   user_id: string;
-  challenge_id: string;
+  challenge_id: number;
   objective_id: string;
   value: number;
   created_at: string;
@@ -133,11 +133,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       // Calculate actual progress for each challenge
       const userChallengesWithProgress = await Promise.all(
         (challengesData || []).map(async (challenge) => {
-          const progress = await getChallengeProgress(challenge.id);
+          const progress = await getChallengeProgress(challenge.id, challenge.challenge_type);
           const totalScore = calculateTotalPoints(
             challenge.objectives,
             progress,
-            challenge.capedPoints
+            challenge.capedPoints,
+            challenge.challenge_type
           );
           
           return {
@@ -164,6 +165,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   // Get progress for a specific challenge
   const getChallengeProgress = async (
     challengeId: number,
+    challengeType?: ChallengeType,
   ): Promise<UserProgress[]> => {
     debug.log(
       `Getting progress for challenge: ${challengeId}, user: ${user?.id}`,
@@ -203,7 +205,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
                 currentValue: 0,
               };
             }
-            acc[key].currentValue += entry.value;
+            // For completion challenges, count entries instead of summing values
+            if (challengeType === "completion") {
+              acc[key].currentValue += 1; // Count each entry
+            } else {
+              acc[key].currentValue += entry.value; // Sum values for standard/bingo
+            }
             return acc;
           },
           {} as Record<string, UserProgress>,
@@ -243,9 +250,23 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const totalPoints = challengeData.objectives.reduce((total, objective) => {
-      return total + objective.targetValue * objective.pointsPerUnit;
-    }, 0);
+    // Calculate total points based on challenge type
+    let totalPoints: number;
+    if (challengeData.challenge_type === "completion") {
+      // For completion challenges, total points = number of days * points per day
+      const startDate = new Date(challengeData.startDate);
+      const endDate = new Date(challengeData.endDate);
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // Use the first objective's pointsPerUnit as the points per day
+      const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
+      totalPoints = daysDiff * pointsPerDay;
+    } else {
+      // For standard/bingo challenges, use the existing logic
+      totalPoints = challengeData.objectives.reduce((total, objective) => {
+        return total + objective.targetValue * objective.pointsPerUnit;
+      }, 0);
+    }
 
     const newChallenge = {
       ...challengeData,
@@ -429,7 +450,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       startDate: new Date("2025-06-01T00:00:00Z").toISOString(),
       endDate: new Date("2025-06-30T23:59:59Z").toISOString(),
       objectives,
-      challenge_type: "bingo",
+      challenge_type: "bingo" as ChallengeType,
     };
 
     await createChallenge(challengeData);

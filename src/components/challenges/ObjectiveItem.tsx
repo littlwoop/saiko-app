@@ -43,6 +43,8 @@ interface ObjectiveItemProps {
   readOnly?: boolean;
   capedPoints?: boolean;
   onProgressUpdate?: () => void;
+  challengeStartDate?: string;
+  challengeEndDate?: string;
 }
 
 export default function ObjectiveItem({
@@ -53,6 +55,8 @@ export default function ObjectiveItem({
   readOnly,
   capedPoints = false,
   onProgressUpdate,
+  challengeStartDate,
+  challengeEndDate,
 }: ObjectiveItemProps) {
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
@@ -66,11 +70,20 @@ export default function ObjectiveItem({
   const { t } = useTranslation(language);
 
   const currentValue = progress?.currentValue || 0;
-  const progressPercent = Math.min(
-    100,
-    (currentValue / objective.targetValue) * 100,
-  );
-  const isCompleted = currentValue >= objective.targetValue;
+  
+  // For completion challenges, calculate total days and progress differently
+  let totalDays = objective.targetValue;
+  let progressPercent = Math.min(100, (currentValue / objective.targetValue) * 100);
+  let isCompleted = currentValue >= objective.targetValue;
+  
+  if (challenge_type === "completion" && challengeStartDate && challengeEndDate) {
+    const startDate = new Date(challengeStartDate);
+    const endDate = new Date(challengeEndDate);
+    totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    progressPercent = Math.min(100, (currentValue / totalDays) * 100);
+    isCompleted = currentValue >= totalDays;
+    
+  }
   const completionCount = challenge_type === "bingo" ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
 
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
@@ -114,16 +127,42 @@ export default function ObjectiveItem({
     }
   };
 
+  const handleQuickAdd = async () => {
+    if (!user || readOnly) return;
+    
+    // For bingo challenges, add 1 completion
+    if (challenge_type === "bingo") {
+      await updateProgress(challengeId, objective.id, 1);
+    } else if (challenge_type === "completion") {
+      // For completion challenges, add 1 day of progress
+      const newValue = currentValue + 1;
+      await updateProgress(challengeId, objective.id, newValue);
+    } else {
+      // For standard challenges, add 1 unit of progress
+      const newValue = currentValue + 1;
+      await updateProgress(challengeId, objective.id, newValue);
+    }
+    
+    if (onProgressUpdate) {
+      onProgressUpdate();
+    }
+  };
+
   if (challenge_type === "bingo") {
     return (
       <ContextMenu>
         <ContextMenuTrigger>
           <Card
-            className={`relative select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
+            className={`relative select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
             onClick={(e) => {
               // Only open dialog on left-click, not right-click
               if (e.button === 0 && !readOnly) {
-                setIsOpen(true);
+                // Quick add on single click, dialog on double click
+                if (e.detail === 1) {
+                  handleQuickAdd();
+                } else if (e.detail === 2) {
+                  setIsOpen(true);
+                }
               }
             }}
             onTouchStart={(e) => {
@@ -246,7 +285,14 @@ export default function ObjectiveItem({
     });
 
     return (
-      <Card className={`select-none mb-4 transition-colors ${isCompleted ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"}`}>
+      <Card 
+        className={`select-none mb-4 transition-colors ${isCompleted ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"} ${!readOnly ? "cursor-pointer hover:shadow-md" : ""}`}
+        onClick={!readOnly ? (e) => {
+          if (e.detail === 1) {
+            handleQuickAdd();
+          }
+        } : undefined}
+      >
         <CardHeader className="pb-3 text-center">
           <CardTitle className="text-base font-medium leading-tight flex items-center justify-center gap-2">
             {isCompleted && (
@@ -275,7 +321,15 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card
-          className={`select-none mb-4 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer" : ""}`}
+          className={`select-none mb-4 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+          onClick={!readOnly ? (e) => {
+            // Quick add on single click, dialog on double click
+            if (e.detail === 1) {
+              handleQuickAdd();
+            } else if (e.detail === 2) {
+              setIsOpen(true);
+            }
+          } : undefined}
           onTouchStart={!readOnly ? handleLongPress : undefined}
           onTouchEnd={!readOnly ? handleTouchEnd : undefined}
           onTouchCancel={!readOnly ? handleTouchEnd : undefined}
@@ -306,11 +360,7 @@ export default function ObjectiveItem({
                     {t("points")}
                   </span>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {currentValue} / {objective.targetValue} {objective.unit}
-                </span>
               </div>
-              <Progress value={progressPercent} className="h-2" />
             </div>
           </CardContent>
           <CardFooter>

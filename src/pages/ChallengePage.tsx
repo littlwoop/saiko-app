@@ -54,6 +54,7 @@ export default function ChallengePage() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [displayValue, setDisplayValue] = useState({ current: 0, total: 0 });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [participantProgress, setParticipantProgress] = useState<
     UserProgress[]
@@ -102,13 +103,13 @@ export default function ChallengePage() {
 
       setLoading(true);
       try {
-        const challengeData = await getChallenge(id);
+        const challengeData = await getChallenge(parseInt(id));
         if (challengeData) {
           setChallenge(challengeData);
           // Load creator avatar and participants in parallel
           const [avatar, participantsData] = await Promise.all([
             getCreatorAvatar(challengeData.createdById),
-            getParticipants(id),
+            getParticipants(parseInt(id)),
           ]);
           setCreatorAvatar(avatar);
           setParticipants(participantsData);
@@ -129,7 +130,7 @@ export default function ChallengePage() {
       if (!challenge || !user) return;
 
       try {
-        const progressData = await getChallengeProgress(challenge.id);
+        const progressData = await getChallengeProgress(challenge.id, challenge.challenge_type);
         setUserProgress(progressData);
         setPreviousProgress(progressData); // Initialize previous progress
       } catch (error) {
@@ -179,11 +180,30 @@ export default function ChallengePage() {
       const totalPoints = calculateTotalPoints(
         challenge.objectives,
         progressToUse,
-        challenge.capedPoints
+        challenge.capedPoints,
+        challenge.challenge_type
       );
 
       setTotalPoints(totalPoints);
-      setProgress((totalPoints / challenge.totalPoints) * 100);
+      
+      // For completion challenges, calculate progress based on days completed vs total days
+      if (challenge.challenge_type === "completion") {
+        const startDate = new Date(challenge.startDate);
+        const endDate = new Date(challenge.endDate);
+        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Calculate total days completed across all objectives
+        const totalDaysCompleted = progressToUse.reduce((sum, progressItem) => {
+          return sum + progressItem.currentValue;
+        }, 0);
+        
+        setProgress((totalDaysCompleted / totalDays) * 100);
+        setDisplayValue({ current: totalDaysCompleted, total: totalDays });
+      } else {
+        // For standard/bingo challenges, use points-based progress
+        setProgress((totalPoints / challenge.totalPoints) * 100);
+        setDisplayValue({ current: totalPoints, total: challenge.totalPoints });
+      }
     }
   }, [
     user?.id,
@@ -611,8 +631,7 @@ export default function ChallengePage() {
                       )}
                     </div>
                     <span className="text-sm font-medium">
-                      {Math.round(totalPoints)} / {challenge.totalPoints}{" "}
-                      {t("points")}
+                      {displayValue.current} / {displayValue.total}
                     </span>
                   </div>
                   <Progress value={progress} className="h-2" />
@@ -635,12 +654,14 @@ export default function ChallengePage() {
                               (p) => p.objectiveId === objective.id,
                             )
                       }
-                      challenge_type={challenge.challenge_type || (challenge?.objectives?.length === 25 ? "bingo" : "standard")}
+                      challenge_type={challenge.challenge_type}
                       capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id
                       }
                       onProgressUpdate={refreshProgress}
+                      challengeStartDate={challenge.startDate}
+                      challengeEndDate={challenge.endDate}
                     />
                   ))}
                 </div>
@@ -660,12 +681,14 @@ export default function ChallengePage() {
                               (p) => p.objectiveId === objective.id,
                             )
                       }
-                      challenge_type={challenge.challenge_type || (challenge?.objectives?.length === 25 ? "bingo" : "standard")}
+                      challenge_type={challenge.challenge_type}
                       capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id
                       }
                       onProgressUpdate={refreshProgress}
+                      challengeStartDate={challenge.startDate}
+                      challengeEndDate={challenge.endDate}
                     />
                   ))}
                 </div>

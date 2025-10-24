@@ -1,4 +1,4 @@
-import { Objective } from "@/types";
+import { Objective, ChallengeType } from "@/types";
 
 /**
  * Calculate points for an objective, optionally capping at the target value
@@ -32,12 +32,21 @@ export function calculatePoints(
 export function calculateTotalPoints(
   objectives: Objective[],
   progress: Array<{ objectiveId: string; currentValue: number }>,
-  capedPoints: boolean = false
+  capedPoints: boolean = false,
+  challengeType?: ChallengeType
 ): number {
   return progress.reduce((sum, progressItem) => {
     const objective = objectives.find((o) => o.id === progressItem.objectiveId);
     if (objective) {
-      return sum + calculatePoints(objective, progressItem.currentValue, capedPoints);
+      // For completion challenges, the currentValue represents the number of entries
+      // and we want to calculate points based on entries, not the sum of values
+      if (challengeType === "completion") {
+        // Each entry is worth the pointsPerUnit
+        return sum + (progressItem.currentValue * objective.pointsPerUnit);
+      } else {
+        // For standard/bingo challenges, use the existing logic
+        return sum + calculatePoints(objective, progressItem.currentValue, capedPoints);
+      }
     }
     return sum;
   }, 0);
