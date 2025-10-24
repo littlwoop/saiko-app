@@ -207,6 +207,7 @@ export default function CreateChallengeForm() {
             <SelectContent>
               <SelectItem value="standard">{t("standardChallenge")}</SelectItem>
               <SelectItem value="bingo">{t("bingoChallenge")}</SelectItem>
+              <SelectItem value="completion">{t("completionChallenge")}</SelectItem>
             </SelectContent>
           </Select>
         </div>

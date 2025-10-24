@@ -15,7 +15,7 @@ export interface Objective {
   currentValue?: number;
 }
 
-export type ChallengeType = "standard" | "bingo";
+export type ChallengeType = "standard" | "bingo" | "completion";
 
 export interface Challenge {
   id: number;

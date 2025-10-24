@@ -237,6 +237,40 @@ export default function ObjectiveItem({
     );
   }
 
+  if (challenge_type === "completion") {
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString(language === "de" ? "de-DE" : "en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+
+    return (
+      <Card className={`select-none mb-4 transition-colors ${isCompleted ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"}`}>
+        <CardHeader className="pb-3 text-center">
+          <CardTitle className="text-base font-medium leading-tight flex items-center justify-center gap-2">
+            {isCompleted && (
+              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+            )}
+            <span className={isCompleted ? "line-through text-gray-600" : "text-gray-900"}>
+              {objective.title}
+            </span>
+          </CardTitle>
+          <CardDescription className="text-sm text-gray-500 mt-1">
+            {formattedDate}
+          </CardDescription>
+          {isCompleted && (
+            <div className="mt-2">
+              <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full inline-block">
+                {t("complete")}
+              </div>
+            </div>
+          )}
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
     <ContextMenu>
       <ContextMenuTrigger>
