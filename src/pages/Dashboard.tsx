@@ -119,11 +119,35 @@ export default function Dashboard() {
   }, [user]);
 
   const calculateProgress = (challenge: DashboardChallenge) => {
-    const totalPossible = challenge.totalPoints;
-    const currentScore = challenge.userProgress.totalScore;
-    
-    if (totalPossible === 0) return 0;
-    return Math.min((currentScore / totalPossible) * 100, 100);
+    // For completion challenges, calculate progress based on days completed vs total days
+    if (challenge.challenge_type === "completion") {
+      const startDate = new Date(challenge.startDate);
+      const endDate = new Date(challenge.endDate);
+      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // For completion challenges, totalScore represents days completed
+      const daysCompleted = challenge.userProgress.totalScore;
+      return Math.min((daysCompleted / totalDays) * 100, 100);
+    } else {
+      // For standard/bingo challenges, use points-based progress
+      const totalPossible = challenge.totalPoints;
+      const currentScore = challenge.userProgress.totalScore;
+      
+      if (totalPossible === 0) return 0;
+      return Math.min((currentScore / totalPossible) * 100, 100);
+    }
+  };
+
+  const getDisplayValue = (challenge: DashboardChallenge) => {
+    if (challenge.challenge_type === "completion") {
+      const startDate = new Date(challenge.startDate);
+      const endDate = new Date(challenge.endDate);
+      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const daysCompleted = challenge.userProgress.totalScore;
+      return `${daysCompleted}/${totalDays}`;
+    } else {
+      return `${Math.floor(challenge.userProgress.totalScore)}/${Math.floor(challenge.totalPoints)}`;
+    }
   };
 
   const getDaysRemaining = (endDate: string) => {
@@ -389,8 +413,10 @@ export default function Dashboard() {
                   <CardContent className="space-y-3 sm:space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="text-muted-foreground">{t("progress")}</span>
-                        <span className="font-medium">{Math.round(progress)}%</span>
+                        <span className="text-muted-foreground">
+                          {challenge.challenge_type === "completion" ? t("progress") : t("points")}
+                        </span>
+                        <span className="font-medium">{getDisplayValue(challenge)}</span>
                       </div>
                       <Progress value={progress} className="h-1.5 sm:h-2" />
                     </div>
