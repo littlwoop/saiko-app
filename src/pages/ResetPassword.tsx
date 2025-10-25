@@ -21,6 +21,7 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTokenValid, setIsTokenValid] = useState(false);
   const [searchParams] = useSearchParams();
 
   const { toast } = useToast();
@@ -29,29 +30,60 @@ export default function ResetPassword() {
   const { t } = useTranslation(language);
 
   useEffect(() => {
-    const verifyToken = async () => {
-      const token = searchParams.get("token");
-      const type = searchParams.get("type");
-
-      if (!token || type !== "recovery") {
-        toast({
-          title: t("error"),
-          description: "Invalid or missing reset token",
-          variant: "destructive",
-        });
-        navigate("/forgot-password");
-        return;
-      }
-
+    const handleAuthCallback = async () => {
       try {
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: "recovery",
-        });
+        // Handle the auth callback from Supabase
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session error:", error);
+          toast({
+            title: t("error"),
+            description: "Invalid or expired reset token",
+            variant: "destructive",
+          });
+          navigate("/forgot-password");
+          return;
+        }
 
-        if (error) throw error;
+        // Check if we have a valid session (user is authenticated)
+        if (data.session) {
+          setIsTokenValid(true);
+        } else {
+          // Check URL parameters for token-based reset
+          const accessToken = searchParams.get("access_token");
+          const refreshToken = searchParams.get("refresh_token");
+          
+          if (accessToken && refreshToken) {
+            // Set the session with the tokens from URL
+            const { error: setSessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (setSessionError) {
+              console.error("Set session error:", setSessionError);
+              toast({
+                title: t("error"),
+                description: "Invalid or expired reset token",
+                variant: "destructive",
+              });
+              navigate("/forgot-password");
+              return;
+            }
+            
+            setIsTokenValid(true);
+          } else {
+            toast({
+              title: t("error"),
+              description: "Invalid or missing reset token",
+              variant: "destructive",
+            });
+            navigate("/forgot-password");
+          }
+        }
       } catch (error) {
-        console.error("Token verification error:", error);
+        console.error("Auth callback error:", error);
         toast({
           title: t("error"),
           description: "Invalid or expired reset token",
@@ -61,7 +93,7 @@ export default function ResetPassword() {
       }
     };
 
-    verifyToken();
+    handleAuthCallback();
   }, [searchParams, toast, t, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,6 +151,26 @@ export default function ResetPassword() {
       setIsSubmitting(false);
     }
   };
+
+  if (!isTokenValid) {
+    return (
+      <div className="container max-w-md py-12">
+        <div className="mb-8 flex justify-center">
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/favicon.png" alt="Saiko" className="h-6 w-6" />
+            <span className="text-2xl font-bold gradient-text">Saiko</span>
+          </Link>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-muted-foreground">Verifying reset token...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-md py-12">
