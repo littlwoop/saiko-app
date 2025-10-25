@@ -45,6 +45,9 @@ interface Challenge {
   id: number;
   objectives: ChallengeObjective[];
   totalPoints: number;
+  challenge_type: string;
+  startDate: string;
+  endDate: string;
 }
 
 interface Entry {
@@ -66,7 +69,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
   const { getParticipants } = useChallenges();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [participants, setParticipants] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
-  const [challengeData, setChallengeData] = useState<{ objectives: ChallengeObjective[]; totalPoints: number } | null>(null);
+  const [challengeData, setChallengeData] = useState<{ objectives: ChallengeObjective[]; totalPoints: number; challenge_type: string; startDate: string; endDate: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
 
@@ -90,10 +93,10 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           );
           setUserAvatars(avatarMap);
           
-          // Also fetch challenge data to get objectives and total points
+          // Also fetch challenge data to get objectives, total points, and challenge type
           const { data: challengeDataResult, error: challengeError } = await supabase
             .from('challenges')
-            .select('objectives, totalPoints')
+            .select('objectives, totalPoints, challenge_type, startDate, endDate')
             .eq('id', challengeId)
             .single();
             
@@ -222,10 +225,23 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
             objectiveProgress.set(entry.objective_id, currentValue + entry.value);
             
             // Check if all objectives are now complete
-            const allObjectivesComplete = challengeObjectives.every(objective => {
-              const currentProgress = objectiveProgress.get(objective.id) || 0;
-              return currentProgress >= objective.targetValue;
-            });
+            let allObjectivesComplete: boolean;
+            if (challengeData?.challenge_type === "completion") {
+              // For completion challenges, check if user has completed as many days as the challenge has total days
+              const startDate = new Date(challengeData.startDate);
+              const endDate = new Date(challengeData.endDate);
+              const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              
+              // Calculate total days completed across all objectives
+              const totalDaysCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
+              allObjectivesComplete = totalDaysCompleted >= totalDays;
+            } else {
+              // For standard/bingo challenges, use the existing logic
+              allObjectivesComplete = challengeObjectives.every(objective => {
+                const currentProgress = objectiveProgress.get(objective.id) || 0;
+                return currentProgress >= objective.targetValue;
+              });
+            }
             
             // If this is the first time all objectives are complete, record the completion time
             if (allObjectivesComplete && !completionTime) {
@@ -293,7 +309,18 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     const orderMap = new Map();
     
     leaderboard.forEach((entry, index) => {
-      if (entry.score >= totalPoints) {
+      // For completion challenges, check if user has completed as many days as the challenge has total days
+      let isCompleted: boolean;
+      if (challengeData.challenge_type === "completion") {
+        const startDate = new Date(challengeData.startDate);
+        const endDate = new Date(challengeData.endDate);
+        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        isCompleted = entry.score >= totalDays;
+      } else {
+        isCompleted = entry.score >= totalPoints;
+      }
+      
+      if (isCompleted) {
         // Calculate the actual completion time for this user
         const userEntries = entries.filter(e => e.user_id === entry.userId);
         
@@ -316,10 +343,23 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           objectiveProgress.set(entry.objective_id, currentValue + entry.value);
           
           // Check if all objectives are now complete
-          const allObjectivesComplete = challengeObjectives.every(objective => {
-            const currentProgress = objectiveProgress.get(objective.id) || 0;
-            return currentProgress >= objective.targetValue;
-          });
+          let allObjectivesComplete: boolean;
+          if (challengeData.challenge_type === "completion") {
+            // For completion challenges, check if user has completed as many days as the challenge has total days
+            const startDate = new Date(challengeData.startDate);
+            const endDate = new Date(challengeData.endDate);
+            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Calculate total days completed across all objectives
+            const totalDaysCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
+            allObjectivesComplete = totalDaysCompleted >= totalDays;
+          } else {
+            // For standard/bingo challenges, use the existing logic
+            allObjectivesComplete = challengeObjectives.every(objective => {
+              const currentProgress = objectiveProgress.get(objective.id) || 0;
+              return currentProgress >= objective.targetValue;
+            });
+          }
           
           // If this is the first time all objectives are complete, record the completion time
           if (allObjectivesComplete && !completionTime) {
@@ -466,7 +506,17 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                         {entry.name}
                         {isCurrentUser && <span className="ml-1">(You)</span>}
                         {/* Show checkmark for 100% completion (but not for top 3 finishers who already have completion badges) */}
-                        {capedPoints && entry.score >= (challengeData?.totalPoints || 0) && (!completionInfo || completionInfo.order > 3) && (
+                        {capedPoints && (() => {
+                          // For completion challenges, check if user has completed as many days as the challenge has total days
+                          if (challengeData?.challenge_type === "completion") {
+                            const startDate = new Date(challengeData.startDate);
+                            const endDate = new Date(challengeData.endDate);
+                            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                            return entry.score >= totalDays;
+                          } else {
+                            return entry.score >= (challengeData?.totalPoints || 0);
+                          }
+                        })() && (!completionInfo || completionInfo.order > 3) && (
                           <span className="ml-1 md:ml-2 inline-flex items-center justify-center w-4 h-4 md:w-6 md:h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold" title={`100% ${t('complete')}`}>
                             ✓
                           </span>
