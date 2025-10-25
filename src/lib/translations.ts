@@ -42,6 +42,8 @@ export const translations = {
     dailyChallengeTitle: "Tägliche Herausforderung",
     tapToComplete: "Tippen zum Abschließen",
     challengeCompleted: "Herausforderung für heute erledigt! 🎉",
+    challengeInactive: "Inaktiv",
+    challengeInactiveDescription: "Diese Herausforderung ist derzeit nicht aktiv. Du kannst nur während des aktiven Zeitraums Fortschritte hinzufügen.",
 
     // Features
     howItWorks: "So funktioniert's",
@@ -383,6 +385,8 @@ export const translations = {
     dailyChallengeTitle: "Daily Challenge",
     tapToComplete: "Tap to complete",
     challengeCompleted: "Challenge completed for today! 🎉",
+    challengeInactive: "Inactive",
+    challengeInactiveDescription: "This challenge is currently not active. You can only add progress during the active period.",
 
     // Features
     howItWorks: "How It Works",

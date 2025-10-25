@@ -120,6 +120,19 @@ export default function ObjectiveItem({
 
   const currentValue = progress?.currentValue || 0;
   
+  // Check if challenge is currently active
+  const isChallengeActive = () => {
+    if (!challengeStartDate || !challengeEndDate) return true; // Allow if dates not provided (fallback)
+    
+    const now = new Date();
+    const startDate = new Date(challengeStartDate);
+    const endDate = new Date(challengeEndDate);
+    
+    return now >= startDate && now <= endDate;
+  };
+  
+  const challengeActive = isChallengeActive();
+  
   // For completion challenges, calculate total days and progress differently
   let totalDays = objective.targetValue;
   let progressPercent = Math.min(100, (currentValue / objective.targetValue) * 100);
@@ -163,6 +176,15 @@ export default function ObjectiveItem({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    if (!challengeActive) {
+      toast({
+        title: t("challengeInactive"),
+        description: t("challengeInactiveDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
 
     const numericValue = parseFloat(value);
     if (isNaN(numericValue)) return;
@@ -261,6 +283,15 @@ export default function ObjectiveItem({
   const handleQuickAdd = async () => {
     if (!user || readOnly || hasEntryToday) return;
     
+    if (!challengeActive) {
+      toast({
+        title: t("challengeInactive"),
+        description: t("challengeInactiveDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // For bingo challenges, add 1 completion
     if (challenge_type === "bingo") {
       await updateProgress(challengeId, objective.id, 1);
@@ -292,10 +323,10 @@ export default function ObjectiveItem({
       <ContextMenu>
         <ContextMenuTrigger>
           <Card
-            className={`relative select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+            className={`relative select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
             onClick={(e) => {
               // Only open dialog on left-click, not right-click
-              if (e.button === 0 && !readOnly) {
+              if (e.button === 0 && !readOnly && challengeActive) {
                 // Quick add on single click, dialog on double click
                 if (e.detail === 1) {
                   handleQuickAdd();
@@ -305,7 +336,7 @@ export default function ObjectiveItem({
               }
             }}
             onTouchStart={(e) => {
-              if (isTouchDevice && !readOnly) {
+              if (isTouchDevice && !readOnly && challengeActive) {
                 longPressTimer.current = setTimeout(() => {
                   const contextMenuEvent = new MouseEvent("contextmenu", {
                     bubbles: true,
@@ -393,6 +424,15 @@ export default function ObjectiveItem({
                 <Button
                   onClick={async () => {
                     if (user) {
+                      if (!challengeActive) {
+                        toast({
+                          title: t("challengeInactive"),
+                          description: t("challengeInactiveDescription"),
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
                       const completions = parseInt(completionsToAdd);
                       if (completions > 0) {
                         await updateProgress(challengeId, objective.id, completions);
@@ -470,8 +510,8 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card
-          className={`select-none mb-4 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
-          onClick={!readOnly ? (e) => {
+          className={`select-none mb-4 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
+          onClick={!readOnly && challengeActive ? (e) => {
             // Quick add on single click, dialog on double click
             if (e.detail === 1) {
               handleQuickAdd();
@@ -479,9 +519,9 @@ export default function ObjectiveItem({
               setIsOpen(true);
             }
           } : undefined}
-          onTouchStart={!readOnly ? handleLongPress : undefined}
-          onTouchEnd={!readOnly ? handleTouchEnd : undefined}
-          onTouchCancel={!readOnly ? handleTouchEnd : undefined}
+          onTouchStart={!readOnly && challengeActive ? handleLongPress : undefined}
+          onTouchEnd={!readOnly && challengeActive ? handleTouchEnd : undefined}
+          onTouchCancel={!readOnly && challengeActive ? handleTouchEnd : undefined}
         >
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
@@ -490,6 +530,11 @@ export default function ObjectiveItem({
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 )}
                 {objective.title}
+                {!challengeActive && (
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                    {t("challengeInactive")}
+                  </span>
+                )}
               </CardTitle>
               <div className="text-sm font-medium">
                 {objective.pointsPerUnit} {t("points")}/{objective.unit}
