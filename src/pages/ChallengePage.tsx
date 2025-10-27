@@ -199,6 +199,13 @@ export default function ChallengePage() {
         
         setProgress((totalDaysCompleted / totalDays) * 100);
         setDisplayValue({ current: totalDaysCompleted, total: totalDays });
+      } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
+        // For collection/checklist challenges, progress is number of completed objectives
+        const completedObjectives = progressToUse.filter(p => p.currentValue >= 1).length;
+        const totalObjectives = challenge.objectives.length;
+        
+        setProgress((completedObjectives / totalObjectives) * 100);
+        setDisplayValue({ current: completedObjectives, total: totalObjectives });
       } else {
         // For standard/bingo challenges, use points-based progress
         setProgress((totalPoints / challenge.totalPoints) * 100);

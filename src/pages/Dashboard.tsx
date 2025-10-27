@@ -134,6 +134,16 @@ export default function Dashboard() {
       // For completion challenges, totalScore represents days completed
       const daysCompleted = challenge.userProgress.totalScore;
       return Math.min((daysCompleted / totalDays) * 100, 100);
+    } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
+      // For collection/checklist challenges, progress is based on number of completed objectives
+      const completedObjectives = challenge.objectives.filter(obj => {
+        const progressItem = challenge.userProgress.objectives.find(p => p.objectiveId === obj.id);
+        return progressItem && progressItem.currentValue >= 1;
+      }).length;
+      const totalObjectives = challenge.objectives.length;
+      
+      if (totalObjectives === 0) return 0;
+      return Math.min((completedObjectives / totalObjectives) * 100, 100);
     } else {
       // For standard/bingo challenges, use points-based progress
       const totalPossible = challenge.totalPoints;
@@ -151,6 +161,13 @@ export default function Dashboard() {
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const daysCompleted = challenge.userProgress.totalScore;
       return `${daysCompleted}/${totalDays}`;
+    } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
+      const completedObjectives = challenge.objectives.filter(obj => {
+        const progressItem = challenge.userProgress.objectives.find(p => p.objectiveId === obj.id);
+        return progressItem && progressItem.currentValue >= 1;
+      }).length;
+      const totalObjectives = challenge.objectives.length;
+      return `${completedObjectives}/${totalObjectives}`;
     } else {
       return `${Math.floor(challenge.userProgress.totalScore)}/${Math.floor(challenge.totalPoints)}`;
     }
