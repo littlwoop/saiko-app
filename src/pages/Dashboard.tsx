@@ -8,24 +8,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Trophy, Check, Minus } from "lucide-react";
-import { Challenge, UserChallenge, DailyChallenge } from "@/types";
+import { Challenge, UserChallenge, DailyChallenge, UserProgress } from "@/types";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { dailyChallengesService } from "@/lib/daily-challenges";
 
-interface DashboardChallenge extends Challenge {
-  userProgress: UserChallenge;
+interface DashboardChallengeData {
+  challenge: Challenge;
+  userChallenge: UserChallenge;
+  userProgress: UserProgress[];
 }
 
 export default function Dashboard() {
-  const { getUserChallenges, getChallenge, getUserActivityDates, completeDailyChallenge } = useChallenges();
+  const { getUserChallenges, getChallenge, getUserActivityDates, completeDailyChallenge, getChallengeProgress } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const isMobile = useIsMobile();
   
-  const [activeChallenges, setActiveChallenges] = useState<DashboardChallenge[]>([]);
+  const [activeChallenges, setActiveChallenges] = useState<DashboardChallengeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [todaysChallenge, setTodaysChallenge] = useState<DailyChallenge | null>(null);
   const [isChallengeLoading, setIsChallengeLoading] = useState(true);
@@ -46,9 +48,11 @@ export default function Dashboard() {
           userChallenges.map(async (userChallenge) => {
             const challenge = await getChallenge(userChallenge.challengeId);
             if (challenge) {
+              const userProgress = await getChallengeProgress(challenge.id, challenge.challenge_type);
               return {
-                ...challenge,
-                userProgress: userChallenge,
+                challenge,
+                userChallenge,
+                userProgress,
               };
             }
             return null;
@@ -57,18 +61,18 @@ export default function Dashboard() {
 
         // Filter out null values and only show active challenges (started but not ended)
         const active = challengesWithDetails
-          .filter((challenge): challenge is DashboardChallenge => 
-            challenge !== null && 
-            challenge.userProgress && 
-            new Date(challenge.startDate) <= new Date() && 
-            (!challenge.endDate || new Date(challenge.endDate) > new Date())
+          .filter((item): item is DashboardChallengeData => 
+            item !== null && 
+            item.challenge && 
+            new Date(item.challenge.startDate) <= new Date() && 
+            (!item.challenge.endDate || new Date(item.challenge.endDate) > new Date())
           )
           .sort((a, b) => {
             // Sort ongoing challenges (no end date) to the end
-            if (!a.endDate && !b.endDate) return 0;
-            if (!a.endDate) return 1;
-            if (!b.endDate) return -1;
-            return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+            if (!a.challenge.endDate && !b.challenge.endDate) return 0;
+            if (!a.challenge.endDate) return 1;
+            if (!b.challenge.endDate) return -1;
+            return new Date(a.challenge.endDate).getTime() - new Date(b.challenge.endDate).getTime();
           });
 
         setActiveChallenges(active);
@@ -80,7 +84,7 @@ export default function Dashboard() {
     };
 
     loadActiveChallenges();
-  }, [user, getUserChallenges, getChallenge]);
+  }, [user, getUserChallenges, getChallenge, getChallengeProgress]);
 
   // Load today's random challenge
   useEffect(() => {
@@ -124,20 +128,24 @@ export default function Dashboard() {
     loadTodaysChallenge();
   }, [user]);
 
-  const calculateProgress = (challenge: DashboardChallenge) => {
+  const calculateProgress = (item: DashboardChallengeData) => {
+    const { challenge, userProgress, userChallenge } = item;
+    
     // For completion challenges, calculate progress based on days completed vs total days
     if (challenge.challenge_type === "completion") {
+      if (!challenge.endDate) return 0; // Ongoing completion challenge, can't calculate progress
+      
       const startDate = new Date(challenge.startDate);
       const endDate = new Date(challenge.endDate);
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       
       // For completion challenges, totalScore represents days completed
-      const daysCompleted = challenge.userProgress.totalScore;
+      const daysCompleted = userChallenge.totalScore;
       return Math.min((daysCompleted / totalDays) * 100, 100);
     } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
       // For collection/checklist challenges, progress is based on number of completed objectives
       const completedObjectives = challenge.objectives.filter(obj => {
-        const progressItem = challenge.userProgress.objectives.find(p => p.objectiveId === obj.id);
+        const progressItem = userProgress.find(p => p.objectiveId === obj.id);
         return progressItem && progressItem.currentValue >= 1;
       }).length;
       const totalObjectives = challenge.objectives.length;
@@ -147,29 +155,33 @@ export default function Dashboard() {
     } else {
       // For standard/bingo challenges, use points-based progress
       const totalPossible = challenge.totalPoints;
-      const currentScore = challenge.userProgress.totalScore;
+      const currentScore = userChallenge.totalScore;
       
       if (totalPossible === 0) return 0;
       return Math.min((currentScore / totalPossible) * 100, 100);
     }
   };
 
-  const getDisplayValue = (challenge: DashboardChallenge) => {
+  const getDisplayValue = (item: DashboardChallengeData) => {
+    const { challenge, userProgress, userChallenge } = item;
+    
     if (challenge.challenge_type === "completion") {
+      if (!challenge.endDate) return `${userChallenge.totalScore}/∞`;
+      
       const startDate = new Date(challenge.startDate);
       const endDate = new Date(challenge.endDate);
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      const daysCompleted = challenge.userProgress.totalScore;
+      const daysCompleted = userChallenge.totalScore;
       return `${daysCompleted}/${totalDays}`;
     } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
       const completedObjectives = challenge.objectives.filter(obj => {
-        const progressItem = challenge.userProgress.objectives.find(p => p.objectiveId === obj.id);
+        const progressItem = userProgress.find(p => p.objectiveId === obj.id);
         return progressItem && progressItem.currentValue >= 1;
       }).length;
       const totalObjectives = challenge.objectives.length;
       return `${completedObjectives}/${totalObjectives}`;
     } else {
-      return `${Math.floor(challenge.userProgress.totalScore)}/${Math.floor(challenge.totalPoints)}`;
+      return `${Math.floor(userChallenge.totalScore)}/${Math.floor(challenge.totalPoints)}`;
     }
   };
 
@@ -412,24 +424,26 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className={`grid gap-4 sm:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-          {activeChallenges.map((challenge) => {
-            const progress = calculateProgress(challenge);
-            const daysRemaining = getDaysRemaining(challenge.endDate);
+          {activeChallenges.map((item) => {
+            const progress = calculateProgress(item);
+            const daysRemaining = item.challenge.endDate ? getDaysRemaining(item.challenge.endDate) : 999;
             
             return (
-              <Link to={`/challenges/${challenge.id}`} key={challenge.id}>
+              <Link to={`/challenges/${item.challenge.id}`} key={item.challenge.id}>
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                   <CardHeader className="pb-2 sm:pb-3">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                       <CardTitle className="text-base sm:text-lg leading-tight line-clamp-2">
-                        {challenge.title}
+                        {item.challenge.title}
                       </CardTitle>
-                      <Badge 
-                        variant={daysRemaining <= 3 ? "destructive" : daysRemaining <= 7 ? "secondary" : "default"}
-                        className="self-start sm:self-auto text-xs sm:text-sm"
-                      >
-                        {daysRemaining} {t("daysLeft")}
-                      </Badge>
+                      {item.challenge.endDate && (
+                        <Badge 
+                          variant={daysRemaining <= 3 ? "destructive" : daysRemaining <= 7 ? "secondary" : "default"}
+                          className="self-start sm:self-auto text-xs sm:text-sm"
+                        >
+                          {daysRemaining} {t("daysLeft")}
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
                   
@@ -437,9 +451,9 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs sm:text-sm">
                         <span className="text-muted-foreground">
-                          {challenge.challenge_type === "completion" ? t("progress") : t("points")}
+                          {item.challenge.challenge_type === "completion" ? t("progress") : t("points")}
                         </span>
-                        <span className="font-medium">{getDisplayValue(challenge)}</span>
+                        <span className="font-medium">{getDisplayValue(item)}</span>
                       </div>
                       <Progress value={progress} className="h-1.5 sm:h-2" />
                     </div>
