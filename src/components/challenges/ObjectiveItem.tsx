@@ -107,6 +107,7 @@ export default function ObjectiveItem({
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [completionsToAdd, setCompletionsToAdd] = useState("1");
   const [hasEntryToday, setHasEntryToday] = useState(false);
@@ -122,12 +123,17 @@ export default function ObjectiveItem({
   
   // Check if challenge is currently active
   const isChallengeActive = () => {
-    if (!challengeStartDate || !challengeEndDate) return true; // Allow if dates not provided (fallback)
+    if (!challengeStartDate) return true; // Allow if dates not provided (fallback)
     
     const now = new Date();
     const startDate = new Date(challengeStartDate);
-    const endDate = new Date(challengeEndDate);
     
+    // If no end date, challenge is active after start date
+    if (!challengeEndDate) {
+      return now >= startDate;
+    }
+    
+    const endDate = new Date(challengeEndDate);
     return now >= startDate && now <= endDate;
   };
   
@@ -138,14 +144,25 @@ export default function ObjectiveItem({
   let progressPercent = Math.min(100, (currentValue / objective.targetValue) * 100);
   let isCompleted = currentValue >= objective.targetValue;
   
-  if (challenge_type === "completion" && challengeStartDate && challengeEndDate) {
-    const startDate = new Date(challengeStartDate);
-    const endDate = new Date(challengeEndDate);
-    totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    progressPercent = Math.min(100, (currentValue / totalDays) * 100);
-    isCompleted = currentValue >= totalDays;
-    
+  if (challenge_type === "completion" && challengeStartDate) {
+    if (challengeEndDate) {
+      const startDate = new Date(challengeStartDate);
+      const endDate = new Date(challengeEndDate);
+      totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      progressPercent = Math.min(100, (currentValue / totalDays) * 100);
+      isCompleted = currentValue >= totalDays;
+    } else {
+      // For ongoing completion challenges, use a default total days (e.g., 365)
+      totalDays = 365;
+      progressPercent = Math.min(100, (currentValue / totalDays) * 100);
+      isCompleted = false; // Never fully complete for ongoing challenges
+    }
+  } else if (challenge_type === "checklist" || challenge_type === "collection") {
+    // For checklist challenges, completed when currentValue >= 1
+    isCompleted = currentValue >= 1;
+    progressPercent = isCompleted ? 100 : 0;
   }
+  
   const completionCount = challenge_type === "bingo" ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
 
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
@@ -234,31 +251,37 @@ export default function ObjectiveItem({
   };
 
   const getDailyEntries = async (): Promise<Set<string>> => {
-    if (!user || !challengeStartDate || !challengeEndDate) return new Set<string>();
+    if (!user || !challengeStartDate) return new Set<string>();
 
     console.log('getDailyEntries called with:', { challengeStartDate, challengeEndDate });
 
     try {
       // Validate and format dates properly
       const startDate = new Date(challengeStartDate);
-      const endDate = new Date(challengeEndDate);
+      const endDate = challengeEndDate ? new Date(challengeEndDate) : null;
       
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      if (isNaN(startDate.getTime()) || (endDate && isNaN(endDate.getTime()))) {
         console.error('Invalid date format:', { challengeStartDate, challengeEndDate });
         return new Set<string>();
       }
       
       const startDateTime = startDate.toISOString();
-      const endDateTime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString(); // End of day
       
-      const { data: entries, error } = await supabase
+      // If no end date, query all entries from start date onwards
+      const query = supabase
         .from('entries')
         .select('created_at')
         .eq('user_id', user.id)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
-        .gte('created_at', startDateTime)
-        .lte('created_at', endDateTime);
+        .gte('created_at', startDateTime);
+      
+      if (endDate) {
+        const endDateTime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        query.lte('created_at', endDateTime);
+      }
+      
+      const { data: entries, error } = await query;
 
       if (error) {
         console.error('Error fetching daily entries:', error);
@@ -281,7 +304,10 @@ export default function ObjectiveItem({
   };
 
   const handleQuickAdd = async () => {
-    if (!user || readOnly || hasEntryToday) return;
+    // For checklist/collection challenges, allow toggle even with hasEntryToday check
+    if ((challenge_type === "checklist" || challenge_type === "collection") && readOnly) return;
+    if (challenge_type !== "checklist" && challenge_type !== "collection" && (!user || readOnly || hasEntryToday)) return;
+    if ((challenge_type === "checklist" || challenge_type === "collection") && !user) return;
     
     if (!challengeActive) {
       toast({
@@ -307,6 +333,10 @@ export default function ObjectiveItem({
       
       // Also refresh from database to ensure consistency
       getDailyEntries().then((entries) => setDailyEntries(entries));
+    } else if (challenge_type === "checklist" || challenge_type === "collection") {
+      // For checklist challenges, toggle completion (0 or 1)
+      const newValue = currentValue >= 1 ? 0 : 1;
+      await updateProgress(challengeId, objective.id, newValue);
     } else {
       // For standard challenges, add 1 unit of progress
       const newValue = currentValue + 1;
@@ -452,6 +482,113 @@ export default function ObjectiveItem({
           </Dialog>
         )}
       </ContextMenu>
+    );
+  }
+
+  if (challenge_type === "collection") {
+    return (
+      <>
+        <Card 
+          className={`select-none mb-4 transition-colors ${
+            isCompleted ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"
+          } ${!readOnly && challengeActive && !isCompleted ? "cursor-pointer hover:shadow-md" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
+          onClick={!readOnly && challengeActive && !isCompleted ? () => setIsConfirmDialogOpen(true) : undefined}
+        >
+          <CardHeader>
+            <div>
+              <CardTitle className={`text-base ${isCompleted ? "line-through text-gray-500" : "text-gray-900"}`}>
+                {objective.title}
+              </CardTitle>
+              {objective.description && (
+                <CardDescription className="mt-1">
+                  {objective.description}
+                </CardDescription>
+              )}
+            </div>
+          </CardHeader>
+        </Card>
+
+        {!readOnly && (
+          <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>{t("completeObjective")}</DialogTitle>
+                <DialogDescription>
+                  {t("confirmCompleteObjective").replace("{objective}", objective.title)}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
+                  {t("cancel")}
+                </Button>
+                <Button onClick={async () => {
+                  if (!user) {
+                    console.error("No user logged in");
+                    toast({
+                      title: t("error"),
+                      description: "You must be logged in to complete objectives",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  console.log("Completing objective:", { 
+                    challengeId, 
+                    objectiveId: objective.id, 
+                    objective,
+                    challenge_type 
+                  });
+                  
+                  if (!challengeActive) {
+                    toast({
+                      title: t("challengeInactive"),
+                      description: t("challengeInactiveDescription"),
+                      variant: "destructive",
+                    });
+                    setIsConfirmDialogOpen(false);
+                    return;
+                  }
+                  
+                  try {
+                    // Validate objective ID is a UUID, if not generate a new one
+                    // This is a workaround for legacy challenges with numeric IDs
+                    let validObjectiveId = objective.id;
+                    if (objective.id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(objective.id)) {
+                      console.warn("Invalid objective ID format (not a UUID):", objective.id);
+                      // Generate a UUID to use as the objective_id for this entry
+                      // This is a temporary workaround - ideally the challenge should be fixed in the database
+                      validObjectiveId = crypto.randomUUID();
+                      console.log("Generated temporary UUID:", validObjectiveId);
+                    }
+                    
+                    console.log("Calling updateProgress with:", {
+                      challengeId,
+                      objectiveId: validObjectiveId,
+                      value: 1
+                    });
+                    await updateProgress(challengeId, validObjectiveId, 1);
+                    
+                    console.log("Successfully completed objective");
+                    setIsConfirmDialogOpen(false);
+                    if (onProgressUpdate) {
+                      onProgressUpdate();
+                    }
+                  } catch (error) {
+                    console.error("Error completing objective:", error);
+                    toast({
+                      title: t("error"),
+                      description: "Failed to complete objective",
+                      variant: "destructive",
+                    });
+                  }
+                }}>
+                  {t("complete")}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </>
     );
   }
 

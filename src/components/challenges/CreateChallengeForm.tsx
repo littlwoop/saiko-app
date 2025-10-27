@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, validate as validateUUID } from "uuid";
 import { ChallengeType } from "@/types";
 import { useNavigate } from "react-router-dom";
 
@@ -44,6 +44,7 @@ export default function CreateChallengeForm() {
   });
   const [capedPoints, setCapedPoints] = useState(false);
   const [challenge_type, setChallengeType] = useState<ChallengeType>("standard");
+  const [noEndDate, setNoEndDate] = useState(false);
 
   const [objectives, setObjectives] = useState([
     {
@@ -94,7 +95,7 @@ export default function CreateChallengeForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title || !description || !date?.from || !date?.to) {
+    if (!title || !description || !date?.from) {
       toast({
         title: t("error"),
         description: t("fillRequiredFields"),
@@ -103,13 +104,28 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    const hasEmptyObjective = objectives.some(
-      (obj) =>
-        !obj.title ||
-        !obj.unit ||
-        obj.targetValue <= 0 ||
-        obj.pointsPerUnit <= 0,
-    );
+    // If no end date is set, ensure we have only start date
+    if (!noEndDate && !date.to) {
+      toast({
+        title: t("error"),
+        description: t("fillRequiredFields"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Different validation for checklist/collection challenges
+    const hasEmptyObjective = challenge_type === "checklist"
+      ? objectives.some(obj => !obj.title)
+      : objectives.some(
+          (obj) =>
+            !obj.title ||
+            !obj.unit ||
+            obj.targetValue === undefined ||
+            (obj.targetValue || 0) <= 0 ||
+            obj.pointsPerUnit === undefined ||
+            (obj.pointsPerUnit || 0) <= 0,
+        );
 
     if (hasEmptyObjective) {
       toast({
@@ -120,18 +136,35 @@ export default function CreateChallengeForm() {
       return;
     }
 
+    // Map checklist to collection for database storage
+    const databaseChallengeType = challenge_type === "checklist" ? "collection" : challenge_type;
+
+    // Ensure all objectives have valid UUIDs
+    const objectivesWithValidIds = objectives.map((obj) => {
+      let validId = obj.id;
+      
+      // If the ID is not a valid UUID, generate a new one
+      if (!validateUUID(obj.id)) {
+        console.warn(`Invalid UUID for objective "${obj.title}", generating new one`);
+        validId = uuidv4();
+      }
+      
+      return {
+        ...obj,
+        id: validId,
+        targetValue: Number(obj.targetValue) || undefined,
+        pointsPerUnit: Number(obj.pointsPerUnit) || undefined,
+      };
+    });
+
     createChallenge({
       title,
       description,
       startDate: date.from.toISOString(),
-      endDate: date.to.toISOString(),
-      challenge_type,
+      endDate: noEndDate ? undefined : date.to?.toISOString(),
+      challenge_type: databaseChallengeType as ChallengeType,
       capedPoints,
-      objectives: objectives.map((obj) => ({
-        ...obj,
-        targetValue: Number(obj.targetValue),
-        pointsPerUnit: Number(obj.pointsPerUnit),
-      })),
+      objectives: objectivesWithValidIds,
     });
 
     navigate("/challenges");
@@ -172,7 +205,7 @@ export default function CreateChallengeForm() {
                 className="w-full justify-start text-left font-normal"
               >
                 {date?.from ? (
-                  date.to ? (
+                  date.to && !noEndDate ? (
                     <>
                       {format(date.from, "LLL dd, yyyy")} -{" "}
                       {format(date.to, "LLL dd, yyyy")}
@@ -196,6 +229,21 @@ export default function CreateChallengeForm() {
               />
             </PopoverContent>
           </Popover>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="noEndDate"
+              checked={noEndDate}
+              onCheckedChange={(checked) => {
+                setNoEndDate(checked as boolean);
+                if (checked) {
+                  setDate({ ...date, to: undefined });
+                }
+              }}
+            />
+            <Label htmlFor="noEndDate" className="text-sm font-normal cursor-pointer">
+              {t("noEndDate")}
+            </Label>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -208,6 +256,7 @@ export default function CreateChallengeForm() {
               <SelectItem value="standard">{t("standardChallenge")}</SelectItem>
               <SelectItem value="bingo">{t("bingoChallenge")}</SelectItem>
               <SelectItem value="completion">{t("completionChallenge")}</SelectItem>
+              <SelectItem value="checklist">{t("checklistChallenge")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -271,12 +320,12 @@ export default function CreateChallengeForm() {
 
                 <div className="space-y-2">
                   <Label htmlFor={`objective-${index}-description`}>
-                    {t("objectiveDescription")}
+                    {t("objectiveDescription")} <span className="text-muted-foreground">({t("optional")})</span>
                   </Label>
                   <Textarea
                     id={`objective-${index}-description`}
                     placeholder={t("objectiveDescriptionPlaceholder")}
-                    value={objective.description}
+                    value={objective.description || ""}
                     onChange={(e) =>
                       handleObjectiveChange(
                         index,
@@ -284,69 +333,70 @@ export default function CreateChallengeForm() {
                         e.target.value,
                       )
                     }
-                    required
                     className="min-h-[60px]"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-target`}>
-                      {t("targetValue")}
-                    </Label>
-                    <Input
-                      id={`objective-${index}-target`}
-                      type="number"
-                      min="1"
-                      placeholder={t("targetValuePlaceholder")}
-                      value={objective.targetValue || ""}
-                      onChange={(e) =>
-                        handleObjectiveChange(
-                          index,
-                          "targetValue",
-                          Number(e.target.value),
-                        )
-                      }
-                      required
-                    />
-                  </div>
+                {challenge_type !== "checklist" && (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`objective-${index}-target`}>
+                        {t("targetValue")}
+                      </Label>
+                      <Input
+                        id={`objective-${index}-target`}
+                        type="number"
+                        min="1"
+                        placeholder={t("targetValuePlaceholder")}
+                        value={objective.targetValue || ""}
+                        onChange={(e) =>
+                          handleObjectiveChange(
+                            index,
+                            "targetValue",
+                            Number(e.target.value),
+                          )
+                        }
+                        required
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-unit`}>
-                      {t("unit")}
-                    </Label>
-                    <Input
-                      id={`objective-${index}-unit`}
-                      placeholder={t("unitPlaceholder")}
-                      value={objective.unit}
-                      onChange={(e) =>
-                        handleObjectiveChange(index, "unit", e.target.value)
-                      }
-                      required
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`objective-${index}-unit`}>
+                        {t("unit")}
+                      </Label>
+                  <Input
+                    id={`objective-${index}-unit`}
+                    placeholder={t("unitPlaceholder")}
+                    value={objective.unit}
+                    onChange={(e) =>
+                      handleObjectiveChange(index, "unit", e.target.value)
+                    }
+                    required
+                  />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`objective-${index}-points`}>
-                      {t("pointsPerUnit")}
-                    </Label>
-                    <Input
-                      id={`objective-${index}-points`}
-                      type="number"
-                      min="1"
-                      placeholder={t("pointsPerUnitPlaceholder")}
-                      value={objective.pointsPerUnit || ""}
-                      onChange={(e) =>
-                        handleObjectiveChange(
-                          index,
-                          "pointsPerUnit",
-                          Number(e.target.value),
-                        )
-                      }
-                      required
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor={`objective-${index}-points`}>
+                        {t("pointsPerUnit")}
+                      </Label>
+                      <Input
+                        id={`objective-${index}-points`}
+                        type="number"
+                        min="1"
+                        placeholder={t("pointsPerUnitPlaceholder")}
+                        value={objective.pointsPerUnit || ""}
+                        onChange={(e) =>
+                          handleObjectiveChange(
+                            index,
+                            "pointsPerUnit",
+                            Number(e.target.value),
+                          )
+                        }
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
           ))}

@@ -46,12 +46,12 @@ export default function ChallengeCard({
   const hasJoined = user && challenge.participants.includes(user.id);
 
   const startDate = new Date(challenge.startDate);
-  const endDate = new Date(challenge.endDate);
+  const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
   const today = new Date();
 
-  const isActive = today >= startDate && today <= endDate;
+  const isActive = today >= startDate && (!endDate || today <= endDate);
   const isFuture = today < startDate;
-  const isPast = today > endDate;
+  const isPast = endDate ? today > endDate : false;
 
   const totalObjectives = challenge.objectives.length;
   const progressPercentage = (userScore / challenge.totalPoints) * 100;
@@ -72,8 +72,8 @@ export default function ChallengeCard({
           // For completion challenges, calculate progress based on days completed vs total days
           if (challenge.challenge_type === "completion") {
             const startDate = new Date(challenge.startDate);
-            const endDate = new Date(challenge.endDate);
-            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+            const totalDays = endDate ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365;
             
             // Calculate total days completed across all objectives
             const totalDaysCompleted = progressData.reduce((sum, progressItem) => {
@@ -158,8 +158,12 @@ export default function ChallengeCard({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>
-              {format(startDate, t("dateFormatShort"), { locale })} -{" "}
-              {format(endDate, t("dateFormatLong"), { locale })}
+              {format(startDate, t("dateFormatShort"), { locale })}
+              {endDate ? (
+                <> - {format(endDate, t("dateFormatLong"), { locale })}</>
+              ) : (
+                <> - {t("ongoing")}</>
+              )}
             </span>
           </div>
           <div className="flex items-center gap-2">

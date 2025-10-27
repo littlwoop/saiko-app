@@ -8,14 +8,14 @@ export interface User {
 export interface Objective {
   id: string;
   title: string;
-  description: string;
-  targetValue: number;
-  unit: string;
-  pointsPerUnit: number;
+  description?: string; // Optional for all challenge types
+  targetValue?: number; // Optional for checklist challenges
+  unit?: string; // Optional for checklist challenges
+  pointsPerUnit?: number; // Optional for checklist challenges
   currentValue?: number;
 }
 
-export type ChallengeType = "standard" | "bingo" | "completion";
+export type ChallengeType = "standard" | "bingo" | "completion" | "checklist" | "collection";
 
 export interface Challenge {
   id: number;
@@ -25,7 +25,7 @@ export interface Challenge {
   creatorName: string;
   creatorAvatar?: string;
   startDate: string;
-  endDate: string;
+  endDate?: string; // Optional - challenges can be ongoing
   objectives: Objective[];
   participants: string[];
   totalPoints: number;

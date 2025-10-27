@@ -189,8 +189,8 @@ export default function ChallengePage() {
       // For completion challenges, calculate progress based on days completed vs total days
       if (challenge.challenge_type === "completion") {
         const startDate = new Date(challenge.startDate);
-        const endDate = new Date(challenge.endDate);
-        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+        const totalDays = endDate ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365;
         
         // Calculate total days completed across all objectives
         const totalDaysCompleted = progressToUse.reduce((sum, progressItem) => {
@@ -388,16 +388,16 @@ export default function ChallengePage() {
   }
 
   const startDate = new Date(challenge.startDate);
-  const endDate = new Date(challenge.endDate);
+  const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
   const today = new Date();
 
-  const isActive = today >= startDate && today <= endDate;
+  const isActive = today >= startDate && (!endDate || today <= endDate);
   const isFuture = today < startDate;
-  const isPast = today > endDate;
+  const isPast = endDate ? today > endDate : false;
 
-  const daysLeft = Math.ceil(
+  const daysLeft = endDate ? Math.ceil(
     (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  ) : null;
 
   const locale = language === "de" ? de : enUS;
 
@@ -433,6 +433,11 @@ export default function ChallengePage() {
                   {t("upcoming")}
                 </Badge>
               )}
+              {isActive && !endDate && (
+                <Badge className="bg-blue-500">
+                  {t("ongoing")}
+                </Badge>
+              )}
               {isPast && (
                 <Badge
                   variant="outline"
@@ -449,8 +454,13 @@ export default function ChallengePage() {
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {format(startDate, t("dateFormatShort"), { locale })} -{" "}
-                  {format(endDate, t("dateFormatLong"), { locale })}
+                  {format(startDate, t("dateFormatShort"), { locale })}
+                  {endDate && (
+                    <> - {format(endDate, t("dateFormatLong"), { locale })}</>
+                  )}
+                  {!endDate && (
+                    <> - {t("ongoing")}</>
+                  )}
                 </span>
               </div>
 

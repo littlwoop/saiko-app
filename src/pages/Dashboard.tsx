@@ -61,9 +61,15 @@ export default function Dashboard() {
             challenge !== null && 
             challenge.userProgress && 
             new Date(challenge.startDate) <= new Date() && 
-            new Date(challenge.endDate) > new Date()
+            (!challenge.endDate || new Date(challenge.endDate) > new Date())
           )
-          .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime());
+          .sort((a, b) => {
+            // Sort ongoing challenges (no end date) to the end
+            if (!a.endDate && !b.endDate) return 0;
+            if (!a.endDate) return 1;
+            if (!b.endDate) return -1;
+            return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+          });
 
         setActiveChallenges(active);
       } catch (error) {

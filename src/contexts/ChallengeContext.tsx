@@ -7,6 +7,7 @@ import { dailyChallengesService } from "@/lib/daily-challenges";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { calculateTotalPoints } from "@/lib/points";
+import { v4 as uuidv4, validate as validateUUID } from "uuid";
 
 // Debug logging utility
 const debug = {
@@ -255,12 +256,21 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     if (challengeData.challenge_type === "completion") {
       // For completion challenges, total points = number of days * points per day
       const startDate = new Date(challengeData.startDate);
-      const endDate = new Date(challengeData.endDate);
-      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
       
-      // Use the first objective's pointsPerUnit as the points per day
-      const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
-      totalPoints = daysDiff * pointsPerDay;
+      if (endDate) {
+        const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        // Use the first objective's pointsPerUnit as the points per day
+        const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = daysDiff * pointsPerDay;
+      } else {
+        // For ongoing completion challenges, use a default large number of days (e.g., 365)
+        const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = 365 * pointsPerDay;
+      }
+    } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
+      // For checklist challenges, total points = number of objectives (1 point per objective)
+      totalPoints = challengeData.objectives.length;
     } else {
       // For standard/bingo challenges, use the existing logic
       totalPoints = challengeData.objectives.reduce((total, objective) => {
@@ -278,9 +288,24 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       challenge_type: challengeData.challenge_type || "standard",
     };
 
-    debug.log("Prepared challenge data:", newChallenge);
+    // Ensure all objectives have valid UUIDs
+    const objectivesWithValidIds = newChallenge.objectives.map((obj) => {
+      // If the ID is not a valid UUID, generate a new one
+      if (!validateUUID(obj.id)) {
+        console.warn(`Invalid UUID for objective "${obj.title}", generating new one`);
+        return { ...obj, id: uuidv4() };
+      }
+      return obj;
+    });
 
-    const { error } = await supabase.from("challenges").insert([newChallenge]);
+    const newChallengeWithValidIds = {
+      ...newChallenge,
+      objectives: objectivesWithValidIds,
+    };
+
+    debug.log("Prepared challenge data:", newChallengeWithValidIds);
+
+    const { error } = await supabase.from("challenges").insert([newChallengeWithValidIds]);
 
     if (error) {
       debug.error("Error creating challenge:", error);
@@ -392,6 +417,20 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         }
       } else {
         debug.log("Creating new progress entry");
+        
+        // Validate and potentially generate UUID for objective_id
+        // If the objective_id is not a valid UUID (e.g., legacy numeric IDs), we can't insert it
+        // In this case, we should log an error and inform the user
+        if (!validateUUID(objectiveId)) {
+          debug.error("Invalid objective ID (not a UUID):", objectiveId);
+          toast({
+            title: "Error",
+            description: "Invalid objective ID. Please refresh the challenge and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         const { error: insertError } = await supabase.from("entries").insert({
           user_id: user.id,
           challenge_id: challengeId,

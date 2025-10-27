@@ -114,17 +114,17 @@ export default function ChallengesPage() {
     const sorted = [...filteredChallenges].sort((a, b) => {
       // First, determine the status of each challenge
       const aStartDate = new Date(a.startDate);
-      const aEndDate = new Date(a.endDate);
+      const aEndDate = a.endDate ? new Date(a.endDate) : null;
       const bStartDate = new Date(b.startDate);
-      const bEndDate = new Date(b.endDate);
+      const bEndDate = b.endDate ? new Date(b.endDate) : null;
       
-      const aIsActive = today >= aStartDate && today <= aEndDate;
+      const aIsActive = today >= aStartDate && (!aEndDate || today <= aEndDate);
       const aIsFuture = today < aStartDate;
-      const aIsPast = today > aEndDate;
+      const aIsPast = aEndDate ? today > aEndDate : false;
       
-      const bIsActive = today >= bStartDate && today <= bEndDate;
+      const bIsActive = today >= bStartDate && (!bEndDate || today <= bEndDate);
       const bIsFuture = today < bStartDate;
-      const bIsPast = today > bEndDate;
+      const bIsPast = bEndDate ? today > bEndDate : false;
       
       // Priority order: Active > Upcoming > Completed
       const getStatusPriority = (isActive: boolean, isFuture: boolean, isPast: boolean) => {
