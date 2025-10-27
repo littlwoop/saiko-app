@@ -429,9 +429,6 @@ export default function ChallengePage() {
               <h1 className="text-2xl sm:text-3xl font-bold">
                 {challenge.title}
               </h1>
-              {isActive && (
-                <Badge className="bg-green-500">{t("active")}</Badge>
-              )}
               {isFuture && (
                 <Badge
                   variant="outline"
@@ -444,6 +441,9 @@ export default function ChallengePage() {
                 <Badge className="bg-blue-500">
                   {t("ongoing")}
                 </Badge>
+              )}
+              {isActive && endDate && (
+                <Badge className="bg-green-500">{t("active")}</Badge>
               )}
               {isPast && (
                 <Badge
