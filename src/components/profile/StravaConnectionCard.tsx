@@ -40,12 +40,7 @@ export default function StravaConnectionCard() {
       const conn = await stravaService.getConnection(user.id);
       setConnection(conn);
       
-      if (conn) {
-        // Get athlete profile
-        const accessToken = await stravaService.ensureValidToken(conn);
-        const athleteData = await stravaService.getAthleteProfile(accessToken);
-        setAthlete(athleteData);
-      }
+      // Don't automatically load athlete profile - only load when user clicks import
     } catch (error) {
       console.error("Error loading Strava connection:", error);
       toast({
