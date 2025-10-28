@@ -44,11 +44,8 @@ export default function StravaCallback() {
         // Save connection to database
         await stravaService.saveConnection(user.id, tokenResponse);
         
-        // Import profile information
-        await stravaService.importProfile(user.id);
-
         setStatus('success');
-        setMessage('Strava account connected successfully! Your profile has been updated.');
+        setMessage('Strava account connected successfully!');
         
         // Redirect to profile page after 3 seconds
         setTimeout(() => {

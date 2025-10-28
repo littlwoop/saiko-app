@@ -19,7 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChallengeCard from "@/components/challenges/ChallengeCard";
 import StravaConnectionCard from "@/components/profile/StravaConnectionCard";
 import StravaAppSetup from "@/components/profile/StravaAppSetup";
-import StravaDebugInfo from "@/components/profile/StravaDebugInfo";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -243,8 +242,14 @@ export default function ProfilePage() {
       }
 
       // Also update the user_profiles table
-      const { createOrUpdateUserProfile } = useChallenges();
-      await createOrUpdateUserProfile(user.id, user.name, publicUrl);
+      await supabase
+        .from("user_profiles")
+        .upsert({
+          id: user.id,
+          name: user.name,
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        });
 
       toast({
         title: t("success"),
@@ -282,8 +287,14 @@ export default function ProfilePage() {
       }
 
       // Also update the user_profiles table
-      const { createOrUpdateUserProfile } = useChallenges();
-      await createOrUpdateUserProfile(user.id, name, user.avatarUrl);
+      await supabase
+        .from("user_profiles")
+        .upsert({
+          id: user.id,
+          name: name,
+          avatar_url: user.avatarUrl,
+          updated_at: new Date().toISOString(),
+        });
 
       toast({
         title: t("profileUpdated"),
@@ -416,9 +427,6 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
                 
-                <ErrorBoundary>
-                  <StravaDebugInfo />
-                </ErrorBoundary>
                 <ErrorBoundary>
                   <StravaAppSetup />
                 </ErrorBoundary>

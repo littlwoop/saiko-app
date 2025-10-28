@@ -73,7 +73,8 @@ export class StravaService {
       approval_prompt: "force",
     });
 
-    return `https://www.strava.com/oauth/authorize?${params.toString()}`;
+    const authUrl = `https://www.strava.com/oauth/authorize?${params.toString()}`;
+    return authUrl;
   }
 
   /**
@@ -260,25 +261,7 @@ export class StravaService {
 
     const accessToken = await this.ensureValidToken(connection);
     const athlete = await this.getAthleteProfile(accessToken);
-
-    // Update user profile with Strava information
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({
-        name: `${athlete.firstname} ${athlete.lastname}`,
-        avatar_url: athlete.profile_medium || athlete.profile,
-        bio: athlete.bio,
-        city: athlete.city,
-        state: athlete.state,
-        country: athlete.country,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
-
-    if (error) {
-      throw new Error(`Failed to update user profile: ${error.message}`);
-    }
-
+    // Return athlete only; do not update user_profiles
     return athlete;
   }
 
