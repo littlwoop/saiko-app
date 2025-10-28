@@ -101,8 +101,15 @@ export class StravaService {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Failed to exchange code for token: ${errorData.message || response.statusText}`);
+      let errorMessage = `Failed to exchange code for token: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        console.error('Strava token exchange error:', errorData);
+        errorMessage = `Failed to exchange code for token: ${errorData.message || JSON.stringify(errorData)}`;
+      } catch (e) {
+        console.error('Could not parse Strava error response');
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
