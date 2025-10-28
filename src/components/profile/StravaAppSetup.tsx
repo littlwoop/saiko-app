@@ -44,7 +44,7 @@ export default function StravaAppSetup() {
   const [formData, setFormData] = useState({
     clientId: '',
     clientSecret: '',
-    redirectUri: `${window.location.origin}/auth/strava/callback`
+    redirectUri: 'https://www.saikochallenges.com/auth/strava/callback'
   });
 
   useEffect(() => {
@@ -192,12 +192,6 @@ export default function StravaAppSetup() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              {t("stravaAppSetupDescription")}
-            </AlertDescription>
-          </Alert>
 
           <div className="space-y-4">
             <div className="space-y-2">
@@ -229,9 +223,6 @@ export default function StravaAppSetup() {
                 onChange={(e) => setFormData(prev => ({ ...prev, redirectUri: e.target.value }))}
                 placeholder={t("enterRedirectUri")}
               />
-              <p className="text-sm text-muted-foreground">
-                {t("redirectUriHelp")}
-              </p>
             </div>
 
             <div className="flex gap-2">
@@ -262,7 +253,7 @@ export default function StravaAppSetup() {
                 <ul className="ml-4 mt-1 space-y-1 list-disc list-inside">
                   <li><strong>{t("applicationName")}:</strong> {t("applicationNameValue")}</li>
                   <li><strong>{t("category")}:</strong> {t("categoryValue")}</li>
-                  <li><strong>{t("authorizationCallbackDomain")}:</strong> {window.location.hostname}</li>
+                  <li><strong>{t("authorizationCallbackDomain")}:</strong> www.saikochallenges.com</li>
                 </ul>
               </li>
               <li>{t("stravaAppInstruction4")}</li>
@@ -298,7 +289,7 @@ export default function StravaAppSetup() {
             </Button>
           </div>
 
-          <div className="rounded-lg border p-4 bg-muted/50">
+          {/* <div className="rounded-lg border p-4 bg-muted/50">
             <h4 className="font-medium mb-2">{t("currentConfiguration")}</h4>
             <div className="space-y-2 text-sm">
               <div>
@@ -318,14 +309,9 @@ export default function StravaAppSetup() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>
-              Your Strava app is configured! You can now use Strava integration features.
-            </AlertDescription>
-          </Alert>
+          
         </CardContent>
       </Card>
     );
