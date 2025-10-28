@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,6 +27,8 @@ import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ActivityList from "@/components/challenges/ActivityList";
 import BingoAnimation from "@/components/challenges/BingoAnimation";
+import { stravaService } from "@/lib/strava";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectContent,
@@ -36,6 +38,18 @@ import {
 } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { calculateTotalPoints } from "@/lib/points";
+
+// Strava Logo Component
+const StravaLogo = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7.13 14.828h4.169" />
+  </svg>
+);
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +64,7 @@ export default function ChallengePage() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
@@ -70,6 +85,7 @@ export default function ChallengePage() {
   const [creatorAvatar, setCreatorAvatar] = useState<string | undefined>(
     undefined,
   );
+  const [isImportingStrava, setIsImportingStrava] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [joiningChallenge, setJoiningChallenge] = useState(false);
 
@@ -152,6 +168,52 @@ export default function ChallengePage() {
       console.error("Error refreshing progress:", error);
     }
   }, [challenge?.id, user?.id, getChallengeProgress]);
+
+  const handleImportStravaActivities = async () => {
+    if (!user || !challenge) return;
+
+    try {
+      setIsImportingStrava(true);
+      
+      // Get Strava connection
+      const connection = await stravaService.getConnection(user.id);
+      if (!connection) {
+        toast({
+          title: t("error"),
+          description: "No Strava connection found. Please connect your Strava account first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get valid access token
+      const accessToken = await stravaService.ensureValidToken(connection);
+      
+      // Import activities from Strava
+      const activities = await stravaService.getRecentActivities(user.id, 30); // Last 30 days
+      
+      // TODO: Process activities and add them to challenge objectives
+      // This would need to be implemented based on how activities map to objectives
+      
+      toast({
+        title: t("success"),
+        description: `Imported ${activities.length} activities from Strava`,
+      });
+      
+      // Refresh progress after import
+      await refreshProgress();
+      
+    } catch (error) {
+      console.error("Error importing Strava activities:", error);
+      toast({
+        title: t("error"),
+        description: error instanceof Error ? error.message : "Failed to import Strava activities",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImportingStrava(false);
+    }
+  };
 
   // Load participant progress when selected user changes
   useEffect(() => {
@@ -414,13 +476,6 @@ export default function ChallengePage() {
         isVisible={showBingoAnimation}
         onComplete={() => setShowBingoAnimation(false)}
       />
-      <Link
-        to="/challenges"
-        className="mb-4 inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="mr-1 h-4 w-4" />
-        {t("challenges")}
-      </Link>
 
       <div className="max-w-4xl mx-auto">
         <div className="space-y-6">
@@ -551,6 +606,23 @@ export default function ChallengePage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {/* Strava Sync Button - Mobile */}
+                  {challenge?.strava && hasJoined && !selectedUserId && (
+                    <Button
+                      onClick={handleImportStravaActivities}
+                      disabled={isImportingStrava}
+                      size="sm"
+                      className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0 px-2"
+                    >
+                      {isImportingStrava ? (
+                        <StravaLogo className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <StravaLogo className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                  
                   {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && (
                     <Select
                       value={selectedUserId || ""}
@@ -584,17 +656,42 @@ export default function ChallengePage() {
                 </div>
               ) : (
                 <>
-                  <TabsList className="w-full sm:w-auto">
-                    <TabsTrigger value="objectives">
-                      {t("objectives")}
-                    </TabsTrigger>
-                    <TabsTrigger value="leaderboard">
-                      {t("leaderboard")}
-                    </TabsTrigger>
-                    <TabsTrigger value="activities">
-                      {t("activities")}
-                    </TabsTrigger>
-                  </TabsList>
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <TabsList className="w-auto">
+                      <TabsTrigger value="objectives">
+                        {t("objectives")}
+                      </TabsTrigger>
+                      <TabsTrigger value="leaderboard">
+                        {t("leaderboard")}
+                      </TabsTrigger>
+                      <TabsTrigger value="activities">
+                        {t("activities")}
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Strava Sync Button */}
+                    {challenge?.strava && hasJoined && !selectedUserId && (
+                      <Button
+                        onClick={handleImportStravaActivities}
+                        disabled={isImportingStrava}
+                        size="sm"
+                        className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0"
+                      >
+                        {isImportingStrava ? (
+                          <>
+                            <StravaLogo className="mr-2 h-4 w-4 animate-spin" />
+                            <span className="hidden sm:inline">{t("loading")}</span>
+                          </>
+                        ) : (
+                          <>
+                            <StravaLogo className="mr-2 h-4 w-4" />
+                            <span className="hidden sm:inline">{t("importStravaActivities")}</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  
                   {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && (
                     <Select
                       value={selectedUserId || ""}

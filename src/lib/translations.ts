@@ -430,6 +430,9 @@ export const translations = {
     stravaAccountDisconnected: "Strava-Konto erfolgreich getrennt",
     stravaDisconnectFailed: "Strava-Konto konnte nicht getrennt werden",
     stravaConnectionExpired: "Deine Strava-Verbindung ist abgelaufen. Bitte verbinde dich erneut, um deine Daten weiter zu synchronisieren.",
+    
+    // Strava Import Button
+    importStravaActivities: "Strava Aktivitäten importieren",
   },
   en: {
     // Navigation
@@ -842,6 +845,9 @@ export const translations = {
     stravaAccountDisconnected: "Strava account disconnected successfully",
     stravaDisconnectFailed: "Failed to disconnect Strava account",
     stravaConnectionExpired: "Your Strava connection has expired. Please reconnect to continue syncing your data.",
+    
+    // Strava Import Button
+    importStravaActivities: "Import Strava Activities",
   },
 };
 

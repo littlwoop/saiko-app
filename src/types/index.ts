@@ -31,6 +31,7 @@ export interface Challenge {
   totalPoints: number;
   challenge_type: ChallengeType;
   capedPoints?: boolean;
+  strava?: boolean; // Flag to indicate if Strava integration is enabled
 }
 
 export interface UserProgress {
