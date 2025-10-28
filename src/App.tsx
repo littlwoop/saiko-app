@@ -21,6 +21,7 @@ import ChallengePage from "@/pages/ChallengePage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
 import ProfilePage from "@/pages/ProfilePage";
 import Dashboard from "@/pages/Dashboard";
+import StravaCallback from "@/pages/StravaCallback";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
                   <Route path="forgot-password" element={<ForgotPassword />} />
                   <Route path="reset-password" element={<ResetPassword />} />
                   <Route path="auth/callback" element={<ResetPassword />} />
+                  <Route path="auth/strava/callback" element={<StravaCallback />} />
                   <Route path="challenges" element={<ChallengesPage />} />
                   <Route path="challenges/:id" element={<ChallengePage />} />
                   <Route path="leaderboard" element={<LeaderboardPage />} />
