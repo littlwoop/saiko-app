@@ -1,6 +1,13 @@
 import { StravaAthlete, StravaTokenResponse, StravaConnection, StravaActivity } from "@/types";
 import { supabase } from "@/lib/supabase";
 
+// Pre-configured Strava app credentials (you'll need to set these)
+const STRAVA_CONFIG = {
+  clientId: import.meta.env.VITE_STRAVA_CLIENT_ID || "YOUR_CLIENT_ID",
+  clientSecret: import.meta.env.VITE_STRAVA_CLIENT_SECRET || "YOUR_CLIENT_SECRET", 
+  redirectUri: import.meta.env.VITE_STRAVA_REDIRECT_URI || "https://www.saikochallenges.com/auth/strava/callback"
+};
+
 interface StravaAppConfig {
   id: string;
   userId: string;
@@ -56,21 +63,16 @@ export class StravaService {
   }
 
   /**
-   * Generate the Strava OAuth authorization URL
+   * Generate the Strava OAuth authorization URL using pre-configured app
    */
   async getAuthorizationUrl(userId: string): Promise<string> {
-    const config = await this.getAppConfig(userId);
-    
-    if (!config) {
-      throw new Error("Strava app not configured. Please set up your Strava app first.");
-    }
-
     const params = new URLSearchParams({
-      client_id: config.clientId,
-      redirect_uri: config.redirectUri,
+      client_id: STRAVA_CONFIG.clientId,
+      redirect_uri: STRAVA_CONFIG.redirectUri,
       response_type: "code",
       scope: "read,profile:read_all,activity:read",
       approval_prompt: "force",
+      state: userId, // Pass userId in state for callback
     });
 
     const authUrl = `https://www.strava.com/oauth/authorize?${params.toString()}`;
@@ -78,23 +80,17 @@ export class StravaService {
   }
 
   /**
-   * Exchange authorization code for access token
+   * Exchange authorization code for access token using pre-configured app
    */
-  async exchangeCodeForToken(code: string, userId: string): Promise<StravaTokenResponse> {
-    const config = await this.getAppConfig(userId);
-    
-    if (!config) {
-      throw new Error("Strava app not configured. Please set up your Strava app first.");
-    }
-
+  async exchangeCodeForToken(code: string, _userId: string): Promise<StravaTokenResponse> {
     const response = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
+        client_id: STRAVA_CONFIG.clientId,
+        client_secret: STRAVA_CONFIG.clientSecret,
         code,
         grant_type: "authorization_code",
       }),
@@ -106,7 +102,7 @@ export class StravaService {
         const errorData = await response.json();
         console.error('Strava token exchange error:', errorData);
         errorMessage = `Failed to exchange code for token: ${errorData.message || JSON.stringify(errorData)}`;
-      } catch (e) {
+      } catch (_e) {
         console.error('Could not parse Strava error response');
       }
       throw new Error(errorMessage);
@@ -116,23 +112,17 @@ export class StravaService {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token using pre-configured app
    */
-  async refreshAccessToken(refreshToken: string, userId: string): Promise<StravaTokenResponse> {
-    const config = await this.getAppConfig(userId);
-    
-    if (!config) {
-      throw new Error("Strava app not configured. Please set up your Strava app first.");
-    }
-
+  async refreshAccessToken(refreshToken: string, _userId: string): Promise<StravaTokenResponse> {
     const response = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
+        client_id: STRAVA_CONFIG.clientId,
+        client_secret: STRAVA_CONFIG.clientSecret,
         refresh_token: refreshToken,
         grant_type: "refresh_token",
       }),
@@ -335,7 +325,7 @@ export class StravaService {
         const errorData = await response.json();
         console.error('Strava activities error:', errorData);
         errorMessage = `Failed to get activities: ${errorData.message || JSON.stringify(errorData)}`;
-      } catch (e) {
+      } catch (_e) {
         console.error('Could not parse Strava error response');
       }
       throw new Error(errorMessage);

@@ -276,15 +276,6 @@ export default function StravaConnectionCard() {
                 )}
               </Button>
             </div>
-
-            {status.status === 'expired' && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {t("stravaConnectionExpired")}
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
         )}
       </CardContent>

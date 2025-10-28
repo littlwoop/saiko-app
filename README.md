@@ -4,6 +4,28 @@
 
 **URL**: https://lovable.dev/projects/a94c8427-1caf-4bd2-894c-c24f38846a44
 
+## Strava Integration Setup
+
+This project includes Strava integration for importing fitness activities. To enable this feature:
+
+1. **Create a Strava App**:
+   - Go to https://www.strava.com/settings/api
+   - Click "Create App"
+   - Fill in the required information:
+     - **Application Name**: Challenge Crafters Unite
+     - **Category**: Other
+     - **Authorization Callback Domain**: www.saikochallenges.com
+
+2. **Configure Environment Variables**:
+   Create a `.env` file in the project root with your Strava app credentials:
+   ```
+   VITE_STRAVA_CLIENT_ID=your_client_id_here
+   VITE_STRAVA_CLIENT_SECRET=your_client_secret_here
+   VITE_STRAVA_REDIRECT_URI=https://www.saikochallenges.com/auth/strava/callback
+   ```
+
+3. **That's it!** Users can now connect their Strava accounts directly from challenge pages without needing to create their own Strava apps.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

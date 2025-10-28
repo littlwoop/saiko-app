@@ -428,9 +428,9 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
                 
-                <ErrorBoundary>
+                {/* <ErrorBoundary>
                   <StravaAppSetup />
-                </ErrorBoundary>
+                </ErrorBoundary> */}
                 <ErrorBoundary>
                   <StravaConnectionCard />
                 </ErrorBoundary>
