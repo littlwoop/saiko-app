@@ -103,13 +103,51 @@ export interface StravaTokenResponse {
   athlete: StravaAthlete;
 }
 
+export interface StravaActivity {
+  id: number;
+  name: string;
+  distance: number;
+  moving_time: number;
+  elapsed_time: number;
+  total_elevation_gain: number;
+  type: string;
+  start_date: string;
+  start_date_local: string;
+  timezone: string;
+  utc_offset: number;
+  start_latlng?: [number, number];
+  end_latlng?: [number, number];
+  location_city?: string;
+  location_state?: string;
+  location_country?: string;
+  achievement_count: number;
+  kudos_count: number;
+  comment_count: number;
+  athlete_count: number;
+  photo_count: number;
+  trainer: boolean;
+  commute: boolean;
+  manual: boolean;
+  private: boolean;
+  flagged: boolean;
+  workout_type?: number;
+  average_speed: number;
+  max_speed: number;
+  has_heartrate: boolean;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  calories?: number;
+  suffer_score?: number;
+}
+
+// Strava DB connection record used across app
 export interface StravaConnection {
   id: string;
   userId: string;
   stravaAthleteId: number;
   accessToken: string;
   refreshToken: string;
-  expiresAt: string;
+  expiresAt: string; // ISO string or epoch string depending on persistence
   createdAt: string;
   updatedAt: string;
 }

@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChallengeCard from "@/components/challenges/ChallengeCard";
-import StravaConnectionCard from "@/components/profile/StravaConnectionCard";
+import StravaActivities from "@/components/profile/StravaActivities";
 import StravaAppSetup from "@/components/profile/StravaAppSetup";
+import StravaConnectionCard from "@/components/profile/StravaConnectionCard";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -432,6 +433,9 @@ export default function ProfilePage() {
                 </ErrorBoundary>
                 <ErrorBoundary>
                   <StravaConnectionCard />
+                </ErrorBoundary>
+                <ErrorBoundary>
+                  <StravaActivities />
                 </ErrorBoundary>
               </TabsContent>
 

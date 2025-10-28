@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { stravaService } from "@/lib/strava";
-import { StravaConnection, StravaAthlete } from "@/types";
+import { StravaAthlete, StravaConnection } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,13 +32,7 @@ export default function StravaConnectionCard() {
   const [isImporting, setIsImporting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadConnection();
-    }
-  }, [user]);
-
-  const loadConnection = async () => {
+  const loadConnection = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -56,13 +50,19 @@ export default function StravaConnectionCard() {
       console.error("Error loading Strava connection:", error);
       toast({
         title: t("error"),
-        description: "Failed to load Strava connection",
+        description: t("profileImportFailed"),
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, t, toast]);
+
+  useEffect(() => {
+    if (user) {
+      loadConnection();
+    }
+  }, [user, loadConnection]);
 
   const handleConnect = async () => {
     if (!user) return;
@@ -75,7 +75,7 @@ export default function StravaConnectionCard() {
       console.error("Error initiating Strava connection:", error);
       toast({
         title: t("error"),
-        description: error instanceof Error ? error.message : "Failed to initiate Strava connection",
+        description: error instanceof Error ? error.message : t("profileImportFailed"),
         variant: "destructive",
       });
       setIsConnecting(false);
@@ -92,13 +92,13 @@ export default function StravaConnectionCard() {
       
       toast({
         title: t("success"),
-        description: "Profile information imported from Strava successfully!",
+        description: t("profileImportedSuccessfully"),
       });
     } catch (error) {
       console.error("Error importing profile:", error);
       toast({
         title: t("error"),
-        description: error instanceof Error ? error.message : "Failed to import profile",
+        description: error instanceof Error ? error.message : t("profileImportFailed"),
         variant: "destructive",
       });
     } finally {
@@ -117,13 +117,13 @@ export default function StravaConnectionCard() {
       
       toast({
         title: t("success"),
-        description: "Strava account disconnected successfully",
+        description: t("stravaAccountDisconnected"),
       });
     } catch (error) {
       console.error("Error disconnecting Strava:", error);
       toast({
         title: t("error"),
-        description: "Failed to disconnect Strava account",
+        description: t("stravaDisconnectFailed"),
         variant: "destructive",
       });
     } finally {
@@ -136,7 +136,7 @@ export default function StravaConnectionCard() {
     
     const expiresAt = new Date(connection.expiresAt).getTime();
     const now = Date.now();
-    const bufferTime = 24 * 60 * 60 * 1000; // 24 hours buffer
+    const bufferTime = 5 * 60 * 1000; // 5 minutes buffer (same as strava service)
     
     if (now >= expiresAt - bufferTime) {
       return { status: 'expired', color: 'red' };
@@ -152,7 +152,7 @@ export default function StravaConnectionCard() {
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="ml-2">Loading Strava connection...</span>
+          <span className="ml-2">{t("loadingStravaConnection")}</span>
         </CardContent>
       </Card>
     );
@@ -163,10 +163,10 @@ export default function StravaConnectionCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5" />
-          Strava Integration
+          {t("stravaConnection")}
         </CardTitle>
         <CardDescription>
-          Connect your Strava account to import your profile information and activity data.
+          {t("stravaConnectionDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -175,7 +175,7 @@ export default function StravaConnectionCard() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Connect your Strava account to automatically import your profile information and sync your fitness data.
+                {t("connectStravaAccount")}
               </AlertDescription>
             </Alert>
             
@@ -187,12 +187,12 @@ export default function StravaConnectionCard() {
               {isConnecting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting...
+                  {t("connecting")}
                 </>
               ) : (
                 <>
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Connect to Strava
+                  {t("connectToStrava")}
                 </>
               )}
             </Button>
@@ -204,25 +204,23 @@ export default function StravaConnectionCard() {
                 <Badge variant={status.color === 'green' ? 'default' : 'destructive'}>
                   {status.status === 'connected' && <CheckCircle className="mr-1 h-3 w-3" />}
                   {status.status === 'expired' && <AlertCircle className="mr-1 h-3 w-3" />}
-                  {status.status === 'connected' ? 'Connected' : 'Expired'}
+                  {status.status === 'connected' ? t('connected') : t('expired')}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  Strava Athlete ID: {connection.stravaAthleteId}
+                  {t("stravaAthleteId")}: {connection.stravaAthleteId}
                 </span>
               </div>
             </div>
 
             {athlete && (
               <div className="rounded-lg border p-4 bg-muted/50">
-                <h4 className="font-medium mb-2">Imported Profile Information</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Name:</span>
                     <div className="font-medium">{athlete.firstname} {athlete.lastname}</div>
                   </div>
                   {athlete.city && (
                     <div>
-                      <span className="text-muted-foreground">Location:</span>
+                      <span className="text-muted-foreground">{t("location")}:</span>
                       <div className="font-medium">
                         {athlete.city}{athlete.state && `, ${athlete.state}`}
                       </div>
@@ -230,13 +228,13 @@ export default function StravaConnectionCard() {
                   )}
                   {athlete.country && (
                     <div>
-                      <span className="text-muted-foreground">Country:</span>
+                      <span className="text-muted-foreground">{t("location")}:</span>
                       <div className="font-medium">{athlete.country}</div>
                     </div>
                   )}
                   {athlete.bio && (
                     <div className="col-span-2">
-                      <span className="text-muted-foreground">Bio:</span>
+                      <span className="text-muted-foreground">{t("location")}:</span>
                       <div className="font-medium">{athlete.bio}</div>
                     </div>
                   )}
@@ -254,12 +252,12 @@ export default function StravaConnectionCard() {
                 {isImporting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Importing...
+                    {t("importingProfile")}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Import Profile
+                    {t("importProfile")}
                   </>
                 )}
               </Button>
@@ -273,12 +271,12 @@ export default function StravaConnectionCard() {
                 {isDisconnecting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Disconnecting...
+                    {t("disconnecting")}
                   </>
                 ) : (
                   <>
                     <Unlink className="mr-2 h-4 w-4" />
-                    Disconnect
+                    {t("disconnect")}
                   </>
                 )}
               </Button>
@@ -288,7 +286,7 @@ export default function StravaConnectionCard() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Your Strava connection has expired. Please reconnect to continue syncing your data.
+                  {t("stravaConnectionExpired")}
                 </AlertDescription>
               </Alert>
             )}

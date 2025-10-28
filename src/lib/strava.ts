@@ -1,4 +1,4 @@
-import { StravaAthlete, StravaTokenResponse, StravaConnection } from "@/types";
+import { StravaAthlete, StravaTokenResponse, StravaConnection, StravaActivity } from "@/types";
 import { supabase } from "@/lib/supabase";
 
 interface StravaAppConfig {
@@ -69,7 +69,7 @@ export class StravaService {
       client_id: config.clientId,
       redirect_uri: config.redirectUri,
       response_type: "code",
-      scope: "read,profile:read_all",
+      scope: "read,profile:read_all,activity:read",
       approval_prompt: "force",
     });
 
@@ -243,16 +243,32 @@ export class StravaService {
     const now = Date.now();
     const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
 
+    console.log('Token validation:', {
+      now: new Date(now).toISOString(),
+      expiresAt: new Date(expiresAt).toISOString(),
+      bufferTime: bufferTime / 1000 / 60 + ' minutes',
+      isExpired: now >= expiresAt - bufferTime,
+      timeUntilExpiry: (expiresAt - now) / 1000 / 60 + ' minutes'
+    });
+
     if (now >= expiresAt - bufferTime) {
-      // Token is expired or will expire soon, refresh it
-      const tokenResponse = await this.refreshAccessToken(connection.refreshToken, connection.userId);
-      
-      // Update the connection in database
-      await this.saveConnection(connection.userId, tokenResponse);
-      
-      return tokenResponse.access_token;
+      console.log("Token expired or expiring soon, refreshing...");
+      try {
+        // Token is expired or will expire soon, refresh it
+        const tokenResponse = await this.refreshAccessToken(connection.refreshToken, connection.userId);
+        
+        // Update the connection in database
+        await this.saveConnection(connection.userId, tokenResponse);
+        
+        console.log("Token refreshed successfully");
+        return tokenResponse.access_token;
+      } catch (error) {
+        console.error("Failed to refresh token:", error);
+        throw new Error(`Failed to refresh Strava token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
 
+    console.log("Token is still valid");
     return connection.accessToken;
   }
 
@@ -270,6 +286,64 @@ export class StravaService {
     const athlete = await this.getAthleteProfile(accessToken);
     // Return athlete only; do not update user_profiles
     return athlete;
+  }
+
+  /**
+   * Get athlete activities from the last month
+   */
+  async getRecentActivities(userId: string, days: number = 30): Promise<StravaActivity[]> {
+    const connection = await this.getConnection(userId);
+    
+    if (!connection) {
+      throw new Error("No Strava connection found. Please connect your Strava account first.");
+    }
+
+    console.log('Current connection:', {
+      userId,
+      expiresAt: connection.expiresAt,
+      isExpired: new Date(connection.expiresAt) < new Date()
+    });
+
+    const accessToken = await this.ensureValidToken(connection);
+    
+    console.log('Using access token:', accessToken ? `${accessToken.substring(0, 10)}...` : 'null');
+    
+    // Calculate date range (last 30 days by default)
+    const before = Math.floor(Date.now() / 1000);
+    const after = Math.floor((Date.now() - (days * 24 * 60 * 60 * 1000)) / 1000);
+    
+    console.log('Fetching activities:', { before, after, days });
+    
+    const response = await fetch(
+      `https://www.strava.com/api/v3/athlete/activities?before=${before}&after=${after}&per_page=200`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    console.log('Strava API response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Failed to get activities: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        console.error('Strava activities error:', errorData);
+        errorMessage = `Failed to get activities: ${errorData.message || JSON.stringify(errorData)}`;
+      } catch (e) {
+        console.error('Could not parse Strava error response');
+      }
+      throw new Error(errorMessage);
+    }
+
+    const activities = await response.json();
+    console.log('Successfully loaded activities:', activities.length);
+    return activities;
   }
 
   /**

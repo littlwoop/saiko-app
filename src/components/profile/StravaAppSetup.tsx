@@ -185,52 +185,52 @@ export default function StravaAppSetup() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Strava App Configuration
+            {t("stravaAppSetup")}
           </CardTitle>
           <CardDescription>
-            Set up your Strava app credentials to enable Strava integration.
+            {t("stravaAppSetupDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              To use Strava integration, you need to create a Strava app and provide the credentials below.
+              {t("stravaAppSetupDescription")}
             </AlertDescription>
           </Alert>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="clientId">Strava Client ID</Label>
+              <Label htmlFor="clientId">{t("clientId")}</Label>
               <Input
                 id="clientId"
                 value={formData.clientId}
                 onChange={(e) => setFormData(prev => ({ ...prev, clientId: e.target.value }))}
-                placeholder="Enter your Strava Client ID"
+                placeholder={t("enterClientId")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="clientSecret">Strava Client Secret</Label>
+              <Label htmlFor="clientSecret">{t("clientSecret")}</Label>
               <Input
                 id="clientSecret"
                 type="password"
                 value={formData.clientSecret}
                 onChange={(e) => setFormData(prev => ({ ...prev, clientSecret: e.target.value }))}
-                placeholder="Enter your Strava Client Secret"
+                placeholder={t("enterClientSecret")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="redirectUri">Redirect URI</Label>
+              <Label htmlFor="redirectUri">{t("redirectUri")}</Label>
               <Input
                 id="redirectUri"
                 value={formData.redirectUri}
                 onChange={(e) => setFormData(prev => ({ ...prev, redirectUri: e.target.value }))}
-                placeholder="http://localhost:5173/auth/strava/callback"
+                placeholder={t("enterRedirectUri")}
               />
               <p className="text-sm text-muted-foreground">
-                This should match the "Authorization Callback Domain" in your Strava app settings.
+                {t("redirectUriHelp")}
               </p>
             </div>
 
@@ -239,34 +239,34 @@ export default function StravaAppSetup() {
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    {t("saving")}
                   </>
                 ) : (
-                  'Save Configuration'
+                  t("saveConfiguration")
                 )}
               </Button>
               
               <Button variant="outline" onClick={openStravaAppCreation}>
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Create Strava App
+                {t("createStravaApp")}
               </Button>
             </div>
           </div>
 
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-2">How to Create a Strava App</h4>
+            <h4 className="font-medium mb-2">{t("howToCreateStravaApp")}</h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Go to <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Strava API Settings</a></li>
-              <li>Click "Create an App"</li>
-              <li>Fill in the required information:
+              <li>{t("stravaAppInstruction1")} <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{t("stravaAppInstructionsLink")}</a></li>
+              <li>{t("stravaAppInstruction2")}</li>
+              <li>{t("stravaAppInstruction3")}
                 <ul className="ml-4 mt-1 space-y-1 list-disc list-inside">
-                  <li><strong>Application Name:</strong> Your app name</li>
-                  <li><strong>Category:</strong> Choose "Other"</li>
-                  <li><strong>Authorization Callback Domain:</strong> {window.location.hostname}</li>
+                  <li><strong>{t("applicationName")}:</strong> {t("applicationNameValue")}</li>
+                  <li><strong>{t("category")}:</strong> {t("categoryValue")}</li>
+                  <li><strong>{t("authorizationCallbackDomain")}:</strong> {window.location.hostname}</li>
                 </ul>
               </li>
-              <li>After creation, copy the Client ID and Client Secret</li>
-              <li>Paste them in the form above and save</li>
+              <li>{t("stravaAppInstruction4")}</li>
+              <li>{t("stravaAppInstruction5")}</li>
             </ol>
           </div>
         </CardContent>
@@ -281,25 +281,25 @@ export default function StravaAppSetup() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Strava App Configuration
+            {t("stravaAppSetup")}
           </CardTitle>
           <CardDescription>
-            Set up your Strava app credentials to enable Strava integration.
+            {t("stravaAppSetupDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <Badge variant="default" className="flex items-center gap-1">
               <CheckCircle className="h-3 w-3" />
-              Configured
+              {t("configured")}
             </Badge>
             <Button variant="outline" size="sm" onClick={() => setConfig(null)}>
-              Edit Configuration
+              {t("updateConfiguration")}
             </Button>
           </div>
 
           <div className="rounded-lg border p-4 bg-muted/50">
-            <h4 className="font-medium mb-2">Current Configuration</h4>
+            <h4 className="font-medium mb-2">{t("currentConfiguration")}</h4>
             <div className="space-y-2 text-sm">
               <div>
                 <span className="text-muted-foreground">Client ID:</span>
