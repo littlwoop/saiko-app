@@ -316,11 +316,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container py-4 sm:py-6 md:py-8 px-3 sm:px-4 md:px-6">
       <div className="mx-auto max-w-5xl">
-        <h1 className="text-3xl font-bold">{t("myProfile")}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">{t("myProfile")}</h1>
 
-        <div className="mt-8 grid gap-8 md:grid-cols-3">
+        <div className="mt-4 sm:mt-6 md:mt-8 grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-3">
           <div className="md:col-span-1">
             <Card>
               <CardHeader className="flex flex-col items-center">
@@ -375,11 +375,11 @@ export default function ProfilePage() {
 
           <div className="md:col-span-2">
             <Tabs defaultValue="profile">
-              <TabsList>
-                <TabsTrigger value="profile">
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="profile" className="flex-1 sm:flex-none">
                   {t("profileInformation")}
                 </TabsTrigger>
-                <TabsTrigger value="challenges">
+                <TabsTrigger value="challenges" className="flex-1 sm:flex-none">
                   {t("myChallenges")}
                 </TabsTrigger>
               </TabsList>
@@ -412,14 +412,15 @@ export default function ProfilePage() {
                           readOnly
                         />
                       </div>
-                      <div className="flex gap-4">
-                        <Button type="submit" onClick={handleUpdateProfile}>
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <Button type="submit" onClick={handleUpdateProfile} className="w-full sm:w-auto">
                           {t("saveChanges")}
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
                           onClick={logout}
+                          className="w-full sm:w-auto"
                         >
                           {t("logOut")}
                         </Button>
@@ -450,7 +451,7 @@ export default function ProfilePage() {
                         {t("loading")}
                       </p>
                     ) : userJoinedChallenges.length > 0 ? (
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
                         {userJoinedChallenges.map((challenge) => {
                           const userChallenge = userChallenges.find(
                             (uc) =>
@@ -484,7 +485,7 @@ export default function ProfilePage() {
                         {t("loading")}
                       </p>
                     ) : userCreatedChallenges.length > 0 ? (
-                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
                         {userCreatedChallenges.map((challenge) => {
                           const userChallenge = userChallenges.find(
                             (uc) =>
