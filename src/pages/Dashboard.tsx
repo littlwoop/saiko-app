@@ -59,23 +59,53 @@ export default function Dashboard() {
           })
         );
 
-        // Filter out null values and only show active challenges (started but not ended)
-        const active = challengesWithDetails
+        // Filter out null values and show active challenges (started but not ended) 
+        // and future challenges (not started yet but user has joined)
+        const now = new Date();
+        const challenges = challengesWithDetails
           .filter((item): item is DashboardChallengeData => 
             item !== null && 
             item.challenge && 
-            new Date(item.challenge.startDate) <= new Date() && 
-            (!item.challenge.endDate || new Date(item.challenge.endDate) > new Date())
+            // Show if: active (started but not ended) OR future (not started yet)
+            (
+              (new Date(item.challenge.startDate) <= now && 
+               (!item.challenge.endDate || new Date(item.challenge.endDate) > now))
+              ||
+              new Date(item.challenge.startDate) > now
+            )
           )
           .sort((a, b) => {
-            // Sort ongoing challenges (no end date) to the end
-            if (!a.challenge.endDate && !b.challenge.endDate) return 0;
-            if (!a.challenge.endDate) return 1;
-            if (!b.challenge.endDate) return -1;
-            return new Date(a.challenge.endDate).getTime() - new Date(b.challenge.endDate).getTime();
+            const aStartDate = new Date(a.challenge.startDate);
+            const bStartDate = new Date(b.challenge.startDate);
+            const aEndDate = a.challenge.endDate ? new Date(a.challenge.endDate) : null;
+            const bEndDate = b.challenge.endDate ? new Date(b.challenge.endDate) : null;
+            
+            // Determine status: active (started, not ended) or future (not started)
+            const aIsActive = aStartDate <= now && (!aEndDate || aEndDate > now);
+            const bIsActive = bStartDate <= now && (!bEndDate || bEndDate > now);
+            const aIsFuture = aStartDate > now;
+            const bIsFuture = bStartDate > now;
+            
+            // Sort: active challenges first, then future challenges
+            if (aIsActive && !bIsActive) return -1;
+            if (!aIsActive && bIsActive) return 1;
+            
+            // Within same status, sort by date (active: by end date, future: by start date)
+            if (aIsActive && bIsActive) {
+              // Sort active challenges by end date (sooner ending first)
+              if (!aEndDate && !bEndDate) return 0;
+              if (!aEndDate) return 1;
+              if (!bEndDate) return -1;
+              return aEndDate.getTime() - bEndDate.getTime();
+            } else if (aIsFuture && bIsFuture) {
+              // Sort future challenges by start date (starting soon first)
+              return aStartDate.getTime() - bStartDate.getTime();
+            }
+            
+            return 0;
           });
 
-        setActiveChallenges(active);
+        setActiveChallenges(challenges);
       } catch (error) {
         console.error("Error loading active challenges:", error);
       } finally {
@@ -191,6 +221,18 @@ export default function Dashboard() {
     const diffTime = end.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
+  };
+
+  const getDaysUntilStart = (startDate: string) => {
+    const start = new Date(startDate);
+    const now = new Date();
+    const diffTime = start.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const isFutureChallenge = (startDate: string) => {
+    return new Date(startDate) > new Date();
   };
 
   const [userActivityDates, setUserActivityDates] = useState<Set<string>>(new Set());
@@ -425,8 +467,10 @@ export default function Dashboard() {
       ) : (
         <div className={`grid gap-4 sm:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
           {activeChallenges.map((item) => {
-            const progress = calculateProgress(item);
+            const isFuture = isFutureChallenge(item.challenge.startDate);
+            const progress = isFuture ? 0 : calculateProgress(item);
             const daysRemaining = item.challenge.endDate ? getDaysRemaining(item.challenge.endDate) : 999;
+            const daysUntilStart = getDaysUntilStart(item.challenge.startDate);
             
             return (
               <Link to={`/challenges/${item.challenge.id}`} key={item.challenge.id}>
@@ -436,7 +480,14 @@ export default function Dashboard() {
                       <CardTitle className="text-base sm:text-lg leading-tight line-clamp-2">
                         {item.challenge.title}
                       </CardTitle>
-                      {item.challenge.endDate && (
+                      {isFuture ? (
+                        <Badge 
+                          variant="outline"
+                          className="self-start sm:self-auto text-xs sm:text-sm"
+                        >
+                          {t("upcoming")}
+                        </Badge>
+                      ) : item.challenge.endDate && (
                         <Badge 
                           variant={daysRemaining <= 3 ? "destructive" : daysRemaining <= 7 ? "secondary" : "default"}
                           className="self-start sm:self-auto text-xs sm:text-sm"
@@ -448,15 +499,31 @@ export default function Dashboard() {
                   </CardHeader>
                   
                   <CardContent className="space-y-3 sm:space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="text-muted-foreground">
-                          {item.challenge.challenge_type === "completion" ? t("progress") : t("points")}
-                        </span>
-                        <span className="font-medium">{getDisplayValue(item)}</span>
+                    {isFuture ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-muted-foreground">{t("startsOn")}</span>
+                          <span className="font-medium">
+                            {new Date(item.challenge.startDate).toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">{t("challengeNotStartedYet")}</p>
                       </div>
-                      <Progress value={progress} className="h-1.5 sm:h-2" />
-                    </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-muted-foreground">
+                            {item.challenge.challenge_type === "completion" ? t("progress") : t("points")}
+                          </span>
+                          <span className="font-medium">{getDisplayValue(item)}</span>
+                        </div>
+                        <Progress value={progress} className="h-1.5 sm:h-2" />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Link>
