@@ -175,22 +175,15 @@ export default function ChallengePage() {
     try {
       setIsImportingStrava(true);
       
-      // Get Strava connection
-      const connection = await stravaService.getConnection(user.id);
-      if (!connection) {
-        toast({
-          title: t("error"),
-          description: "No Strava connection found. Please connect your Strava account first.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Get valid access token
-      const accessToken = await stravaService.ensureValidToken(connection);
+      // Calculate challenge date range
+      const challengeStartDate = new Date(challenge.startDate);
+      const challengeEndDate = challenge.endDate ? new Date(challenge.endDate) : new Date(); // Use current date if no end date
       
-      // Import activities from Strava
-      const activities = await stravaService.getRecentActivities(user.id, 30); // Last 30 days
+      // Import activities from Strava within challenge timeframe
+      const activities = await stravaService.getRecentActivities(user.id, {
+        after: challengeStartDate,
+        before: challengeEndDate,
+      });
       
       // TODO: Process activities and add them to challenge objectives
       // This would need to be implemented based on how activities map to objectives
@@ -611,9 +604,10 @@ export default function ChallengePage() {
                   {challenge?.strava && hasJoined && !selectedUserId && (
                     <Button
                       onClick={handleImportStravaActivities}
-                      disabled={isImportingStrava}
+                      disabled={isImportingStrava || isFuture}
                       size="sm"
-                      className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0 px-2"
+                      className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={isFuture ? `${t("upcoming")} - Challenge has not started yet` : undefined}
                     >
                       {isImportingStrava ? (
                         <StravaLogo className="h-4 w-4 animate-spin" />
@@ -673,9 +667,10 @@ export default function ChallengePage() {
                     {challenge?.strava && hasJoined && !selectedUserId && (
                       <Button
                         onClick={handleImportStravaActivities}
-                        disabled={isImportingStrava}
+                        disabled={isImportingStrava || isFuture}
                         size="sm"
-                        className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0"
+                        className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={isFuture ? `${t("upcoming")} - Challenge has not started yet` : undefined}
                       >
                         {isImportingStrava ? (
                           <>

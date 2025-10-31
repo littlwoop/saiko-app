@@ -48,7 +48,7 @@ export default function Login() {
         title: t("loginSuccess"),
         description: t("loginSuccessDescription"),
       });
-      navigate("/challenges");
+      navigate("/dashboard");
     } catch (error) {
       toast({
         title: t("loginFailed"),

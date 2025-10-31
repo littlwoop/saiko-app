@@ -279,9 +279,14 @@ export class StravaService {
   }
 
   /**
-   * Get athlete activities from the last month
+   * Get athlete activities
+   * @param userId - User ID
+   * @param options - Either days (number) or date range ({ after: Date | string, before?: Date | string })
    */
-  async getRecentActivities(userId: string, days: number = 30): Promise<StravaActivity[]> {
+  async getRecentActivities(
+    userId: string, 
+    options: number | { after: Date | string; before?: Date | string } = 30
+  ): Promise<StravaActivity[]> {
     const connection = await this.getConnection(userId);
     
     if (!connection) {
@@ -298,11 +303,66 @@ export class StravaService {
     
     console.log('Using access token:', accessToken ? `${accessToken.substring(0, 10)}...` : 'null');
     
-    // Calculate date range (last 30 days by default)
-    const before = Math.floor(Date.now() / 1000);
-    const after = Math.floor((Date.now() - (days * 24 * 60 * 60 * 1000)) / 1000);
+    // Calculate date range
+    let before: number;
+    let after: number;
     
-    console.log('Fetching activities:', { before, after, days });
+    if (typeof options === 'number') {
+      // Legacy behavior: use days
+      before = Math.floor(Date.now() / 1000);
+      after = Math.floor((Date.now() - (options * 24 * 60 * 60 * 1000)) / 1000);
+    } else {
+      // New behavior: use date range
+      let afterDate = typeof options.after === 'string' ? new Date(options.after) : options.after;
+      let beforeDate = options.before 
+        ? (typeof options.before === 'string' ? new Date(options.before) : options.before)
+        : new Date(); // Default to now if not specified
+      
+      // Ensure dates are valid
+      if (isNaN(afterDate.getTime())) {
+        throw new Error(`Invalid after date: ${options.after}`);
+      }
+      if (isNaN(beforeDate.getTime())) {
+        throw new Error(`Invalid before date: ${options.before}`);
+      }
+      
+      // Ensure before date is not in the future (Strava doesn't allow future dates)
+      const now = new Date();
+      if (beforeDate > now) {
+        beforeDate = now;
+      }
+      
+      // If after date is in the future, cap it to now as well
+      if (afterDate > now) {
+        afterDate = now;
+      }
+      
+      // Ensure before is greater than after (Strava API requirement)
+      if (afterDate >= beforeDate) {
+        throw new Error(
+          `Invalid date range: start date (${afterDate.toISOString()}) must be before end date (${beforeDate.toISOString()}). ` +
+          `Note: Strava cannot fetch activities from future dates.`
+        );
+      }
+      
+      // Set start of day for after date (inclusive)
+      const afterDayStart = new Date(afterDate);
+      afterDayStart.setHours(0, 0, 0, 0);
+      
+      // Set end of day for before date (inclusive)
+      const beforeDayEnd = new Date(beforeDate);
+      beforeDayEnd.setHours(23, 59, 59, 999);
+      
+      before = Math.floor(beforeDayEnd.getTime() / 1000);
+      after = Math.floor(afterDayStart.getTime() / 1000);
+      
+      // Final validation: ensure before > after
+      if (before <= after) {
+        throw new Error(`Invalid timestamp calculation: before (${before}) must be greater than after (${after})`);
+      }
+    }
+    
+    console.log('Fetching activities:', { before, after, options });
     
     const response = await fetch(
       `https://www.strava.com/api/v3/athlete/activities?before=${before}&after=${after}&per_page=200`,
