@@ -601,7 +601,8 @@ export default function ChallengePage() {
                   </Select>
                   
                   {/* Strava Sync Button - Mobile */}
-                  {challenge?.strava && hasJoined && !selectedUserId && (
+                  {/* Hidden for now */}
+                  {false && challenge?.strava && hasJoined && !selectedUserId && (
                     <Button
                       onClick={handleImportStravaActivities}
                       disabled={isImportingStrava || isFuture}
@@ -664,7 +665,8 @@ export default function ChallengePage() {
                     </TabsList>
                     
                     {/* Strava Sync Button */}
-                    {challenge?.strava && hasJoined && !selectedUserId && (
+                    {/* Hidden for now */}
+                    {false && challenge?.strava && hasJoined && !selectedUserId && (
                       <Button
                         onClick={handleImportStravaActivities}
                         disabled={isImportingStrava || isFuture}
