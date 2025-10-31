@@ -44,11 +44,12 @@ export default function Header() {
     };
   }, []);
 
-  const NavLinks = () => (
+  const NavLinks = ({ onLinkClick }: { onLinkClick?: () => void }) => (
     <>
       {user && (
         <Link
           to="/dashboard"
+          onClick={onLinkClick}
           className={`text-sm font-medium transition-colors hover:text-primary select-none ${
             location.pathname === "/dashboard"
               ? "text-primary"
@@ -60,6 +61,7 @@ export default function Header() {
       )}
       <Link
         to="/challenges"
+        onClick={onLinkClick}
         className={`text-sm font-medium transition-colors hover:text-primary select-none ${
           location.pathname.includes("/challenges")
             ? "text-primary"
@@ -70,6 +72,7 @@ export default function Header() {
       </Link>
       <Link
         to="/leaderboard"
+        onClick={onLinkClick}
         className={`text-sm font-medium transition-colors hover:text-primary select-none ${
           location.pathname === "/leaderboard"
             ? "text-primary"
@@ -129,17 +132,19 @@ export default function Header() {
             <DrawerContent>
               <DrawerHeader className="text-left">
                 <div className="flex flex-col gap-4">
-                  <NavLinks />
+                  <NavLinks onLinkClick={() => setIsMobileMenuOpen(false)} />
                   {user ? (
                     <>
                       <Link
                         to="/profile"
+                        onClick={() => setIsMobileMenuOpen(false)}
                         className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("profile")}
                       </Link>
                       <Link
                         to="/my-challenges"
+                        onClick={() => setIsMobileMenuOpen(false)}
                         className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("myChallenges")}
@@ -158,12 +163,14 @@ export default function Header() {
                     <>
                       <Link
                         to="/login"
+                        onClick={() => setIsMobileMenuOpen(false)}
                         className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("login")}
                       </Link>
                       <Link
                         to="/signup"
+                        onClick={() => setIsMobileMenuOpen(false)}
                         className="text-sm font-medium transition-colors hover:text-primary select-none"
                       >
                         {t("signup")}
