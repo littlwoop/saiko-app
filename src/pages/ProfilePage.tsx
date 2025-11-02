@@ -270,13 +270,13 @@ export default function ProfilePage() {
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="w-full sm:w-auto">
               <TabsTrigger value="general" className="flex-1 sm:flex-none">
-                Allgemein
+                {t("tabGeneral")}
               </TabsTrigger>
               <TabsTrigger value="strava" className="flex-1 sm:flex-none">
-                Strava
+                {t("tabStrava")}
               </TabsTrigger>
               <TabsTrigger value="personal-best" className="flex-1 sm:flex-none">
-                Personal Best
+                {t("tabPersonalBest")}
               </TabsTrigger>
             </TabsList>
 

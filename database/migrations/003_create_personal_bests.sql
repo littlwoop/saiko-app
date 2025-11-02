@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS personal_bests (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  achievement_type TEXT NOT NULL CHECK (achievement_type IN ('5k', '10k', 'half_marathon', 'marathon', 'longest_run', 'longest_bike_ride')),
+  achievement_type TEXT NOT NULL CHECK (achievement_type IN ('5k', '10k', 'half_marathon', 'marathon', 'olympic_triathlon', 'longest_run', 'longest_bike_ride')),
   time_seconds INTEGER, -- For time-based achievements (5k, 10k, half, marathon)
   distance_meters INTEGER, -- For distance-based achievements (longest_run, longest_bike_ride)
   achievement_date DATE,

@@ -436,6 +436,11 @@ export const translations = {
     // Strava Import Button
     importStravaActivities: "Strava Aktivitäten importieren",
     
+    // Profile Tabs
+    tabGeneral: "Allgemein",
+    tabStrava: "Strava",
+    tabPersonalBest: "Persönliche Bestleistung",
+    
     // Personal Best
     personalBest: "Persönliche Bestleistung",
     personalBestDescription: "Verfolge deine persönlichen Rekorde und Erfolge",
@@ -446,7 +451,6 @@ export const translations = {
     hours: "Stunden",
     minutes: "Minuten",
     seconds: "Sekunden",
-    distance: "Distanz",
     date: "Datum",
     dateOptional: "Datum (optional)",
     notesOptional: "Notizen (optional)",
@@ -468,6 +472,7 @@ export const translations = {
     achievement10k: "Viertelmarathon (10K)",
     achievementHalfMarathon: "Halbmarathon",
     achievementMarathon: "Marathon",
+    achievementOlympicTriathlon: "Triathlon - Olympisch",
     achievementLongestRun: "Längster Lauf",
     achievementLongestBikeRide: "Längste Radtour",
   },
@@ -888,6 +893,11 @@ export const translations = {
     // Strava Import Button
     importStravaActivities: "Import Strava Activities",
     
+    // Profile Tabs
+    tabGeneral: "General",
+    tabStrava: "Strava",
+    tabPersonalBest: "Personal Best",
+    
     // Personal Best
     personalBest: "Personal Best",
     personalBestDescription: "Track your personal records and achievements",
@@ -898,7 +908,6 @@ export const translations = {
     hours: "Hours",
     minutes: "Minutes",
     seconds: "Seconds",
-    distance: "Distance",
     date: "Date",
     dateOptional: "Date (optional)",
     notesOptional: "Notes (optional)",
@@ -920,6 +929,7 @@ export const translations = {
     achievement10k: "Quarter Marathon (10K)",
     achievementHalfMarathon: "Half Marathon",
     achievementMarathon: "Marathon",
+    achievementOlympicTriathlon: "Olympic Triathlon",
     achievementLongestRun: "Longest Run",
     achievementLongestBikeRide: "Longest Bike Ride",
   },

@@ -37,6 +37,7 @@ const ACHIEVEMENT_TYPES: {
   { type: "10k", translationKey: "achievement10k", isTimeBased: true },
   { type: "half_marathon", translationKey: "achievementHalfMarathon", isTimeBased: true },
   { type: "marathon", translationKey: "achievementMarathon", isTimeBased: true },
+  { type: "olympic_triathlon", translationKey: "achievementOlympicTriathlon", isTimeBased: true },
   { type: "longest_run", translationKey: "achievementLongestRun", isTimeBased: false },
   { type: "longest_bike_ride", translationKey: "achievementLongestBikeRide", isTimeBased: false },
 ];

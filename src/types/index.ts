@@ -153,7 +153,7 @@ export interface StravaConnection {
   updatedAt: string;
 }
 
-export type PersonalBestType = "5k" | "10k" | "half_marathon" | "marathon" | "longest_run" | "longest_bike_ride";
+export type PersonalBestType = "5k" | "10k" | "half_marathon" | "marathon" | "longest_run" | "longest_bike_ride" | "olympic_triathlon";
 
 export interface PersonalBest {
   id: string;
