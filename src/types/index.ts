@@ -152,3 +152,17 @@ export interface StravaConnection {
   createdAt: string;
   updatedAt: string;
 }
+
+export type PersonalBestType = "5k" | "10k" | "half_marathon" | "marathon" | "longest_run" | "longest_bike_ride";
+
+export interface PersonalBest {
+  id: string;
+  userId: string;
+  achievementType: PersonalBestType;
+  timeSeconds?: number; // For time-based achievements
+  distanceMeters?: number; // For distance-based achievements
+  achievementDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}

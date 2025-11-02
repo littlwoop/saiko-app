@@ -1,20 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { StravaActivity } from "@/types";
-import { stravaService } from "@/lib/strava";
-import { Trophy, TrendingUp, Zap, Clock, Calendar } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { PersonalBest, PersonalBestType } from "@/types";
+import { Trophy, Edit2, Trash2, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-interface PersonalBest {
-  type: string;
-  metric: string;
-  value: number;
-  activity: StravaActivity;
-}
+const ACHIEVEMENT_TYPES: {
+  type: PersonalBestType;
+  translationKey: string;
+  isTimeBased: boolean;
+}[] = [
+  { type: "5k", translationKey: "achievement5k", isTimeBased: true },
+  { type: "10k", translationKey: "achievement10k", isTimeBased: true },
+  { type: "half_marathon", translationKey: "achievementHalfMarathon", isTimeBased: true },
+  { type: "marathon", translationKey: "achievementMarathon", isTimeBased: true },
+  { type: "longest_run", translationKey: "achievementLongestRun", isTimeBased: false },
+  { type: "longest_bike_ride", translationKey: "achievementLongestBikeRide", isTimeBased: false },
+];
 
 export default function PersonalBest() {
   const { user } = useAuth();
@@ -24,20 +49,78 @@ export default function PersonalBest() {
 
   const [personalBests, setPersonalBests] = useState<PersonalBest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [days, setDays] = useState(365);
+  const [editingBest, setEditingBest] = useState<PersonalBest | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<{
+    achievementType: PersonalBestType;
+    timeHours: string;
+    timeMinutes: string;
+    timeSeconds: string;
+    distance: string;
+    achievementDate: string;
+    notes: string;
+  }>({
+    achievementType: "5k",
+    timeHours: "",
+    timeMinutes: "",
+    timeSeconds: "",
+    distance: "",
+    achievementDate: "",
+    notes: "",
+  });
 
-  const formatDistance = (meters: number): string => {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(2)} km`;
+  const loadPersonalBests = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("personal_bests")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("achievement_type");
+
+      if (error) throw error;
+
+      // Map database format to our interface
+      const mappedData: PersonalBest[] = (data || []).map((pb: any) => ({
+        id: pb.id,
+        userId: pb.user_id,
+        achievementType: pb.achievement_type,
+        timeSeconds: pb.time_seconds,
+        distanceMeters: pb.distance_meters,
+        achievementDate: pb.achievement_date,
+        notes: pb.notes,
+        createdAt: pb.created_at,
+        updatedAt: pb.updated_at,
+      }));
+
+      setPersonalBests(mappedData);
+    } catch (error) {
+      console.error("Error loading personal bests:", error);
+      toast({
+        title: t("error"),
+        description: t("failedToLoadPersonalBests"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    return `${meters.toFixed(0)} m`;
   };
 
-  const formatDuration = (seconds: number): string => {
+  useEffect(() => {
+    if (user) {
+      loadPersonalBests();
+    }
+  }, [user]);
+
+  const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m ${secs}s`;
     }
@@ -47,285 +130,471 @@ export default function PersonalBest() {
     return `${secs}s`;
   };
 
-  const formatSpeed = (metersPerSecond: number): string => {
-    const kmh = (metersPerSecond * 3.6).toFixed(1);
-    return `${kmh} km/h`;
+  const formatDistance = (meters: number): string => {
+    if (meters >= 1000) {
+      return `${(meters / 1000).toFixed(2)} km`;
+    }
+    return `${meters.toFixed(0)} m`;
   };
 
-  const formatPace = (metersPerSecond: number): string => {
-    if (metersPerSecond === 0) return "N/A";
-    const secondsPerKm = 1000 / metersPerSecond;
-    const minutes = Math.floor(secondsPerKm / 60);
-    const seconds = Math.floor(secondsPerKm % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")} min/km`;
+  const parseTimeInput = (
+    hours: string,
+    minutes: string,
+    seconds: string
+  ): number => {
+    const h = parseInt(hours || "0", 10);
+    const m = parseInt(minutes || "0", 10);
+    const s = parseInt(seconds || "0", 10);
+    return h * 3600 + m * 60 + s;
   };
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString(
-      language === "de" ? "de-DE" : "en-US",
-      {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }
-    );
+  const timeToInputs = (seconds?: number): {
+    hours: string;
+    minutes: string;
+    seconds: string;
+  } => {
+    if (!seconds) return { hours: "", minutes: "", seconds: "" };
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return {
+      hours: hours > 0 ? hours.toString() : "",
+      minutes: minutes > 0 ? minutes.toString() : "",
+      seconds: secs > 0 ? secs.toString() : "",
+    };
   };
 
-  const calculatePersonalBests = (activities: StravaActivity[]): PersonalBest[] => {
-    if (activities.length === 0) return [];
-
-    const bests: PersonalBest[] = [];
-    
-    // Group activities by type
-    const activitiesByType = activities.reduce((acc, activity) => {
-      const type = activity.type.toLowerCase();
-      if (!acc[type]) {
-        acc[type] = [];
-      }
-      acc[type].push(activity);
-      return acc;
-    }, {} as Record<string, StravaActivity[]>);
-
-    // Calculate personal bests for each activity type
-    Object.entries(activitiesByType).forEach(([type, typeActivities]) => {
-      // Longest distance
-      const longestDistance = typeActivities.reduce((max, activity) =>
-        activity.distance > max.distance ? activity : max
-      );
-      if (longestDistance.distance > 0) {
-        bests.push({
-          type,
-          metric: "distance",
-          value: longestDistance.distance,
-          activity: longestDistance,
-        });
-      }
-
-      // Fastest average speed (for activities with meaningful speed)
-      const fastest = typeActivities
-        .filter((a) => a.average_speed > 0 && a.moving_time > 60) // At least 1 minute
-        .reduce((max, activity) =>
-          activity.average_speed > max.average_speed ? activity : max
-        );
-      if (fastest && fastest.average_speed > 0) {
-        bests.push({
-          type,
-          metric: "speed",
-          value: fastest.average_speed,
-          activity: fastest,
-        });
-      }
-
-      // Highest elevation gain
-      const highestElevation = typeActivities
-        .filter((a) => a.total_elevation_gain > 0)
-        .reduce((max, activity) =>
-          activity.total_elevation_gain > max.total_elevation_gain
-            ? activity
-            : max
-        );
-      if (highestElevation && highestElevation.total_elevation_gain > 0) {
-        bests.push({
-          type,
-          metric: "elevation",
-          value: highestElevation.total_elevation_gain,
-          activity: highestElevation,
-        });
-      }
-
-      // Longest duration
-      const longestDuration = typeActivities.reduce((max, activity) =>
-        activity.moving_time > max.moving_time ? activity : max
-      );
-      if (longestDuration.moving_time > 0) {
-        bests.push({
-          type,
-          metric: "duration",
-          value: longestDuration.moving_time,
-          activity: longestDuration,
-        });
-      }
-    });
-
-    return bests.sort((a, b) => {
-      // Sort by activity type, then by metric
-      if (a.type !== b.type) {
-        return a.type.localeCompare(b.type);
-      }
-      return a.metric.localeCompare(b.metric);
-    });
+  const openEditDialog = (best?: PersonalBest, achievementType?: PersonalBestType) => {
+    if (best) {
+      setEditingBest(best);
+      const timeInputs = timeToInputs(best.timeSeconds);
+      setFormData({
+        achievementType: best.achievementType,
+        timeHours: timeInputs.hours,
+        timeMinutes: timeInputs.minutes,
+        timeSeconds: timeInputs.seconds,
+        distance: best.distanceMeters
+          ? (best.distanceMeters / 1000).toFixed(2)
+          : "",
+        achievementDate: best.achievementDate || "",
+        notes: best.notes || "",
+      });
+    } else {
+      setEditingBest(null);
+      setFormData({
+        achievementType: achievementType || "5k",
+        timeHours: "",
+        timeMinutes: "",
+        timeSeconds: "",
+        distance: "",
+        achievementDate: "",
+        notes: "",
+      });
+    }
+    setDialogOpen(true);
   };
 
-  const handleLoadPersonalBests = async () => {
+  const handleSave = async () => {
     if (!user) return;
 
-    try {
-      setIsLoading(true);
-      const activities = await stravaService.getRecentActivities(user.id, days);
-      const bests = calculatePersonalBests(activities);
-      setPersonalBests(bests);
+    const achievementType = formData.achievementType;
+    const achievementInfo = ACHIEVEMENT_TYPES.find(
+      (a) => a.type === achievementType
+    );
 
-      toast({
-        title: "Personal Bests Loaded",
-        description: `${bests.length} personal bests found`,
-      });
+    if (!achievementInfo) return;
+
+    try {
+      const timeSeconds = achievementInfo.isTimeBased
+        ? parseTimeInput(
+            formData.timeHours,
+            formData.timeMinutes,
+            formData.timeSeconds
+          )
+        : undefined;
+
+      const distanceMeters = !achievementInfo.isTimeBased
+        ? parseFloat(formData.distance) * 1000
+        : undefined;
+
+      if (achievementInfo.isTimeBased && (!timeSeconds || timeSeconds <= 0)) {
+        toast({
+          title: t("error"),
+          description: t("pleaseEnterValidTime"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (
+        !achievementInfo.isTimeBased &&
+        (!distanceMeters || distanceMeters <= 0)
+      ) {
+        toast({
+          title: t("error"),
+          description: t("pleaseEnterValidDistance"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const dataToSave = {
+        user_id: user.id,
+        achievement_type: achievementType,
+        time_seconds: timeSeconds || null,
+        distance_meters: distanceMeters || null,
+        achievement_date: formData.achievementDate || null,
+        notes: formData.notes || null,
+      };
+
+      if (editingBest) {
+        const { error } = await supabase
+          .from("personal_bests")
+          .update(dataToSave)
+          .eq("id", editingBest.id);
+
+        if (error) throw error;
+
+        toast({
+          title: t("success"),
+          description: t("personalBestUpdated"),
+        });
+      } else {
+        const { error } = await supabase.from("personal_bests").insert(dataToSave);
+
+        if (error) throw error;
+
+        toast({
+          title: t("success"),
+          description: t("personalBestAdded"),
+        });
+      }
+
+      setDialogOpen(false);
+      loadPersonalBests();
     } catch (error) {
-      console.error("Error loading personal bests:", error);
+      console.error("Error saving personal best:", error);
       toast({
         title: t("error"),
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to load personal bests",
+        description: t("failedToSavePersonalBest"),
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const getMetricLabel = (metric: string, activityType: string): string => {
-    const typeLabels: Record<string, Record<string, string>> = {
-      run: {
-        distance: language === "de" ? "Längste Distanz" : "Longest Distance",
-        speed: language === "de" ? "Schnellste Pace" : "Fastest Pace",
-        elevation: language === "de" ? "Höchster Anstieg" : "Highest Elevation",
-        duration: language === "de" ? "Längste Dauer" : "Longest Duration",
-      },
-      ride: {
-        distance: language === "de" ? "Längste Distanz" : "Longest Distance",
-        speed: language === "de" ? "Höchste Geschwindigkeit" : "Highest Speed",
-        elevation: language === "de" ? "Höchster Anstieg" : "Highest Elevation",
-        duration: language === "de" ? "Längste Dauer" : "Longest Duration",
-      },
-    };
-
-    return (
-      typeLabels[activityType.toLowerCase()]?.[metric] ||
-      metric.charAt(0).toUpperCase() + metric.slice(1)
-    );
+  const handleDeleteClick = (id: string) => {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
   };
 
-  const getMetricValue = (best: PersonalBest): string => {
-    switch (best.metric) {
-      case "distance":
-        return formatDistance(best.value);
-      case "speed":
-        // For running, show pace; for cycling, show speed
-        if (best.type.toLowerCase() === "run" || best.type.toLowerCase() === "running") {
-          return formatPace(best.value);
-        }
-        return formatSpeed(best.value);
-      case "elevation":
-        return `${Math.round(best.value)} m`;
-      case "duration":
-        return formatDuration(best.value);
-      default:
-        return best.value.toString();
+  const handleDelete = async () => {
+    if (!deletingId) return;
+
+    try {
+      const { error } = await supabase
+        .from("personal_bests")
+        .delete()
+        .eq("id", deletingId);
+
+      if (error) throw error;
+
+      toast({
+        title: t("success"),
+        description: t("personalBestDeleted"),
+      });
+
+      setDeleteDialogOpen(false);
+      setDeletingId(null);
+      loadPersonalBests();
+    } catch (error) {
+      console.error("Error deleting personal best:", error);
+      toast({
+        title: t("error"),
+        description: t("failedToDeletePersonalBest"),
+        variant: "destructive",
+      });
     }
   };
 
-  const getMetricIcon = (metric: string) => {
-    switch (metric) {
-      case "distance":
-        return <TrendingUp className="h-4 w-4" />;
-      case "speed":
-        return <Zap className="h-4 w-4" />;
-      case "elevation":
-        return <TrendingUp className="h-4 w-4" />;
-      case "duration":
-        return <Clock className="h-4 w-4" />;
-      default:
-        return <Trophy className="h-4 w-4" />;
-    }
+  const getPersonalBest = (type: PersonalBestType): PersonalBest | undefined => {
+    return personalBests.find((pb) => pb.achievementType === type);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5" />
-          Personal Best
-        </CardTitle>
-        <CardDescription>
-          Your personal records from Strava activities
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label htmlFor="days-pb" className="text-sm font-medium">
-              Time Range
-            </label>
-            <select
-              id="days-pb"
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-              className="rounded border px-2 py-1 text-sm"
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+        {ACHIEVEMENT_TYPES.map((achievement) => {
+          const best = getPersonalBest(achievement.type);
+          return (
+            <Card
+              key={achievement.type}
+              className={`${
+                best ? "border-l-4 border-l-yellow-500" : ""
+              } transition-shadow hover:shadow-md`}
             >
-              <option value={30}>30 {t("days") || "days"}</option>
-              <option value={90}>90 {t("days") || "days"}</option>
-              <option value={180}>180 {t("days") || "days"}</option>
-              <option value={365}>365 {t("days") || "days"}</option>
-              <option value={730}>All Time</option>
-            </select>
-          </div>
-          <Button onClick={handleLoadPersonalBests} disabled={isLoading}>
-            {isLoading ? t("loading") : "Load Personal Bests"}
-          </Button>
-        </div>
-
-        {personalBests.length > 0 ? (
-          <div className="space-y-4">
-            {Object.entries(
-              personalBests.reduce((acc, best) => {
-                if (!acc[best.type]) {
-                  acc[best.type] = [];
-                }
-                acc[best.type].push(best);
-                return acc;
-              }, {} as Record<string, PersonalBest[]>)
-            ).map(([type, typeBests]) => (
-              <div key={type} className="space-y-2">
-                <h3 className="font-medium capitalize">{type}</h3>
-                <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
-                  {typeBests.map((best, index) => (
-                    <Card key={index} className="border-l-4 border-l-yellow-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              {getMetricIcon(best.metric)}
-                              <span className="text-sm font-medium">
-                                {getMetricLabel(best.metric, best.type)}
-                              </span>
-                            </div>
-                            <div className="text-2xl font-bold mb-1">
-                              {getMetricValue(best)}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {best.activity.name}
-                            </div>
-                            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              {formatDate(best.activity.start_date_local)}
-                            </div>
-                          </div>
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                      <Trophy className={`h-4 w-4 shrink-0 ${best ? "text-yellow-500" : "text-muted-foreground"}`} />
+                      <span className="font-medium text-sm sm:text-base truncate">
+                        {t(achievement.translationKey)}
+                      </span>
+                    </div>
+                    {best ? (
+                      <>
+                        <div className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2 break-words">
+                          {achievement.isTimeBased
+                            ? formatTime(best.timeSeconds || 0)
+                            : formatDistance(best.distanceMeters || 0)}
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        {best.achievementDate && (
+                          <div className="text-xs sm:text-sm text-muted-foreground mb-1">
+                            {new Date(
+                              best.achievementDate
+                            ).toLocaleDateString(
+                              language === "de" ? "de-DE" : "en-US",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )}
+                          </div>
+                        )}
+                        {best.notes && (
+                          <div className="text-xs sm:text-sm text-muted-foreground line-clamp-2 break-words">
+                            {best.notes}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-xs sm:text-sm text-muted-foreground">
+                        {t("notSet")}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {best ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditDialog(best)}
+                          className="h-9 w-9 p-0 touch-manipulation"
+                          aria-label={t("edit")}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(best.id)}
+                          className="h-9 w-9 p-0 touch-manipulation text-destructive hover:text-destructive"
+                          aria-label={t("delete")}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(undefined, achievement.type)}
+                        className="h-9 w-9 p-0 touch-manipulation"
+                        aria-label={t("addPersonalBest")}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl">
+              {editingBest
+                ? t("editPersonalBest")
+                : `${t("addPersonalBest")} - ${t(
+                    ACHIEVEMENT_TYPES.find(
+                      (a) => a.type === formData.achievementType
+                    )?.translationKey || "achievement5k"
+                  )}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {ACHIEVEMENT_TYPES.find(
+              (a) => a.type === formData.achievementType
+            )?.isTimeBased ? (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t("time")}</Label>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="hours" className="text-xs text-muted-foreground">
+                      {t("hours")}
+                    </Label>
+                    <Input
+                      id="hours"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={formData.timeHours}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          timeHours: e.target.value,
+                        })
+                      }
+                      className="h-10 text-base sm:text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="minutes" className="text-xs text-muted-foreground">
+                      {t("minutes")}
+                    </Label>
+                    <Input
+                      id="minutes"
+                      type="number"
+                      min="0"
+                      max="59"
+                      placeholder="0"
+                      value={formData.timeMinutes}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          timeMinutes: e.target.value,
+                        })
+                      }
+                      className="h-10 text-base sm:text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="seconds" className="text-xs text-muted-foreground">
+                      {t("seconds")}
+                    </Label>
+                    <Input
+                      id="seconds"
+                      type="number"
+                      min="0"
+                      max="59"
+                      placeholder="0"
+                      value={formData.timeSeconds}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          timeSeconds: e.target.value,
+                        })
+                      }
+                      className="h-10 text-base sm:text-sm"
+                    />
+                  </div>
                 </div>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">{t("distance")} (km)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formData.distance}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      distance: e.target.value,
+                    })
+                  }
+                  className="h-10 text-base sm:text-sm"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="date" className="text-sm font-medium">
+                {t("dateOptional")}
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.achievementDate}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    achievementDate: e.target.value,
+                  })
+                }
+                className="h-10 text-base sm:text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-sm font-medium">
+                {t("notesOptional")}
+              </Label>
+              <Textarea
+                id="notes"
+                placeholder={t("addNotesAboutAchievement")}
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    notes: e.target.value,
+                  })
+                }
+                className="min-h-[80px] text-base sm:text-sm resize-none"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setDialogOpen(false)}
+                className="w-full sm:w-auto h-10"
+              >
+                {t("cancel")}
+              </Button>
+              <Button 
+                onClick={handleSave}
+                className="w-full sm:w-auto h-10"
+              >
+                {t("save")}
+              </Button>
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            No personal bests found. Load activities to see your records.
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-sm sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base sm:text-lg">
+              {t("delete")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              {t("confirmDelete")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="w-full sm:w-auto m-0 h-10">
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="w-full sm:w-auto h-10 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
-
