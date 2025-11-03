@@ -47,17 +47,31 @@ interface DailyProgressGridProps {
 const DailyProgressGrid = ({ startDate, endDate, completedDays, t }: DailyProgressGridProps) => {
   if (!startDate || !endDate) return null;
 
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  const today = new Date().toISOString().split('T')[0];
+  // Normalize dates to local timezone start of day
+  const startRaw = new Date(startDate);
+  const start = new Date(startRaw.getFullYear(), startRaw.getMonth(), startRaw.getDate());
+  const endRaw = new Date(endDate);
+  const end = new Date(endRaw.getFullYear(), endRaw.getMonth(), endRaw.getDate());
+  // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+  const totalDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   
+  // Get today's date in local timezone (not UTC)
+  const todayLocal = new Date();
+  const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
+  
+  // Helper function to format date in local timezone (YYYY-MM-DD)
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
   
   const days = [];
   for (let i = 0; i < totalDays; i++) {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = formatLocalDate(date);
     const isCompleted = completedDays.has(dateString);
     const isToday = dateString === today;
     days.push({ date: dateString, isCompleted, isToday });
@@ -146,9 +160,13 @@ export default function ObjectiveItem({
   
   if (challenge_type === "completion" && challengeStartDate) {
     if (challengeEndDate) {
-      const startDate = new Date(challengeStartDate);
-      const endDate = new Date(challengeEndDate);
-      totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // Normalize dates to local timezone start of day
+      const startDateRaw = new Date(challengeStartDate);
+      const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+      const endDateRaw = new Date(challengeEndDate);
+      const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+      // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+      totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       progressPercent = Math.min(100, (currentValue / totalDays) * 100);
       isCompleted = currentValue >= totalDays;
     } else {

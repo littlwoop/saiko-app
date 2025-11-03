@@ -165,9 +165,13 @@ export default function Dashboard() {
     if (challenge.challenge_type === "completion") {
       if (!challenge.endDate) return 0; // Ongoing completion challenge, can't calculate progress
       
-      const startDate = new Date(challenge.startDate);
-      const endDate = new Date(challenge.endDate);
-      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // Normalize dates to local timezone start of day
+      const startDateRaw = new Date(challenge.startDate);
+      const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+      const endDateRaw = new Date(challenge.endDate);
+      const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+      // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+      const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       
       // For completion challenges, totalScore represents days completed
       const daysCompleted = userChallenge.totalScore;
@@ -198,9 +202,13 @@ export default function Dashboard() {
     if (challenge.challenge_type === "completion") {
       if (!challenge.endDate) return `${userChallenge.totalScore}/∞`;
       
-      const startDate = new Date(challenge.startDate);
-      const endDate = new Date(challenge.endDate);
-      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // Normalize dates to local timezone start of day
+      const startDateRaw = new Date(challenge.startDate);
+      const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+      const endDateRaw = new Date(challenge.endDate);
+      const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+      // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+      const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const daysCompleted = userChallenge.totalScore;
       return `${daysCompleted}/${totalDays}`;
     } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {

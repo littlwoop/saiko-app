@@ -243,9 +243,13 @@ export default function ChallengePage() {
       
       // For completion challenges, calculate progress based on days completed vs total days
       if (challenge.challenge_type === "completion") {
-        const startDate = new Date(challenge.startDate);
-        const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
-        const totalDays = endDate ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365;
+        // Normalize dates to local timezone start of day
+        const startDateRaw = new Date(challenge.startDate);
+        const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+        const endDateRaw = challenge.endDate ? new Date(challenge.endDate) : null;
+        const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
+        // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+        const totalDays = endDate ? Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365;
         
         // Calculate total days completed across all objectives
         const totalDaysCompleted = progressToUse.reduce((sum, progressItem) => {
@@ -449,8 +453,11 @@ export default function ChallengePage() {
     );
   }
 
-  const startDate = new Date(challenge.startDate);
-  const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+  // Normalize dates to local timezone start of day to avoid timezone issues
+  const startDateRaw = new Date(challenge.startDate);
+  const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+  const endDateRaw = challenge.endDate ? new Date(challenge.endDate) : null;
+  const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
   const today = new Date();
 
   const isActive = today >= startDate && (!endDate || today <= endDate);

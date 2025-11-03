@@ -228,9 +228,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
             let allObjectivesComplete: boolean;
             if (challengeData?.challenge_type === "completion") {
               // For completion challenges, check if user has completed as many days as the challenge has total days
-              const startDate = new Date(challengeData.startDate);
-              const endDate = new Date(challengeData.endDate);
-              const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+              // Normalize dates to local timezone start of day
+              const startDateRaw = new Date(challengeData.startDate);
+              const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+              const endDateRaw = new Date(challengeData.endDate);
+              const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+              // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+              const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
               
               // Calculate total days completed across all objectives
               const totalDaysCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
@@ -312,9 +316,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       // For completion challenges, check if user has completed as many days as the challenge has total days
       let isCompleted: boolean;
       if (challengeData.challenge_type === "completion") {
-        const startDate = new Date(challengeData.startDate);
-        const endDate = new Date(challengeData.endDate);
-        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        // Normalize dates to local timezone start of day
+        const startDateRaw = new Date(challengeData.startDate);
+        const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+        const endDateRaw = new Date(challengeData.endDate);
+        const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+        // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+        const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         isCompleted = entry.score >= totalDays;
       } else {
         isCompleted = entry.score >= totalPoints;
@@ -346,9 +354,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           let allObjectivesComplete: boolean;
           if (challengeData.challenge_type === "completion") {
             // For completion challenges, check if user has completed as many days as the challenge has total days
-            const startDate = new Date(challengeData.startDate);
-            const endDate = new Date(challengeData.endDate);
-            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            // Normalize dates to local timezone start of day
+            const startDateRaw = new Date(challengeData.startDate);
+            const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+            const endDateRaw = new Date(challengeData.endDate);
+            const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+            // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+            const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
             
             // Calculate total days completed across all objectives
             const totalDaysCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
@@ -509,9 +521,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                         {capedPoints && (() => {
                           // For completion challenges, check if user has completed as many days as the challenge has total days
                           if (challengeData?.challenge_type === "completion") {
-                            const startDate = new Date(challengeData.startDate);
-                            const endDate = new Date(challengeData.endDate);
-                            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                            // Normalize dates to local timezone start of day
+                            const startDateRaw = new Date(challengeData.startDate);
+                            const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+                            const endDateRaw = new Date(challengeData.endDate);
+                            const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+                            // Calculate total days inclusive: floor the difference and add 1 for inclusive count
+                            const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                             return entry.score >= totalDays;
                           } else {
                             return entry.score >= (challengeData?.totalPoints || 0);
