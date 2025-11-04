@@ -138,6 +138,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
   const leaderboard = useMemo(() => {
     // Group entries by user and objective to get total progress per objective
     const userProgressMap = new Map<string, Map<string, number>>();
+    const isCompletionChallenge = challengeData?.challenge_type === "completion";
     
     entries.forEach(entry => {
       if (!userProgressMap.has(entry.user_id)) {
@@ -146,7 +147,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       
       const userObjectives = userProgressMap.get(entry.user_id)!;
       const currentValue = userObjectives.get(entry.objective_id) || 0;
-      userObjectives.set(entry.objective_id, currentValue + entry.value);
+      // For completion challenges, count entries (each entry = 1)
+      // For other challenges, sum the values
+      if (isCompletionChallenge) {
+        userObjectives.set(entry.objective_id, currentValue + 1);
+      } else {
+        userObjectives.set(entry.objective_id, currentValue + entry.value);
+      }
     });
 
     // Create leaderboard entries for ALL participants, including those with 0 points
@@ -170,10 +177,11 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
 
       // Use the challenge data we fetched separately
       const objectives = challengeData?.objectives || [];
+      const challengeType = challengeData?.challenge_type as "standard" | "bingo" | "completion" | "checklist" | "collection" | undefined;
 
       // Calculate both capped and uncapped points using the same function
-      const cappedScore = calculateTotalPoints(objectives, progress, true);
-      const uncappedScore = calculateTotalPoints(objectives, progress, false);
+      const cappedScore = calculateTotalPoints(objectives, progress, true, challengeType);
+      const uncappedScore = calculateTotalPoints(objectives, progress, false, challengeType);
 
       return {
         userId: participant.id,
@@ -222,7 +230,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           // Track when this user first reached 100% completion
           for (const entry of sortedEntries) {
             const currentValue = objectiveProgress.get(entry.objective_id) || 0;
-            objectiveProgress.set(entry.objective_id, currentValue + entry.value);
+            // For completion challenges, count entries (each entry = 1)
+            // For other challenges, sum the values
+            if (challengeData?.challenge_type === "completion") {
+              objectiveProgress.set(entry.objective_id, currentValue + 1);
+            } else {
+              objectiveProgress.set(entry.objective_id, currentValue + entry.value);
+            }
             
             // Check if all objectives are now complete
             let allObjectivesComplete: boolean;
@@ -348,7 +362,13 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         // Track when this user first reached 100% completion
         for (const entry of sortedEntries) {
           const currentValue = objectiveProgress.get(entry.objective_id) || 0;
-          objectiveProgress.set(entry.objective_id, currentValue + entry.value);
+          // For completion challenges, count entries (each entry = 1)
+          // For other challenges, sum the values
+          if (challengeData.challenge_type === "completion") {
+            objectiveProgress.set(entry.objective_id, currentValue + 1);
+          } else {
+            objectiveProgress.set(entry.objective_id, currentValue + entry.value);
+          }
           
           // Check if all objectives are now complete
           let allObjectivesComplete: boolean;
