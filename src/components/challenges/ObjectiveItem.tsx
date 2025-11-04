@@ -341,8 +341,8 @@ export default function ObjectiveItem({
       await updateProgress(challengeId, objective.id, 1);
     } else if (challenge_type === "completion") {
       // For completion challenges, add 1 day of progress
-      const newValue = currentValue + 1;
-      await updateProgress(challengeId, objective.id, newValue);
+      // Always use value 1 since each entry represents 1 day (progress is counted by entry count)
+      await updateProgress(challengeId, objective.id, 1);
       setHasEntryToday(true); // Mark as completed for today
       
       // Update daily entries with today's date
