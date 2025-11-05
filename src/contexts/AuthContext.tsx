@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import { User } from "@/types";
@@ -29,11 +30,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const userRef = useRef<User | null>(null);
+
+  // Keep userRef in sync with user state
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Error getting session:", error);
+        // If there's an error but we have a stored session, try to refresh it
+        if (session) {
+          // Session exists but might need refresh, Supabase will handle it
+          if (session.user) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email!,
+              name: session.user.user_metadata.name || "",
+              avatarUrl: session.user.user_metadata.avatar_url || "",
+            });
+          }
+        }
+      } else if (session?.user) {
         setUser({
           id: session.user.id,
           email: session.user.email!,
@@ -47,7 +68,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for changes on auth state
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change:", event, session?.user?.id);
+      
+      // Only log out on explicit SIGNED_OUT events
+      // During token refresh, the session might be temporarily null but will be restored
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // For other events (TOKEN_REFRESHED, SIGNED_IN, etc.), update user if session exists
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -55,13 +87,97 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           name: session.user.user_metadata.name || "",
           avatarUrl: session.user.user_metadata.avatar_url || "",
         });
-      } else {
-        setUser(null);
+      } else if (event === "TOKEN_REFRESHED") {
+        // Token was refreshed but session might be loading
+        // Try to get the session again after a brief delay
+        setTimeout(async () => {
+          const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+          if (refreshedSession?.user) {
+            setUser({
+              id: refreshedSession.user.id,
+              email: refreshedSession.user.email!,
+              name: refreshedSession.user.user_metadata.name || "",
+              avatarUrl: refreshedSession.user.user_metadata.avatar_url || "",
+            });
+          }
+        }, 100);
+      } else if (!session && event !== "SIGNED_OUT") {
+        // Session is null but not a sign out event - might be a transient issue
+        // Try to refresh the session before logging out
+        try {
+          const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+          if (refreshedSession?.user) {
+            setUser({
+              id: refreshedSession.user.id,
+              email: refreshedSession.user.email!,
+              name: refreshedSession.user.user_metadata.name || "",
+              avatarUrl: refreshedSession.user.user_metadata.avatar_url || "",
+            });
+          } else {
+            // Only clear user if we truly have no session after retry
+            setUser(null);
+          }
+        } catch (error) {
+          console.error("Error refreshing session:", error);
+          // Don't log out on error - might be network issue
+        }
       }
+      
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Periodic session check to prevent unexpected logouts
+    // Check every 5 minutes to ensure session is still valid
+    const sessionCheckInterval = setInterval(async () => {
+      const currentUser = userRef.current;
+      if (currentUser) {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error("Periodic session check error:", error);
+            // If there's an error, try to refresh the session
+            if (session) {
+              // Session exists, update user if needed
+              if (session.user && session.user.id !== currentUser.id) {
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email!,
+                  name: session.user.user_metadata.name || "",
+                  avatarUrl: session.user.user_metadata.avatar_url || "",
+                });
+              }
+            }
+          } else if (session?.user) {
+            // Session is valid, update user if metadata changed
+            if (session.user.id === currentUser.id) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email!,
+                name: session.user.user_metadata.name || "",
+                avatarUrl: session.user.user_metadata.avatar_url || "",
+              });
+            }
+          } else if (!session && currentUser) {
+            // Session is null but we still have user state - try to refresh
+            console.log("Session lost during periodic check, attempting refresh...");
+            const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+            if (!refreshedSession?.user) {
+              // Only clear if we truly have no session
+              console.log("No session found after refresh, clearing user");
+              setUser(null);
+            }
+          }
+        } catch (error) {
+          console.error("Error in periodic session check:", error);
+          // Don't clear user on error - might be network issue
+        }
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
+
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(sessionCheckInterval);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {

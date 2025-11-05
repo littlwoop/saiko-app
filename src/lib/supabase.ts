@@ -15,6 +15,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    // Explicitly use localStorage for better persistence
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    storageKey: "supabase.auth.token",
   },
   db: {
     schema: "public",
