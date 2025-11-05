@@ -53,7 +53,7 @@ export default function Header() {
           className={`text-sm font-medium transition-colors hover:text-primary select-none ${
             location.pathname === "/dashboard"
               ? "text-primary"
-              : "text-muted-foreground"
+              : "text-foreground"
           }`}
         >
           Dashboard
@@ -65,7 +65,7 @@ export default function Header() {
         className={`text-sm font-medium transition-colors hover:text-primary select-none ${
           location.pathname.includes("/challenges")
             ? "text-primary"
-            : "text-muted-foreground"
+            : "text-foreground"
         }`}
       >
         {t("challenges")}
@@ -76,7 +76,7 @@ export default function Header() {
         className={`text-sm font-medium transition-colors hover:text-primary select-none ${
           location.pathname === "/leaderboard"
             ? "text-primary"
-            : "text-muted-foreground"
+            : "text-foreground"
         }`}
       >
         {t("leaderboard")}
@@ -138,14 +138,22 @@ export default function Header() {
                       <Link
                         to="/profile"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-sm font-medium transition-colors hover:text-primary select-none"
+                        className={`text-sm font-medium transition-colors hover:text-primary select-none ${
+                          location.pathname === "/profile"
+                            ? "text-primary"
+                            : "text-foreground"
+                        }`}
                       >
                         {t("profile")}
                       </Link>
                       <Link
                         to="/my-challenges"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-sm font-medium transition-colors hover:text-primary select-none"
+                        className={`text-sm font-medium transition-colors hover:text-primary select-none ${
+                          location.pathname === "/my-challenges"
+                            ? "text-primary"
+                            : "text-foreground"
+                        }`}
                       >
                         {t("myChallenges")}
                       </Link>
@@ -207,13 +215,28 @@ export default function Header() {
                 <DropdownMenuLabel>{t("myAccount")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/dashboard">Dashboard</Link>
+                  <Link 
+                    to="/dashboard"
+                    className={location.pathname === "/dashboard" ? "text-primary" : ""}
+                  >
+                    Dashboard
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/profile">{t("profile")}</Link>
+                  <Link 
+                    to="/profile"
+                    className={location.pathname === "/profile" ? "text-primary" : ""}
+                  >
+                    {t("profile")}
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/my-challenges">{t("myChallenges")}</Link>
+                  <Link 
+                    to="/my-challenges"
+                    className={location.pathname === "/my-challenges" ? "text-primary" : ""}
+                  >
+                    {t("myChallenges")}
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
