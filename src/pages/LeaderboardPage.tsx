@@ -34,6 +34,10 @@ export default function LeaderboardPage() {
           console.error('Error fetching challenges:', error);
         } else {
           setChallenges(challengesData || []);
+          // Set the most recent challenge as default if no challenge is selected
+          if (!selectedChallenge && challengesData && challengesData.length > 0) {
+            setSelectedChallenge(challengesData[0].id.toString());
+          }
         }
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -46,8 +50,11 @@ export default function LeaderboardPage() {
   }, []);
 
   const handleChallengeChange = (value: string) => {
-    setSelectedChallenge(value === 'all' ? undefined : value);
+    setSelectedChallenge(value);
   };
+
+  // Convert selectedChallenge to string for the Select component
+  const selectValue = selectedChallenge ? selectedChallenge.toString() : undefined;
 
   if (loading) {
     return (
@@ -69,14 +76,16 @@ export default function LeaderboardPage() {
           </div>
 
           <div className="w-full sm:w-64">
-            <Select value={selectedChallenge || 'all'} onValueChange={handleChallengeChange}>
+            <Select 
+              value={selectValue} 
+              onValueChange={handleChallengeChange}
+            >
               <SelectTrigger>
                 <SelectValue placeholder={t('filterByChallenge')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('allChallenges')}</SelectItem>
                 {challenges.map((challenge) => (
-                  <SelectItem key={challenge.id} value={challenge.id}>
+                  <SelectItem key={challenge.id} value={challenge.id.toString()}>
                     {challenge.title}
                   </SelectItem>
                 ))}
