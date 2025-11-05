@@ -101,7 +101,7 @@ export interface StravaTokenResponse {
   expires_in: number;
   refresh_token: string;
   access_token: string;
-  athlete: StravaAthlete;
+  athlete?: StravaAthlete; // Optional because refresh token responses don't include athlete
 }
 
 export interface StravaActivity {

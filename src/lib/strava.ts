@@ -159,11 +159,20 @@ export class StravaService {
    */
   async saveConnection(
     userId: string,
-    tokenResponse: StravaTokenResponse
+    tokenResponse: StravaTokenResponse,
+    stravaAthleteId?: number
   ): Promise<StravaConnection> {
+    // When refreshing token, athlete is not included in response, so use provided athleteId
+    // Otherwise, use athlete.id from the token response
+    const athleteId = stravaAthleteId ?? tokenResponse.athlete?.id;
+    
+    if (!athleteId) {
+      throw new Error("Strava athlete ID is required but not available in token response");
+    }
+
     const connectionData = {
       user_id: userId,
-      strava_athlete_id: tokenResponse.athlete.id,
+      strava_athlete_id: athleteId,
       access_token: tokenResponse.access_token,
       refresh_token: tokenResponse.refresh_token,
       expires_at: new Date(tokenResponse.expires_at * 1000).toISOString(),
@@ -247,8 +256,9 @@ export class StravaService {
         // Token is expired or will expire soon, refresh it
         const tokenResponse = await this.refreshAccessToken(connection.refreshToken, connection.userId);
         
-        // Update the connection in database
-        await this.saveConnection(connection.userId, tokenResponse);
+        // Update the connection in database, preserving the existing athlete ID
+        // (refresh token response doesn't include athlete object)
+        await this.saveConnection(connection.userId, tokenResponse, connection.stravaAthleteId);
         
         console.log("Token refreshed successfully");
         return tokenResponse.access_token;
