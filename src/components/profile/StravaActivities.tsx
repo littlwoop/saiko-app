@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { StravaActivity } from "@/types";
 import { stravaService } from "@/lib/strava";
-import { Activity, Calendar, Clock, MapPin, TrendingUp, Zap } from "lucide-react";
+import { Activity, Calendar, Clock, Loader2, MapPin, TrendingUp, Zap } from "lucide-react";
 
 export default function StravaActivities() {
   console.log('StravaActivities component rendering');
@@ -118,7 +118,7 @@ export default function StravaActivities() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <label htmlFor="days" className="text-sm font-medium">
               {t("lastDays")}
@@ -137,11 +137,19 @@ export default function StravaActivities() {
             </select>
           </div>
           <Button onClick={handleLoadActivities} disabled={isLoading}>
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             {isLoading ? t("loadingActivities") : t("loadActivities")}
           </Button>
         </div>
 
-        {activities.length > 0 && (
+        {isLoading && activities.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-sm text-muted-foreground">{t("loadingActivities")}</p>
+          </div>
+        )}
+
+        {!isLoading && activities.length > 0 && (
           <>
             {/* Summary Stats */}
             <div className="grid grid-cols-3 gap-4 rounded-lg bg-muted p-4">
