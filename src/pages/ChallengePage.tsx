@@ -780,6 +780,7 @@ export default function ChallengePage() {
                       onProgressUpdate={refreshProgress}
                       challengeStartDate={challenge.startDate}
                       challengeEndDate={challenge.endDate}
+                      selectedUserId={selectedUserId}
                     />
                   ))}
                 </div>
@@ -807,6 +808,7 @@ export default function ChallengePage() {
                       onProgressUpdate={refreshProgress}
                       challengeStartDate={challenge.startDate}
                       challengeEndDate={challenge.endDate}
+                      selectedUserId={selectedUserId}
                     />
                   ))}
                 </div>

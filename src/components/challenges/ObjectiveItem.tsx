@@ -105,6 +105,7 @@ interface ObjectiveItemProps {
   onProgressUpdate?: () => void;
   challengeStartDate?: string;
   challengeEndDate?: string;
+  selectedUserId?: string | null;
 }
 
 export default function ObjectiveItem({
@@ -117,6 +118,7 @@ export default function ObjectiveItem({
   onProgressUpdate,
   challengeStartDate,
   challengeEndDate,
+  selectedUserId,
 }: ObjectiveItemProps) {
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
@@ -134,6 +136,9 @@ export default function ObjectiveItem({
   const { toast } = useToast();
 
   const currentValue = progress?.currentValue || 0;
+  
+  // Determine which user's data to fetch - prioritize selectedUserId, then progress userId, then logged-in user
+  const userIdToQuery = selectedUserId || progress?.userId || user?.id;
   
   // Check if challenge is currently active
   const isChallengeActive = () => {
@@ -186,13 +191,13 @@ export default function ObjectiveItem({
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
 
-  // Check for today's entry on component mount
+  // Check for today's entry on component mount and when user changes
   useEffect(() => {
-    if (challenge_type === "completion" && user) {
+    if (challenge_type === "completion" && userIdToQuery) {
       hasEntryForToday().then(setHasEntryToday);
       getDailyEntries().then((entries) => setDailyEntries(entries));
     }
-  }, [challenge_type, user, challengeId, objective.id, challengeStartDate, challengeEndDate]);
+  }, [challenge_type, userIdToQuery, challengeId, objective.id, challengeStartDate, challengeEndDate]);
 
   const handleLongPress = () => {
     if (isTouchDevice && !readOnly) {
@@ -242,7 +247,7 @@ export default function ObjectiveItem({
   };
 
   const hasEntryForToday = async () => {
-    if (!user) return false;
+    if (!userIdToQuery) return false;
 
     const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
 
@@ -250,7 +255,7 @@ export default function ObjectiveItem({
       const { data: entries, error } = await supabase
         .from('entries')
         .select('created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', `${today}T00:00:00.000Z`)
@@ -269,9 +274,9 @@ export default function ObjectiveItem({
   };
 
   const getDailyEntries = async (): Promise<Set<string>> => {
-    if (!user || !challengeStartDate) return new Set<string>();
+    if (!userIdToQuery || !challengeStartDate) return new Set<string>();
 
-    console.log('getDailyEntries called with:', { challengeStartDate, challengeEndDate });
+    console.log('getDailyEntries called with:', { challengeStartDate, challengeEndDate, userIdToQuery });
 
     try {
       // Validate and format dates properly
@@ -289,7 +294,7 @@ export default function ObjectiveItem({
       const query = supabase
         .from('entries')
         .select('created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', startDateTime);
@@ -645,7 +650,7 @@ export default function ObjectiveItem({
             {(isCompleted || hasEntryToday) && (
               <div className="mt-2">
                 <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full inline-block">
-                  {hasEntryToday ? "Completed today" : t("complete")}
+                  {hasEntryToday ? t("completedToday") : t("complete")}
                 </div>
               </div>
             )}

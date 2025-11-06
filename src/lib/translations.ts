@@ -344,6 +344,7 @@ export const translations = {
     // Daily Progress Grid
     dailyProgress: "Täglicher Fortschritt",
     notCompleted: "Nicht abgeschlossen",
+    completedToday: "Heute abgeschlossen",
 
     // Strava Integration
     stravaAppSetup: "Strava App Einrichtung",
@@ -801,6 +802,7 @@ export const translations = {
     // Daily Progress Grid
     dailyProgress: "Daily Progress",
     notCompleted: "Not completed",
+    completedToday: "Completed today",
 
     // Strava Integration
     stravaAppSetup: "Strava App Setup",
