@@ -36,6 +36,7 @@ interface ChallengeContextType {
     objectiveId: string,
     value: number,
     notes?: string,
+    completionDate?: string,
   ) => Promise<void>;
   getChallenge: (challengeId: number) => Promise<Challenge | null>;
   getUserChallenges: () => Promise<UserChallenge[]>;
@@ -395,9 +396,10 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     objectiveId: string,
     value: number,
     notes?: string,
+    completionDate?: string,
   ) => {
     debug.log(
-      `Updating progress - Challenge: ${challengeId}, Objective: ${objectiveId}, Value: ${value}, Notes: ${notes}`,
+      `Updating progress - Challenge: ${challengeId}, Objective: ${objectiveId}, Value: ${value}, Notes: ${notes}, CompletionDate: ${completionDate}`,
     );
     if (!user) return;
 
@@ -431,14 +433,24 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        const { error: insertError } = await supabase.from("entries").insert({
+        // Prepare entry data
+        const entryData: any = {
           user_id: user.id,
           challenge_id: challengeId,
           objective_id: objectiveId,
           value: value,
           notes: notes?.trim() || null,
           username: user.name || `User ${user.id}`,
-        });
+        };
+
+        // If completionDate is provided, set created_at to that date
+        // Format: YYYY-MM-DD, convert to ISO timestamp at start of day in UTC
+        if (completionDate) {
+          const date = new Date(completionDate + 'T00:00:00.000Z');
+          entryData.created_at = date.toISOString();
+        }
+        
+        const { error: insertError } = await supabase.from("entries").insert(entryData);
 
         if (insertError) {
           debug.error("Error creating entry:", insertError);

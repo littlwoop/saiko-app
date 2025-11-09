@@ -345,6 +345,17 @@ export const translations = {
     dailyProgress: "Täglicher Fortschritt",
     notCompleted: "Nicht abgeschlossen",
     completedToday: "Heute abgeschlossen",
+    
+    // Past Completion Dialog
+    addPastCompletion: "Vergangenen Tag hinzufügen",
+    selectDateToAddCompletion: "Wähle ein Datum aus, um einen Abschluss für einen vergangenen Tag hinzuzufügen",
+    selectedDate: "Ausgewählt",
+    addCompletion: "Abschluss hinzufügen",
+    alreadyCompleted: "Bereits abgeschlossen",
+    alreadyCompletedForDate: "Dieser Tag wurde bereits abgeschlossen: {date}",
+    invalidDate: "Ungültiges Datum",
+    dateBeforeChallengeStart: "Das ausgewählte Datum liegt vor dem Start der Herausforderung",
+    dateAfterChallengeEnd: "Das ausgewählte Datum liegt nach dem Ende der Herausforderung",
 
     // Strava Integration
     stravaAppSetup: "Strava App Einrichtung",
@@ -803,6 +814,17 @@ export const translations = {
     dailyProgress: "Daily Progress",
     notCompleted: "Not completed",
     completedToday: "Completed today",
+    
+    // Past Completion Dialog
+    addPastCompletion: "Add Past Completion",
+    selectDateToAddCompletion: "Select a date to add a completion for a past day",
+    selectedDate: "Selected",
+    addCompletion: "Add Completion",
+    alreadyCompleted: "Already Completed",
+    alreadyCompletedForDate: "This date has already been completed: {date}",
+    invalidDate: "Invalid Date",
+    dateBeforeChallengeStart: "The selected date is before the challenge start date",
+    dateAfterChallengeEnd: "The selected date is after the challenge end date",
 
     // Strava Integration
     stravaAppSetup: "Strava App Setup",

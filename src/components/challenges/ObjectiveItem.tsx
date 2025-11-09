@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculatePoints } from "@/lib/points";
 import { supabase } from "@/lib/supabase";
@@ -78,13 +79,13 @@ const DailyProgressGrid = ({ startDate, endDate, completedDays, t }: DailyProgre
   }
 
   return (
-    <div className="mt-2">
-      <div className="text-xs text-gray-500 mb-2">{t("dailyProgress")}</div>
-      <div className="flex flex-wrap gap-1">
+    <div className="mt-1.5">
+      <div className="text-xs text-gray-500 mb-1.5">{t("dailyProgress")}</div>
+      <div className="flex flex-wrap gap-0.5">
         {days.map((day, index) => (
           <div
             key={index}
-            className={`w-8 h-8 ${
+            className={`w-7 h-7 ${
               day.isCompleted ? 'bg-green-500' : 'bg-gray-200'
             }`}
             title={`${day.date} - ${day.isCompleted ? t("completed") : t("notCompleted")}`}
@@ -124,6 +125,8 @@ export default function ObjectiveItem({
   const [notes, setNotes] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [completionsToAdd, setCompletionsToAdd] = useState("1");
   const [hasEntryToday, setHasEntryToday] = useState(false);
@@ -326,6 +329,113 @@ export default function ObjectiveItem({
     }
   };
 
+  const hasEntryForDate = async (date: string): Promise<boolean> => {
+    if (!userIdToQuery) return false;
+
+    try {
+      const { data: entries, error } = await supabase
+        .from('entries')
+        .select('created_at')
+        .eq('user_id', userIdToQuery)
+        .eq('challenge_id', challengeId)
+        .eq('objective_id', objective.id)
+        .gte('created_at', `${date}T00:00:00.000Z`)
+        .lt('created_at', `${date}T23:59:59.999Z`);
+
+      if (error) {
+        console.error('Error checking date entries:', error);
+        return false;
+      }
+
+      return entries && entries.length > 0;
+    } catch (error) {
+      console.error('Error checking date entries:', error);
+      return false;
+    }
+  };
+
+  const handleAddPastCompletion = async () => {
+    if (!selectedDate || !user) return;
+    
+    if (!challengeActive) {
+      toast({
+        title: t("challengeInactive"),
+        description: t("challengeInactiveDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Format date as YYYY-MM-DD in local timezone
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    // Check if entry already exists for this date
+    const hasEntry = await hasEntryForDate(dateString);
+    if (hasEntry) {
+      toast({
+        title: t("alreadyCompleted"),
+        description: t("alreadyCompletedForDate").replace("{date}", dateString),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate date is within challenge range
+    if (challengeStartDate) {
+      const startDate = new Date(challengeStartDate);
+      startDate.setHours(0, 0, 0, 0);
+      const selectedDateStart = new Date(selectedDate);
+      selectedDateStart.setHours(0, 0, 0, 0);
+      
+      if (selectedDateStart < startDate) {
+        toast({
+          title: t("invalidDate"),
+          description: t("dateBeforeChallengeStart"),
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (challengeEndDate) {
+      const endDate = new Date(challengeEndDate);
+      endDate.setHours(23, 59, 59, 999);
+      const selectedDateEnd = new Date(selectedDate);
+      selectedDateEnd.setHours(23, 59, 59, 999);
+      
+      if (selectedDateEnd > endDate) {
+        toast({
+          title: t("invalidDate"),
+          description: t("dateAfterChallengeEnd"),
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Add completion for the selected date
+    await updateProgress(challengeId, objective.id, 1, undefined, dateString);
+    
+    // Refresh daily entries
+    getDailyEntries().then((entries) => setDailyEntries(entries));
+    
+    // If the selected date is today, update hasEntryToday
+    const today = new Date().toISOString().split('T')[0];
+    if (dateString === today) {
+      setHasEntryToday(true);
+    }
+    
+    setIsDatePickerOpen(false);
+    setSelectedDate(undefined);
+    
+    if (onProgressUpdate) {
+      onProgressUpdate();
+    }
+  };
+
   const handleQuickAdd = async () => {
     // For checklist/collection challenges, allow toggle even with hasEntryToday check
     if ((challenge_type === "checklist" || challenge_type === "collection") && readOnly) return;
@@ -376,7 +486,7 @@ export default function ObjectiveItem({
       <ContextMenu>
         <ContextMenuTrigger>
           <Card
-            className={`relative select-none ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`relative select-none mb-3 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
             onClick={(e) => {
               // Only open dialog on left-click, not right-click
               if (e.button === 0 && !readOnly && challengeActive) {
@@ -414,8 +524,8 @@ export default function ObjectiveItem({
               }
             }}
           >
-            <CardHeader className="flex flex-col items-center justify-center p-2 py-4 text-center">
-              <CardTitle className="text-sm leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
+            <CardHeader className="flex flex-col items-center justify-center p-2 py-3 text-center">
+              <CardTitle className="text-xs leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
                 {objective.title}
               </CardTitle>
             </CardHeader>
@@ -512,18 +622,18 @@ export default function ObjectiveItem({
     return (
       <>
         <Card 
-          className={`select-none mb-4 transition-colors ${
+          className={`select-none mb-3 transition-colors ${
             isCompleted ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"
           } ${!readOnly && challengeActive && !isCompleted ? "cursor-pointer hover:shadow-md" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
           onClick={!readOnly && challengeActive && !isCompleted ? () => setIsConfirmDialogOpen(true) : undefined}
         >
-          <CardHeader>
+          <CardHeader className="pb-2 pt-3 px-3">
             <div>
-              <CardTitle className={`text-base ${isCompleted ? "line-through text-gray-500" : "text-gray-900"}`}>
+              <CardTitle className={`text-sm ${isCompleted ? "line-through text-gray-500" : "text-gray-900"}`}>
                 {objective.title}
               </CardTitle>
               {objective.description && (
-                <CardDescription className="mt-1">
+                <CardDescription className="mt-0.5 text-xs">
                   {objective.description}
                 </CardDescription>
               )}
@@ -626,7 +736,7 @@ export default function ObjectiveItem({
     return (
       <>
         <Card 
-          className={`select-none mb-4 transition-colors ${
+          className={`select-none mb-3 transition-colors ${
             isCompleted || hasEntryToday ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"
           } ${!readOnly && !hasEntryToday ? "cursor-pointer hover:shadow-md" : ""}`}
           onClick={!readOnly && !hasEntryToday ? (e) => {
@@ -635,21 +745,21 @@ export default function ObjectiveItem({
             }
           } : undefined}
         >
-          <CardHeader className="pb-3 text-center">
-            <CardTitle className="text-base font-medium leading-tight flex items-center justify-center gap-2">
+          <CardHeader className="pb-2 pt-3 px-3 text-center">
+            <CardTitle className="text-sm font-medium leading-tight flex items-center justify-center gap-1.5">
               {isCompleted && (
-                <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
               )}
               <span className={isCompleted ? "line-through text-gray-600" : "text-gray-900"}>
                 {objective.title}
               </span>
             </CardTitle>
-            <CardDescription className="text-sm text-gray-500 mt-1">
+            <CardDescription className="text-xs text-gray-500 mt-0.5">
               {formattedDate}
             </CardDescription>
             {(isCompleted || hasEntryToday) && (
-              <div className="mt-2">
-                <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full inline-block">
+              <div className="mt-1">
+                <div className="bg-green-100 text-green-800 text-xs font-medium px-1.5 py-0.5 rounded-full inline-block">
                   {hasEntryToday ? t("completedToday") : t("complete")}
                 </div>
               </div>
@@ -662,6 +772,75 @@ export default function ObjectiveItem({
           completedDays={dailyEntries}
           t={t}
         />
+        {!readOnly && (
+          <div className="mt-1.5 flex justify-center">
+            <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  {t("addPastCompletion")}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{t("addPastCompletion")}</DialogTitle>
+                  <DialogDescription>
+                    {t("selectDateToAddCompletion")}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 py-4">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => {
+                      // Disable dates outside challenge range
+                      if (challengeStartDate) {
+                        const startDate = new Date(challengeStartDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        if (date < startDate) return true;
+                      }
+                      if (challengeEndDate) {
+                        const endDate = new Date(challengeEndDate);
+                        endDate.setHours(23, 59, 59, 999);
+                        if (date > endDate) return true;
+                      }
+                      // Disable future dates
+                      const today = new Date();
+                      today.setHours(23, 59, 59, 999);
+                      if (date > today) return true;
+                      // Disable dates that already have entries
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const dateString = `${year}-${month}-${day}`;
+                      return dailyEntries.has(dateString);
+                    }}
+                    className="rounded-md border"
+                  />
+                  {selectedDate && (
+                    <div className="text-sm text-muted-foreground">
+                      {t("selectedDate")}: {selectedDate.toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {
+                    setIsDatePickerOpen(false);
+                    setSelectedDate(undefined);
+                  }}>
+                    {t("cancel")}
+                  </Button>
+                  <Button 
+                    onClick={handleAddPastCompletion}
+                    disabled={!selectedDate}
+                  >
+                    {t("addCompletion")}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </>
     );
   }
@@ -670,7 +849,7 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card
-          className={`select-none mb-4 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
+          className={`select-none mb-3 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
           onClick={!readOnly && challengeActive ? (e) => {
             // Quick add on single click, dialog on double click
             if (e.detail === 1) {
@@ -683,41 +862,39 @@ export default function ObjectiveItem({
           onTouchEnd={!readOnly && challengeActive ? handleTouchEnd : undefined}
           onTouchCancel={!readOnly && challengeActive ? handleTouchEnd : undefined}
         >
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-base flex items-center gap-2">
+          <CardHeader className="pb-1.5 pt-3 px-3">
+            <div className="flex justify-between items-center gap-2">
+              <CardTitle className="text-sm flex items-center gap-1.5 flex-1 min-w-0">
                 {isCompleted && (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
                 )}
-                {objective.title}
+                <span className="truncate">{objective.title}</span>
                 {!challengeActive && (
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {t("challengeInactive")}
                   </span>
                 )}
               </CardTitle>
-              <div className="text-sm font-medium">
+              <div className="text-xs font-medium flex-shrink-0">
                 {objective.pointsPerUnit} {t("points")}/{objective.unit}
               </div>
             </div>
-            <CardDescription className="line-clamp-2 text-xs">
-              {objective.description}
-            </CardDescription>
+            {objective.description && (
+              <CardDescription className="line-clamp-1 text-xs mt-0.5">
+                {objective.description}
+              </CardDescription>
+            )}
           </CardHeader>
-          <CardContent className="pb-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <Trophy className="h-4 w-4 text-challenge-purple" />
-                  <span className="text-sm font-medium">
-                    {Math.floor(pointsEarned)} / {Math.floor(targetPoints)}{" "}
-                    {t("points")}
-                  </span>
-                </div>
-              </div>
+          <CardContent className="pb-2 pt-0 px-3">
+            <div className="flex items-center gap-1">
+              <Trophy className="h-3.5 w-3.5 text-challenge-purple flex-shrink-0" />
+              <span className="text-xs font-medium">
+                {Math.floor(pointsEarned)} / {Math.floor(targetPoints)}{" "}
+                {t("points")}
+              </span>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="pt-2 pb-3 px-3">
             {!readOnly && (
               <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
