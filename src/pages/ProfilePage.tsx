@@ -30,12 +30,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { usePWAInstall } from "@/contexts/PWAInstallContext";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { toast } = useToast();
+  const { canInstall, promptInstall } = usePWAInstall();
 
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -329,6 +331,17 @@ export default function ProfilePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
+                      {canInstall && (
+                        <div className="mb-4">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={promptInstall}
+                          >
+                            {t("installAppConfirm")}
+                          </Button>
+                        </div>
+                      )}
                       <form className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">{t("fullName")}</Label>

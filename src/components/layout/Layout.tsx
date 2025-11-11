@@ -1,6 +1,8 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { InstallPromptDialog } from "@/components/pwa/InstallPromptDialog";
+import { PWAInstallProvider } from "@/contexts/PWAInstallContext";
 import Header from "./Header";
 import Footer from "./Footer";
 
@@ -26,14 +28,17 @@ export default function Layout() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {isMobile ? (
-        <PullToRefresh onRefresh={handleRefresh}>
-          {content}
-        </PullToRefresh>
-      ) : (
-        content
-      )}
-    </div>
+    <PWAInstallProvider>
+      <InstallPromptDialog />
+      <div className="flex min-h-screen flex-col">
+        {isMobile ? (
+          <PullToRefresh onRefresh={handleRefresh}>
+            {content}
+          </PullToRefresh>
+        ) : (
+          content
+        )}
+      </div>
+    </PWAInstallProvider>
   );
 }

@@ -163,6 +163,11 @@ export const translations = {
     completing: "Wird abgeschlossen...",
     completeChallenge: "Herausforderung abschließen",
     notApplicable: "N/V",
+    installAppTitle: "Saiko installieren",
+    installAppDescription:
+      "Füge Saiko zu deinem Gerät hinzu für schnelleren Zugriff und ein Vollbild-Erlebnis.",
+    installAppDismiss: "Jetzt nicht",
+    installAppConfirm: "Als App installieren",
 
     target: "Ziel",
     deadline: "Frist",
@@ -645,6 +650,11 @@ export const translations = {
     completing: "Completing...",
     completeChallenge: "Complete Challenge",
     notApplicable: "N/A",
+    installAppTitle: "Install Saiko",
+    installAppDescription:
+      "Add Saiko to your device for faster access and a full-screen experience.",
+    installAppDismiss: "Not now",
+    installAppConfirm: "Install as app",
 
     target: "Target",
     deadline: "Deadline",
