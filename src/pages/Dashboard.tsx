@@ -245,19 +245,32 @@ export default function Dashboard() {
 
   const [userActivityDates, setUserActivityDates] = useState<Set<string>>(new Set());
 
+  // Helper function to format date in local timezone as YYYY-MM-DD
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Load user activity data to determine which days have actual entries
   useEffect(() => {
     const loadUserActivity = async () => {
       if (!user) return;
       
       try {
-        // Get the date range for the last 7 days
+        // Get the date range for the last 7 days using local timezone
         const today = new Date();
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(today.getDate() - 6);
         
-        const startDate = sevenDaysAgo.toISOString().split('T')[0];
-        const endDate = today.toISOString().split('T')[0];
+        // Normalize to start of day in local timezone
+        const startDateLocal = new Date(sevenDaysAgo.getFullYear(), sevenDaysAgo.getMonth(), sevenDaysAgo.getDate());
+        const endDateLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        // Format dates in local timezone for query
+        const startDate = formatLocalDate(startDateLocal);
+        const endDate = formatLocalDate(endDateLocal);
         
         // Get actual user activity dates from the database
         const activityDates = await getUserActivityDates(startDate, endDate);
@@ -280,12 +293,15 @@ export default function Dashboard() {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       
-      // Check if the user actually made an entry on this specific date
-      const dateKey = date.toISOString().split('T')[0];
+      // Normalize to start of day in local timezone
+      const dateNormalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      
+      // Format date in local timezone for comparison
+      const dateKey = formatLocalDate(dateNormalized);
       const hasActivity = userActivityDates.has(dateKey);
       
       streakData.push({
-        date,
+        date: dateNormalized,
         hasActivity,
         isToday: i === 0,
         dayName: date.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', { weekday: 'short' })

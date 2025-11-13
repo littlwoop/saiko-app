@@ -719,12 +719,17 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return [];
 
     try {
+      // Convert local date strings to UTC timestamps for query
+      // Add time to cover the full day in UTC
+      const startDateTime = new Date(startDate + 'T00:00:00');
+      const endDateTime = new Date(endDate + 'T23:59:59.999');
+      
       const { data: entriesData, error: entriesError } = await supabase
         .from("entries")
         .select("created_at")
         .eq("user_id", user.id)
-        .gte("created_at", startDate)
-        .lte("created_at", endDate)
+        .gte("created_at", startDateTime.toISOString())
+        .lte("created_at", endDateTime.toISOString())
         .order("created_at", { ascending: false });
 
       if (entriesError) {
@@ -732,10 +737,15 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return [];
       }
 
-      // Extract unique dates from entries
-      const activityDates = entriesData?.map(entry => 
-        entry.created_at.split('T')[0]
-      ) || [];
+      // Extract unique dates from entries, converting UTC timestamps to local dates
+      const activityDates = entriesData?.map(entry => {
+        // Parse UTC timestamp and convert to local date
+        const utcDate = new Date(entry.created_at);
+        const year = utcDate.getFullYear();
+        const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+        const day = String(utcDate.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }) || [];
 
       // Remove duplicates and return
       return [...new Set(activityDates)];
