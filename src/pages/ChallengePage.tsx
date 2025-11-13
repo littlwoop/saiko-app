@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ const StravaLogo = ({ className }: { className?: string }) => (
 
 export default function ChallengePage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     getChallenge,
     joinChallenge,
@@ -81,7 +82,34 @@ export default function ChallengePage() {
   const [shownBingoWins, setShownBingoWins] = useState<Set<string>>(new Set());
   const [previousProgress, setPreviousProgress] = useState<UserProgress[]>([]);
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState("objectives");
+  
+  // Get active tab from URL or default to "objectives"
+  const validTabs = ["objectives", "leaderboard", "activities"];
+  const tabFromUrl = searchParams.get("tab");
+  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "objectives";
+  const [activeTab, setActiveTab] = useState(initialTab);
+  
+  // Update URL when tab changes
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (value === "objectives") {
+      // Remove tab param if it's the default
+      newSearchParams.delete("tab");
+    } else {
+      newSearchParams.set("tab", value);
+    }
+    setSearchParams(newSearchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+  
+  // Sync activeTab with URL on mount or when URL changes externally (e.g., refresh, browser back/forward)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    const newTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "objectives";
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [searchParams, activeTab]);
   const [creatorAvatar, setCreatorAvatar] = useState<string | undefined>(
     undefined,
   );
@@ -584,13 +612,13 @@ export default function ChallengePage() {
 
           <Tabs
             value={activeTab}
-            onValueChange={setActiveTab}
+            onValueChange={handleTabChange}
             defaultValue="objectives"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               {isMobile ? (
                 <div className="flex flex-row gap-2 w-full">
-                  <Select value={activeTab} onValueChange={setActiveTab}>
+                  <Select value={activeTab} onValueChange={handleTabChange}>
                     <SelectTrigger className="flex-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -821,7 +849,7 @@ export default function ChallengePage() {
                 capedPoints={challenge.capedPoints}
                 onUserClick={(userId) => {
                   setSelectedUserId(userId);
-                  setActiveTab("objectives");
+                  handleTabChange("objectives");
                 }}
               />
             </TabsContent>
@@ -831,7 +859,7 @@ export default function ChallengePage() {
                 challengeId={challenge.id}
                 onUserClick={(userId) => {
                   setSelectedUserId(userId);
-                  setActiveTab("objectives");
+                  handleTabChange("objectives");
                 }}
               />
             </TabsContent>
