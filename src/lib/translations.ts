@@ -526,7 +526,7 @@ export const translations = {
     noActiveChallenges: "No active challenges",
     noActiveChallengesDescription: "You don't have any active challenges yet. Join one to get started!",
     progress: "Progress",
-    objectives: "objectives",
+    objectives: "Objectives",
     points: "pts",
     ends: "Ends",
     daysLeft: "d left",
