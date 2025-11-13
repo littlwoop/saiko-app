@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useChallenges } from '@/contexts/ChallengeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import LeaderboardTable from '@/components/challenges/LeaderboardTable';
 import {
   Select,
@@ -17,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 export default function LeaderboardPage() {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const { user } = useAuth();
   const [selectedChallenge, setSelectedChallenge] = useState<string | undefined>(undefined);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,9 +36,37 @@ export default function LeaderboardPage() {
           console.error('Error fetching challenges:', error);
         } else {
           setChallenges(challengesData || []);
-          // Set the most recent challenge as default if no challenge is selected
-          if (!selectedChallenge && challengesData && challengesData.length > 0) {
-            setSelectedChallenge(challengesData[0].id.toString());
+          
+          // Try to find the user's last active challenge
+          let challengeToSelect: string | undefined = undefined;
+          
+          if (user && challengesData && challengesData.length > 0) {
+            // Query for the user's most recent activity
+            const { data: lastActivity, error: activityError } = await supabase
+              .from('entries')
+              .select('challenge_id')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (!activityError && lastActivity && lastActivity.challenge_id) {
+              const challengeId = lastActivity.challenge_id.toString();
+              // Verify the challenge still exists in the challenges list
+              if (challengesData.some(c => c.id.toString() === challengeId)) {
+                challengeToSelect = challengeId;
+              }
+            }
+          }
+          
+          // Fall back to most recent challenge if no last activity found or user not logged in
+          if (!challengeToSelect && challengesData && challengesData.length > 0) {
+            challengeToSelect = challengesData[0].id.toString();
+          }
+          
+          // Set the selected challenge
+          if (challengeToSelect && !selectedChallenge) {
+            setSelectedChallenge(challengeToSelect);
           }
         }
       } catch (error) {
@@ -47,7 +77,7 @@ export default function LeaderboardPage() {
     };
 
     fetchChallenges();
-  }, []);
+  }, [user]);
 
   const handleChallengeChange = (value: string) => {
     setSelectedChallenge(value);
