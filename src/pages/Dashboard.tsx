@@ -259,13 +259,13 @@ export default function Dashboard() {
       if (!user) return;
       
       try {
-        // Get the date range for the last 7 days using local timezone
+        // Get the date range for the last 90 days using local timezone (for accurate streak calculation)
         const today = new Date();
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(today.getDate() - 6);
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(today.getDate() - 89);
         
         // Normalize to start of day in local timezone
-        const startDateLocal = new Date(sevenDaysAgo.getFullYear(), sevenDaysAgo.getMonth(), sevenDaysAgo.getDate());
+        const startDateLocal = new Date(ninetyDaysAgo.getFullYear(), ninetyDaysAgo.getMonth(), ninetyDaysAgo.getDate());
         const endDateLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         
         // Format dates in local timezone for query
@@ -309,6 +309,33 @@ export default function Dashboard() {
     }
     
     return streakData;
+  };
+
+  const calculateStreak = (): number => {
+    if (userActivityDates.size === 0) return 0;
+    
+    const today = new Date();
+    let streak = 0;
+    let currentDate = new Date(today);
+    
+    // Normalize to start of day
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    
+    // Check up to 90 days back to find the streak (matching the data we load)
+    for (let i = 0; i < 90; i++) {
+      const dateKey = formatLocalDate(currentDate);
+      
+      if (userActivityDates.has(dateKey)) {
+        streak++;
+        // Move to previous day
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else {
+        // Streak broken
+        break;
+      }
+    }
+    
+    return streak;
   };
 
   const getDailyChallenge = () => {
@@ -404,6 +431,14 @@ export default function Dashboard() {
 
       {/* Streak History */}
       <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+            {t("dailyProgress")}
+          </h2>
+          <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-sm sm:text-base font-semibold">
+            {calculateStreak()} {calculateStreak() === 1 ? t("streakDay") : t("streakDays")} {t("streak")}
+          </Badge>
+        </div>
         <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {getStreakData().map((day, index) => (
             <div
