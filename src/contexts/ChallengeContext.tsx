@@ -31,6 +31,7 @@ interface ChallengeContextType {
     >,
   ) => Promise<void>;
   joinChallenge: (challengeId: number) => Promise<void>;
+  leaveChallenge: (challengeId: number) => Promise<void>;
   updateProgress: (
     challengeId: number,
     objectiveId: string,
@@ -387,6 +388,73 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         description: "Failed to join challenge",
         variant: "destructive",
       });
+    }
+  };
+
+  // Leave a challenge
+  const leaveChallenge = async (challengeId: number) => {
+    debug.log(`Leaving challenge: ${challengeId}, user: ${user?.id}`);
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to leave a challenge",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: challengeData, error: fetchError } = await supabase
+        .from("challenges")
+        .select("participants")
+        .eq("id", challengeId)
+        .single();
+
+      if (fetchError) {
+        debug.error("Error fetching challenge:", fetchError);
+        throw fetchError;
+      }
+
+      debug.log("Current challenge data:", challengeData);
+
+      const currentParticipants = Array.isArray(challengeData?.participants)
+        ? challengeData.participants
+        : [];
+
+      if (!currentParticipants.includes(user.id)) {
+        debug.log("User is not a participant in this challenge");
+        toast({
+          title: "Info",
+          description: "You're not a participant in this challenge",
+        });
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from("challenges")
+        .update({
+          participants: currentParticipants.filter((id) => id !== user.id),
+        })
+        .eq("id", challengeId);
+
+      if (updateError) {
+        debug.error("Error updating participants:", updateError);
+        throw updateError;
+      }
+
+      debug.log("Successfully left challenge");
+      toast({
+        title: "Success!",
+        description: "You've left the challenge successfully",
+      });
+    } catch (error) {
+      debug.error("Error leaving challenge:", error);
+      toast({
+        title: "Error",
+        description: "Failed to leave challenge",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -758,6 +826,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     createChallenge,
     joinChallenge,
+    leaveChallenge,
     updateProgress,
     getChallenge,
     getUserChallenges,

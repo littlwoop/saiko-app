@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,18 @@ import {
   Award,
   UserRound,
   CheckCircle,
+  LogOut,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { Challenge, UserProgress } from "@/types";
@@ -57,6 +68,7 @@ export default function ChallengePage() {
   const {
     getChallenge,
     joinChallenge,
+    leaveChallenge,
     getChallengeProgress,
     getParticipantProgress,
     getParticipants,
@@ -66,6 +78,7 @@ export default function ChallengePage() {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
@@ -81,6 +94,8 @@ export default function ChallengePage() {
   const [showBingoAnimation, setShowBingoAnimation] = useState(false);
   const [shownBingoWins, setShownBingoWins] = useState<Set<string>>(new Set());
   const [previousProgress, setPreviousProgress] = useState<UserProgress[]>([]);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [leavingChallenge, setLeavingChallenge] = useState(false);
   const isMobile = useIsMobile();
   
   // Get active tab from URL or default to "objectives"
@@ -137,6 +152,19 @@ export default function ChallengePage() {
       console.error("Error joining challenge:", error);
     } finally {
       setJoiningChallenge(false);
+    }
+  };
+
+  const handleLeaveChallenge = async () => {
+    if (!challenge) return;
+    setLeavingChallenge(true);
+    try {
+      await leaveChallenge(challenge.id);
+      // Navigate to dashboard after leaving
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error leaving challenge:", error);
+      setLeavingChallenge(false);
     }
   };
 
@@ -508,34 +536,50 @@ export default function ChallengePage() {
       <div className="max-w-4xl mx-auto">
         <div className="space-y-6">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="flex flex-col gap-2">
               <h1 className="text-2xl sm:text-3xl font-bold">
                 {challenge.title}
               </h1>
-              {isFuture && (
-                <Badge
-                  variant="outline"
-                  className="border-blue-400 text-blue-500"
-                >
-                  {t("upcoming")}
-                </Badge>
-              )}
-              {isActive && !endDate && (
-                <Badge className="bg-blue-500">
-                  {t("ongoing")}
-                </Badge>
-              )}
-              {isActive && endDate && (
-                <Badge className="bg-green-500">{t("active")}</Badge>
-              )}
-              {isPast && (
-                <Badge
-                  variant="outline"
-                  className="border-gray-400 text-gray-500"
-                >
-                  {t("completed")}
-                </Badge>
-              )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isFuture && (
+                    <Badge
+                      variant="outline"
+                      className="border-blue-400 text-blue-500"
+                    >
+                      {t("upcoming")}
+                    </Badge>
+                  )}
+                  {isActive && !endDate && (
+                    <Badge className="bg-blue-500">
+                      {t("ongoing")}
+                    </Badge>
+                  )}
+                  {isActive && endDate && (
+                    <Badge className="bg-green-500">{t("active")}</Badge>
+                  )}
+                  {isPast && (
+                    <Badge
+                      variant="outline"
+                      className="border-gray-400 text-gray-500"
+                    >
+                      {t("completed")}
+                    </Badge>
+                  )}
+                </div>
+                {hasJoined && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowLeaveDialog(true)}
+                    disabled={leavingChallenge}
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    title={t("leaveChallenge")}
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* <p className="text-sm sm:text-base text-muted-foreground">{challenge.description}</p> */}
@@ -866,6 +910,29 @@ export default function ChallengePage() {
           </Tabs>
         </div>
       </div>
+
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("leaveChallengeConfirmation")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("leaveChallengeConfirmationDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={leavingChallenge}>
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeaveChallenge}
+              disabled={leavingChallenge}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {leavingChallenge ? t("leaving") : t("leaveChallenge")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

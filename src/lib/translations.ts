@@ -108,6 +108,9 @@ export const translations = {
     // Challenge Page
     joinChallenge: "Herausforderung beitreten",
     leaveChallenge: "Herausforderung verlassen",
+    leaveChallengeConfirmation: "Herausforderung wirklich verlassen?",
+    leaveChallengeConfirmationDescription: "Möchtest du diese Herausforderung wirklich verlassen? Du verlierst deinen gesamten Fortschritt und kannst später wieder beitreten.",
+    leaving: "Wird verlassen...",
     challengeProgress: "Fortschritt",
     totalPoints: "Gesamtpunkte",
     objective: "Ziel",
@@ -600,6 +603,9 @@ export const translations = {
     // Challenge Page
     joinChallenge: "Join Challenge",
     leaveChallenge: "Leave Challenge",
+    leaveChallengeConfirmation: "Leave Challenge?",
+    leaveChallengeConfirmationDescription: "Are you sure you want to leave this challenge? You will lose all your progress and can rejoin later.",
+    leaving: "Leaving...",
     challengeProgress: "Progress",
     totalPoints: "Total Points",
     objective: "Objective",
