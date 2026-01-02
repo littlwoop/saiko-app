@@ -20,6 +20,7 @@ import {
   UserRound,
   CheckCircle,
   LogOut,
+  Info,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -31,6 +32,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { Challenge, UserProgress } from "@/types";
@@ -96,6 +110,7 @@ export default function ChallengePage() {
   const [previousProgress, setPreviousProgress] = useState<UserProgress[]>([]);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [leavingChallenge, setLeavingChallenge] = useState(false);
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
   const isMobile = useIsMobile();
   
   // Get active tab from URL or default to "objectives"
@@ -537,9 +552,28 @@ export default function ChallengePage() {
         <div className="space-y-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <h1 className="text-2xl sm:text-3xl font-bold">
-                {challenge.title}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">
+                  {challenge.title}
+                </h1>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setShowInfoDialog(true)}
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{t("challengeInfo") || "Challenge Information"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {isFuture && (
@@ -933,6 +967,113 @@ export default function ChallengePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{challenge.title}</DialogTitle>
+            {challenge.description && (
+              <DialogDescription className="text-base pt-2">
+                {challenge.description}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          
+          <div className="space-y-4 pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className="text-sm text-muted-foreground">{t("startDate") || "Start Date"}</span>
+                  <span className="font-medium">
+                    {format(startDate, t("dateFormatLong"), { locale })}
+                  </span>
+                </div>
+              </div>
+              
+              {endDate && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex flex-col">
+                    <span className="text-sm text-muted-foreground">{t("endDate") || "End Date"}</span>
+                    <span className="font-medium">
+                      {format(endDate, t("dateFormatLong"), { locale })}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className="text-sm text-muted-foreground">{t("participants")}</span>
+                  <span className="font-medium">
+                    {challenge.participants.length}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className="text-sm text-muted-foreground">{t("totalPoints") || "Total Points"}</span>
+                  <span className="font-medium">
+                    {challenge.totalPoints}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <Avatar className="h-6 w-6">
+                {creatorAvatar && (
+                  <AvatarImage
+                    src={creatorAvatar}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                )}
+                <AvatarFallback>
+                  <UserRound className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm text-muted-foreground">{t("createdBy")}</span>
+                <span className="font-medium">
+                  {challenge.creatorName}
+                </span>
+              </div>
+            </div>
+
+            {challenge.objectives && challenge.objectives.length > 0 && (
+              <div className="pt-2 border-t">
+                <h3 className="font-semibold mb-3">{t("objectives")}</h3>
+                <div className="space-y-2">
+                  {challenge.objectives.map((objective, index) => (
+                    <div key={objective.id} className="flex items-start gap-2">
+                      <span className="text-muted-foreground min-w-[24px]">{index + 1}.</span>
+                      <div className="flex-1">
+                        <p className="font-medium">{objective.title}</p>
+                        {objective.description && (
+                          <p className="text-sm text-muted-foreground">{objective.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <Target className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            {objective.targetValue && `${objective.targetValue} ${objective.unit || ""}`}
+                            {objective.pointsPerUnit && objective.unit && ` • ${objective.pointsPerUnit} ${t("points") || "points"}/${objective.unit}`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
