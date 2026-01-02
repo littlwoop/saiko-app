@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CircleX, Trophy, Plus, Info } from "lucide-react";
+import { CircleX, Trophy, Plus } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -26,18 +26,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { v4 as uuidv4, validate as validateUUID } from "uuid";
-import { ChallengeType } from "@/types";
-import { useNavigate } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { ChallengeType, Challenge } from "@/types";
+import { useNavigate, useParams } from "react-router-dom";
 
-export default function CreateChallengeForm() {
-  const { createChallenge } = useChallenges();
+export default function EditChallengeForm() {
+  const { id } = useParams<{ id: string }>();
+  const { updateChallenge, getChallenge } = useChallenges();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
 
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<DateRange | undefined>({
@@ -58,6 +58,55 @@ export default function CreateChallengeForm() {
       pointsPerUnit: 0,
     },
   ]);
+
+  // Load challenge data
+  useEffect(() => {
+    const loadChallenge = async () => {
+      if (!id) return;
+
+      try {
+        const challenge = await getChallenge(parseInt(id));
+        if (challenge) {
+          setTitle(challenge.title);
+          setDescription(challenge.description);
+          setCapedPoints(challenge.capedPoints || false);
+          setChallengeType(challenge.challenge_type);
+          
+          // Set dates
+          const startDate = new Date(challenge.startDate);
+          const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+          setNoEndDate(!endDate);
+          setDate({
+            from: startDate,
+            to: endDate || undefined,
+          });
+
+          // Set objectives
+          if (challenge.objectives && challenge.objectives.length > 0) {
+            setObjectives(challenge.objectives.map(obj => ({
+              id: obj.id,
+              title: obj.title,
+              description: obj.description || "",
+              targetValue: obj.targetValue || 0,
+              unit: obj.unit || "",
+              pointsPerUnit: obj.pointsPerUnit || 0,
+            })));
+          }
+        }
+      } catch (error) {
+        console.error("Error loading challenge:", error);
+        toast({
+          title: t("error"),
+          description: "Failed to load challenge",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChallenge();
+  }, [id, getChallenge, toast, t]);
 
   const handleAddObjective = () => {
     setObjectives([
@@ -94,8 +143,10 @@ export default function CreateChallengeForm() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!id) return;
 
     if (!title || !description || !date?.from) {
       toast({
@@ -106,7 +157,6 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    // If no end date is set, ensure we have only start date
     if (!noEndDate && !date.to) {
       toast({
         title: t("error"),
@@ -116,7 +166,6 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    // Different validation for checklist/collection challenges
     const hasEmptyObjective = challenge_type === "checklist"
       ? objectives.some(obj => !obj.title)
       : objectives.some(
@@ -138,14 +187,11 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    // Map checklist to collection for database storage
     const databaseChallengeType = challenge_type === "checklist" ? "collection" : challenge_type;
 
-    // Ensure all objectives have valid UUIDs
     const objectivesWithValidIds = objectives.map((obj) => {
       let validId = obj.id;
       
-      // If the ID is not a valid UUID, generate a new one
       if (!validateUUID(obj.id)) {
         console.warn(`Invalid UUID for objective "${obj.title}", generating new one`);
         validId = uuidv4();
@@ -159,7 +205,7 @@ export default function CreateChallengeForm() {
       };
     });
 
-    createChallenge({
+    await updateChallenge(parseInt(id), {
       title,
       description,
       startDate: date.from.toISOString(),
@@ -169,8 +215,20 @@ export default function CreateChallengeForm() {
       objectives: objectivesWithValidIds,
     });
 
-    navigate("/challenges");
+    navigate(`/challenges/${id}`);
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-10 w-full rounded bg-muted"></div>
+          <div className="h-24 w-full rounded bg-muted"></div>
+          <div className="h-10 w-full rounded bg-muted"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -249,58 +307,7 @@ export default function CreateChallengeForm() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="challengeType">{t("challengeType")}</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5"
-                >
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="start">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <h4 className="font-semibold text-sm">
-                      {t("challengeTypeInfo")}
-                    </h4>
-                  </div>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <span className="font-semibold text-foreground">{t("standardChallenge")}:</span>
-                      <p className="text-muted-foreground mt-1">
-                        {t("standardChallengeDescription")}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-foreground">{t("bingoChallenge")}:</span>
-                      <p className="text-muted-foreground mt-1">
-                        {t("bingoChallengeDescription")}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-foreground">{t("completionChallenge")}:</span>
-                      <p className="text-muted-foreground mt-1">
-                        {t("completionChallengeDescription")}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-foreground">{t("checklistChallenge")}:</span>
-                      <p className="text-muted-foreground mt-1">
-                        {t("checklistChallengeDescription")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-
+          <Label htmlFor="challengeType">{t("challengeType")}</Label>
           <Select value={challenge_type} onValueChange={(value: ChallengeType) => setChallengeType(value)}>
             <SelectTrigger>
               <SelectValue placeholder={t("selectChallengeType")} />
@@ -334,16 +341,14 @@ export default function CreateChallengeForm() {
             variant="outline"
             size="sm"
             onClick={handleAddObjective}
-            className={isMobile ? "px-2" : ""}
           >
-            <Plus className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-            {!isMobile && t("addObjective")}
+            <Plus className="mr-2 h-4 w-4" /> {t("addObjective")}
           </Button>
         </div>
 
         <div className="space-y-4">
           {objectives.map((objective, index) => (
-            <Card key={index} className="p-4 relative">
+            <Card key={objective.id || index} className="p-4 relative">
               {objectives.length > 1 && (
                 <Button
                   type="button"
@@ -459,8 +464,9 @@ export default function CreateChallengeForm() {
       </div>
 
       <Button type="submit" className="w-full">
-        <Trophy className="mr-2 h-4 w-4" /> {t("createChallenge")}
+        <Trophy className="mr-2 h-4 w-4" /> {t("updateChallenge") || "Update Challenge"}
       </Button>
     </form>
   );
 }
+

@@ -21,6 +21,7 @@ import {
   CheckCircle,
   LogOut,
   Info,
+  Edit,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -569,7 +570,7 @@ export default function ChallengePage() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{t("challengeInfo") || "Challenge Information"}</p>
+                      <p>{t("challengeInfo")}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -601,18 +602,30 @@ export default function ChallengePage() {
                     </Badge>
                   )}
                 </div>
-                {hasJoined && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowLeaveDialog(true)}
-                    disabled={leavingChallenge}
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    title={t("leaveChallenge")}
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {isCreator && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => navigate(`/challenges/${challenge.id}/edit`)}
+                      size="icon"
+                      title={t("editChallenge") || "Edit Challenge"}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {hasJoined && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowLeaveDialog(true)}
+                      disabled={leavingChallenge}
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      title={t("leaveChallenge")}
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -721,7 +734,7 @@ export default function ChallengePage() {
                       disabled={isImportingStrava || isFuture}
                       size="sm"
                       className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={isFuture ? `${t("upcoming")} - Challenge has not started yet` : undefined}
+                      title={isFuture ? `${t("upcoming")} - ${t("challengeNotStartedYet")}` : undefined}
                     >
                       {isImportingStrava ? (
                         <StravaLogo className="h-4 w-4 animate-spin" />
@@ -785,7 +798,7 @@ export default function ChallengePage() {
                         disabled={isImportingStrava || isFuture}
                         size="sm"
                         className="shrink-0 bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={isFuture ? `${t("upcoming")} - Challenge has not started yet` : undefined}
+                        title={isFuture ? `${t("upcoming")} - ${t("challengeNotStartedYet")}` : undefined}
                       >
                         {isImportingStrava ? (
                           <>

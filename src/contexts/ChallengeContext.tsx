@@ -30,6 +30,13 @@ interface ChallengeContextType {
       "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
     >,
   ) => Promise<void>;
+  updateChallenge: (
+    challengeId: number,
+    challenge: Omit<
+      Challenge,
+      "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
+    >,
+  ) => Promise<void>;
   joinChallenge: (challengeId: number) => Promise<void>;
   leaveChallenge: (challengeId: number) => Promise<void>;
   updateProgress: (
@@ -321,6 +328,109 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       toast({
         title: "Success!",
         description: "Challenge created successfully",
+      });
+    }
+  };
+
+  // Update an existing challenge
+  const updateChallenge = async (
+    challengeId: number,
+    challengeData: Omit<
+      Challenge,
+      "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
+    >,
+  ) => {
+    debug.log("Updating challenge:", challengeId, challengeData);
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to update a challenge",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verify user is the creator
+    const existingChallenge = await getChallenge(challengeId);
+    if (!existingChallenge) {
+      toast({
+        title: "Error",
+        description: "Challenge not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (existingChallenge.createdById !== user.id) {
+      toast({
+        title: "Error",
+        description: "You can only edit challenges you created",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate total points based on challenge type
+    let totalPoints: number;
+    if (challengeData.challenge_type === "completion") {
+      const startDate = new Date(challengeData.startDate);
+      const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
+      
+      if (endDate) {
+        const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = daysDiff * pointsPerDay;
+      } else {
+        const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = 365 * pointsPerDay;
+      }
+    } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
+      totalPoints = challengeData.objectives.length;
+    } else {
+      totalPoints = challengeData.objectives.reduce((total, objective) => {
+        return total + objective.targetValue * objective.pointsPerUnit;
+      }, 0);
+    }
+
+    // Ensure all objectives have valid UUIDs
+    const objectivesWithValidIds = challengeData.objectives.map((obj) => {
+      if (!validateUUID(obj.id)) {
+        console.warn(`Invalid UUID for objective "${obj.title}", generating new one`);
+        return { ...obj, id: uuidv4() };
+      }
+      return obj;
+    });
+
+    const updateData = {
+      title: challengeData.title,
+      description: challengeData.description,
+      startDate: challengeData.startDate,
+      endDate: challengeData.endDate,
+      challenge_type: challengeData.challenge_type || "standard",
+      capedPoints: challengeData.capedPoints,
+      objectives: objectivesWithValidIds,
+      totalPoints,
+    };
+
+    debug.log("Prepared update data:", updateData);
+
+    const { error } = await supabase
+      .from("challenges")
+      .update(updateData)
+      .eq("id", challengeId);
+
+    if (error) {
+      debug.error("Error updating challenge:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      debug.log("Successfully updated challenge");
+      toast({
+        title: "Success!",
+        description: "Challenge updated successfully",
       });
     }
   };
@@ -825,6 +935,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     createChallenge,
+    updateChallenge,
     joinChallenge,
     leaveChallenge,
     updateProgress,

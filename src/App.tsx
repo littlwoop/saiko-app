@@ -18,6 +18,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import ChallengesPage from "@/pages/ChallengesPage";
 import CreateChallengePage from "@/pages/CreateChallengePage";
 import ChallengePage from "@/pages/ChallengePage";
+import EditChallengePage from "@/pages/EditChallengePage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
 import ProfilePage from "@/pages/ProfilePage";
 import Dashboard from "@/pages/Dashboard";
@@ -63,6 +64,14 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <CreateChallengePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="challenges/:id/edit"
+                    element={
+                      <ProtectedRoute>
+                        <EditChallengePage />
                       </ProtectedRoute>
                     }
                   />
