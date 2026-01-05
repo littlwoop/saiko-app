@@ -766,12 +766,6 @@ export default function ObjectiveItem({
             )}
           </CardHeader>
         </Card>
-        <DailyProgressGrid 
-          startDate={challengeStartDate}
-          endDate={challengeEndDate}
-          completedDays={dailyEntries}
-          t={t}
-        />
         {!readOnly && (
           <div className="mt-1.5 flex justify-center">
             <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
@@ -841,6 +835,12 @@ export default function ObjectiveItem({
             </Dialog>
           </div>
         )}
+        <DailyProgressGrid 
+          startDate={challengeStartDate}
+          endDate={challengeEndDate}
+          completedDays={dailyEntries}
+          t={t}
+        />
       </>
     );
   }
