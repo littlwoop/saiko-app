@@ -10,6 +10,8 @@ export default function Layout() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const isIndexPage = location.pathname === "/";
+  const isDashboardPage = location.pathname === "/dashboard";
+  const showFooter = isIndexPage || isDashboardPage;
 
   const handleRefresh = async () => {
     // You can customize this function to refresh specific data instead of reloading the page
@@ -18,27 +20,25 @@ export default function Layout() {
   };
 
   const content = (
-    <>
+    <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
         <Outlet />
       </main>
-      {isIndexPage && <Footer />}
-    </>
+      {showFooter && <Footer />}
+    </div>
   );
 
   return (
     <PWAInstallProvider>
       <InstallPromptDialog />
-      <div className="flex min-h-screen flex-col">
-        {isMobile ? (
-          <PullToRefresh onRefresh={handleRefresh}>
-            {content}
-          </PullToRefresh>
-        ) : (
-          content
-        )}
-      </div>
+      {isMobile ? (
+        <PullToRefresh onRefresh={handleRefresh}>
+          {content}
+        </PullToRefresh>
+      ) : (
+        content
+      )}
     </PWAInstallProvider>
   );
 }
