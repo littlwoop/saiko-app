@@ -127,8 +127,17 @@ export default function ChallengeCard({
     }
   };
 
+  const handleCardClick = () => {
+    if (hasJoined) {
+      navigate(`/challenges/${challenge.id}`);
+    }
+  };
+
   return (
-    <Card className="overflow-hidden flex flex-col h-full transition-all hover:shadow-md">
+    <Card 
+      className={`overflow-hidden flex flex-col h-full transition-all hover:shadow-md ${hasJoined ? 'cursor-pointer' : ''}`}
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <CardTitle className="line-clamp-1 text-lg">
@@ -212,23 +221,18 @@ export default function ChallengeCard({
 
       <CardFooter>
         {user ? (
-          hasJoined ? (
-            <Button asChild className="w-full" variant="outline">
-              <Link to={`/challenges/${challenge.id}`}>
-                {t("viewChallenge")}
-              </Link>
+          !hasJoined && showJoin && (
+            <Button
+              className="w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleJoinChallenge();
+              }}
+              disabled={loading || isPast}
+            >
+              <Trophy className="mr-2 h-4 w-4" />
+              {loading ? t("loading") : t("joinChallenge")}
             </Button>
-          ) : (
-            showJoin && (
-              <Button
-                className="w-full"
-                onClick={handleJoinChallenge}
-                disabled={loading}
-              >
-                <Trophy className="mr-2 h-4 w-4" />
-                {loading ? t("loading") : t("joinChallenge")}
-              </Button>
-            )
           )
         ) : (
           <Button asChild className="w-full">

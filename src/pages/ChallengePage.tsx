@@ -150,9 +150,20 @@ export default function ChallengePage() {
 
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
+  
+  // Check if challenge is completed
+  const isCompleted = challenge?.endDate ? new Date() > new Date(challenge.endDate) : false;
 
   const handleJoinChallenge = async () => {
     if (!challenge) return;
+    if (isCompleted) {
+      toast({
+        title: t("error"),
+        description: t("cannotJoinCompletedChallenge"),
+        variant: "destructive",
+      });
+      return;
+    }
     setJoiningChallenge(true);
     try {
       await joinChallenge(challenge.id);
@@ -692,7 +703,7 @@ export default function ChallengePage() {
                 <Button
                   className="sm:ml-auto"
                   onClick={handleJoinChallenge}
-                  disabled={joiningChallenge}
+                  disabled={joiningChallenge || isCompleted}
                 >
                   <Trophy className="mr-2 h-4 w-4" />
                   {joiningChallenge ? t("joining") : t("joinChallenge")}

@@ -205,6 +205,9 @@ export const translations = {
       "Versuche deine Suche anzupassen oder erstelle eine neue Herausforderung",
     noCreatedChallenges: "Du hast noch keine Herausforderungen erstellt",
     noCreatedChallengesDescription: "Starte jetzt deine erste Herausforderung",
+    showCompleted: "Abgeschlossene anzeigen",
+    hideCompleted: "Abgeschlossene ausblenden",
+    cannotJoinCompletedChallenge: "Du kannst einer abgeschlossenen Herausforderung nicht beitreten",
 
     // Profile Page
     myProfile: "Mein Profil",
@@ -708,6 +711,9 @@ export const translations = {
       "Try adjusting your search or create a new challenge",
     noCreatedChallenges: "You haven't created any challenges yet",
     noCreatedChallengesDescription: "Start your first challenge now",
+    showCompleted: "Show Completed",
+    hideCompleted: "Hide Completed",
+    cannotJoinCompletedChallenge: "Cannot join a completed challenge",
 
     // Profile Page
     myProfile: "My Profile",

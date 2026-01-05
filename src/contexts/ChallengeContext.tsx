@@ -450,7 +450,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data: challengeData, error: fetchError } = await supabase
         .from("challenges")
-        .select("participants")
+        .select("participants, endDate")
         .eq("id", challengeId)
         .single();
 
@@ -460,6 +460,20 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       }
 
       debug.log("Current challenge data:", challengeData);
+
+      // Check if challenge is completed
+      if (challengeData?.endDate) {
+        const endDate = new Date(challengeData.endDate);
+        const today = new Date();
+        if (today > endDate) {
+          toast({
+            title: t("error"),
+            description: t("cannotJoinCompletedChallenge"),
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
       const currentParticipants = Array.isArray(challengeData?.participants)
         ? challengeData.participants

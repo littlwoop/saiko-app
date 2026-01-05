@@ -6,12 +6,10 @@ import { useTranslation } from '@/lib/translations';
 import ChallengeCard from '@/components/challenges/ChallengeCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Challenge, UserChallenge } from '@/types';
 import { supabase } from '@/lib/supabase';
-
-const CHALLENGES_PER_PAGE = 9;
 
 export default function ChallengesPage() {
   const { getChallenge, getUserChallenges } = useChallenges();
@@ -20,44 +18,34 @@ export default function ChallengesPage() {
   const { t } = useTranslation(language);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const activeTab = user ? 'all' : 'browse';
 
-  const loadChallenges = async (pageNum: number, isNewSearch = false) => {
+  const loadChallenges = async () => {
     try {
-      setLoadingMore(true);
+      setLoading(true);
 
       let query = supabase
         .from('challenges')
         .select('*')
-        .order('created_at', { ascending: false })
-        .range((pageNum - 1) * CHALLENGES_PER_PAGE, pageNum * CHALLENGES_PER_PAGE - 1);
+        .order('created_at', { ascending: false });
 
       // Apply search filter if there's a search query
       if (searchQuery) {
         query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
       }
 
-      const { data: challengesData, error: challengesError, count } = await query;
+      const { data: challengesData, error: challengesError } = await query;
 
       if (challengesError) {
         console.error('Error fetching challenges:', challengesError);
         return;
       }
 
-      if (isNewSearch) {
-        setChallenges(challengesData || []);
-      } else {
-        setChallenges((prev) => [...prev, ...(challengesData || [])]);
-      }
-
-      // Check if we have more challenges to load
-      setHasMore((challengesData?.length || 0) === CHALLENGES_PER_PAGE);
+      setChallenges(challengesData || []);
 
       // Get user's challenges if logged in
       if (user) {
@@ -68,25 +56,13 @@ export default function ChallengesPage() {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
 
   // Initial load
   useEffect(() => {
-    setLoading(true);
-    setPage(1);
-    loadChallenges(1, true);
+    loadChallenges();
   }, [user, searchQuery]);
-
-  // Load more when scrolling
-  const handleLoadMore = () => {
-    if (!loadingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadChallenges(nextPage);
-    }
-  };
 
   // Filter challenges based on search query
   const filteredChallenges = challenges.filter(
@@ -94,6 +70,15 @@ export default function ChallengesPage() {
       challenge.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       challenge.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Check if there are any completed challenges
+  const hasCompletedChallenges = useMemo(() => {
+    const today = new Date();
+    return filteredChallenges.some((challenge) => {
+      const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+      return endDate ? today > endDate : false;
+    });
+  }, [filteredChallenges]);
 
   // Get user's joined challenges
   const userJoinedChallenges = user
@@ -111,7 +96,20 @@ export default function ChallengesPage() {
     }
     const today = new Date();
     
-    const sorted = [...filteredChallenges].sort((a, b) => {
+    // Filter out completed challenges if showCompleted is false
+    let challengesToShow = filteredChallenges;
+    if (!showCompleted) {
+      challengesToShow = filteredChallenges.filter((challenge) => {
+        const startDate = new Date(challenge.startDate);
+        const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+        const isActive = today >= startDate && (!endDate || today <= endDate);
+        const isFuture = today < startDate;
+        // Only show active and future challenges, hide completed ones
+        return isActive || isFuture;
+      });
+    }
+    
+    const sorted = [...challengesToShow].sort((a, b) => {
       // First, determine the status of each challenge
       const aStartDate = new Date(a.startDate);
       const aEndDate = a.endDate ? new Date(a.endDate) : null;
@@ -154,7 +152,7 @@ export default function ChallengesPage() {
       return bProgress - aProgress;
     });
     return sorted;
-  }, [filteredChallenges, user, userChallenges]);
+  }, [filteredChallenges, user, userChallenges, showCompleted]);
 
   const sortedJoinedChallenges = useMemo(() => {
     if (!user) {
@@ -275,17 +273,18 @@ export default function ChallengesPage() {
                   })}
                 </div>
 
-                {hasMore && (
-                  <div className="flex justify-center">
-                    <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore}>
-                      {loadingMore ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {t('loading')}
-                        </>
-                      ) : (
-                        t('loadMore')
-                      )}
+                {hasCompletedChallenges && !showCompleted && (
+                  <div className="flex justify-center mt-6">
+                    <Button variant="outline" onClick={() => setShowCompleted(true)}>
+                      {t('showCompleted')}
+                    </Button>
+                  </div>
+                )}
+
+                {showCompleted && hasCompletedChallenges && (
+                  <div className="flex justify-center mt-6">
+                    <Button variant="outline" onClick={() => setShowCompleted(false)}>
+                      {t('hideCompleted')}
                     </Button>
                   </div>
                 )}
