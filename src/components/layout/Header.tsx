@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Trophy, UserRound, Activity, Globe, Menu } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Drawer,
   DrawerContent,
@@ -69,6 +70,20 @@ export default function Header() {
         }`}
       >
         {t("challenges")}
+      </Link>
+      <Link
+        to="/quests"
+        onClick={onLinkClick}
+        className={`text-sm font-medium transition-colors hover:text-primary select-none flex items-center gap-1.5 ${
+          location.pathname === "/quests"
+            ? "text-primary"
+            : "text-foreground"
+        }`}
+      >
+        {t("quest")}
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0 h-4">
+          Alpha
+        </Badge>
       </Link>
       <Link
         to="/leaderboard"

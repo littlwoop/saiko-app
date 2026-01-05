@@ -4,6 +4,7 @@ export const translations = {
   de: {
     // Navigation
     challenges: "Herausforderungen",
+    quest: "Quest",
     leaderboard: "Bestenliste",
     profile: "Profil",
     myChallenges: "Meine Herausforderungen",
@@ -511,6 +512,7 @@ export const translations = {
   en: {
     // Navigation
     challenges: "Challenges",
+    quest: "Quest",
     leaderboard: "Leaderboard",
     profile: "Profiles",
     myChallenges: "My Challenges",
