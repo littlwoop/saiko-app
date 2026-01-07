@@ -546,7 +546,7 @@ export default function Dashboard() {
                         >
                           {t("upcoming")}
                         </Badge>
-                      ) : item.challenge.endDate && (
+                      ) : item.challenge.endDate && daysRemaining < 10 && (
                         <Badge 
                           variant={daysRemaining <= 3 ? "destructive" : daysRemaining <= 7 ? "secondary" : "default"}
                           className="self-start sm:self-auto text-xs sm:text-sm"

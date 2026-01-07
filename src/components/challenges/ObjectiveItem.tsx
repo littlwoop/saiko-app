@@ -45,7 +45,7 @@ interface DailyProgressGridProps {
   t: (key: string) => string;
 }
 
-const DailyProgressGrid = ({ startDate, endDate, completedDays, t }: DailyProgressGridProps) => {
+export const DailyProgressGrid = ({ startDate, endDate, completedDays, t }: DailyProgressGridProps) => {
   if (!startDate || !endDate) return null;
 
   // Normalize dates to local timezone start of day
@@ -835,12 +835,15 @@ export default function ObjectiveItem({
             </Dialog>
           </div>
         )}
-        <DailyProgressGrid 
-          startDate={challengeStartDate}
-          endDate={challengeEndDate}
-          completedDays={dailyEntries}
-          t={t}
-        />
+        {/* Hide grid for completion challenges - shown at challenge level instead */}
+        {challenge_type !== "completion" && (
+          <DailyProgressGrid 
+            startDate={challengeStartDate}
+            endDate={challengeEndDate}
+            completedDays={dailyEntries}
+            t={t}
+          />
+        )}
       </>
     );
   }

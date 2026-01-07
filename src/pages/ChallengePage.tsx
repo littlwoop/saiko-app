@@ -147,6 +147,7 @@ export default function ChallengePage() {
   const [isImportingStrava, setIsImportingStrava] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [joiningChallenge, setJoiningChallenge] = useState(false);
+  const [completionDaysCompleted, setCompletionDaysCompleted] = useState<Set<string>>(new Set());
 
   const hasJoined = user && challenge?.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
@@ -240,6 +241,69 @@ export default function ChallengePage() {
     loadUserProgress();
   }, [challenge?.id, user?.id]); // Only depend on IDs, not the full objects
 
+  // Load completion days for completion challenges
+  const loadCompletionDays = useCallback(async () => {
+    if (!challenge || challenge.challenge_type !== "completion" || !challenge.objectives) return;
+    if (!user && !selectedUserId) return;
+
+    const userIdToQuery = selectedUserId || user?.id;
+    if (!userIdToQuery) return;
+
+    try {
+      // Get all entries for all objectives in this challenge
+      const startDate = new Date(challenge.startDate);
+      const startDateTime = startDate.toISOString();
+      const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+      
+      const query = supabase
+        .from('entries')
+        .select('created_at, objective_id')
+        .eq('user_id', userIdToQuery)
+        .eq('challenge_id', challenge.id)
+        .gte('created_at', startDateTime);
+
+      if (endDate) {
+        const endDateTime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        query.lte('created_at', endDateTime);
+      }
+
+      const { data: entries, error } = await query;
+
+      if (error) {
+        console.error('Error fetching completion entries:', error);
+        return;
+      }
+
+      if (!entries) return;
+
+      // Group entries by date (YYYY-MM-DD)
+      const entriesByDate = new Map<string, Set<string>>();
+      entries.forEach(entry => {
+        const date = entry.created_at.split('T')[0];
+        if (!entriesByDate.has(date)) {
+          entriesByDate.set(date, new Set());
+        }
+        entriesByDate.get(date)!.add(entry.objective_id);
+      });
+
+      // Find dates where all objectives have entries
+      const allObjectiveIds = new Set(challenge.objectives.map(obj => obj.id));
+      const completedDays = new Set<string>();
+
+      entriesByDate.forEach((objectiveIds, date) => {
+        // Check if all objectives have entries for this date
+        const allCompleted = Array.from(allObjectiveIds).every(objId => objectiveIds.has(objId));
+        if (allCompleted) {
+          completedDays.add(date);
+        }
+      });
+
+      setCompletionDaysCompleted(completedDays);
+    } catch (error) {
+      console.error('Error loading completion days:', error);
+    }
+  }, [challenge?.id, challenge?.challenge_type, challenge?.objectives, challenge?.startDate, challenge?.endDate, user?.id, selectedUserId]);
+
   // Refresh progress when user progress changes (e.g., after updates)
   const refreshProgress = useCallback(async () => {
     if (!challenge || !user) return;
@@ -247,10 +311,14 @@ export default function ChallengePage() {
     try {
       const progressData = await getChallengeProgress(challenge.id);
       setUserProgress(progressData);
+      // Refresh completion days for completion challenges
+      if (challenge.challenge_type === "completion") {
+        await loadCompletionDays();
+      }
     } catch (error) {
       console.error("Error refreshing progress:", error);
     }
-  }, [challenge?.id, user?.id, getChallengeProgress]);
+  }, [challenge?.id, challenge?.challenge_type, user?.id, getChallengeProgress, loadCompletionDays]);
 
   const handleImportStravaActivities = async () => {
     if (!user || !challenge) return;
@@ -363,6 +431,10 @@ export default function ChallengePage() {
     participantProgress,
     selectedUserId,
   ]);
+
+  useEffect(() => {
+    loadCompletionDays();
+  }, [loadCompletionDays]);
 
   // Reset shown wins when switching users
   useEffect(() => {
@@ -941,6 +1013,54 @@ export default function ChallengePage() {
                       selectedUserId={selectedUserId}
                     />
                   ))}
+                  {/* Show single grid for completion challenges */}
+                  {challenge.challenge_type === "completion" && challenge.endDate && (
+                    <div className="mt-6 rounded-lg border p-4">
+                      <div className="text-sm font-medium mb-3">{t("dailyProgress")}</div>
+                      <div className="mt-1.5">
+                        <div className="flex flex-wrap gap-0.5">
+                          {(() => {
+                            // Calculate days
+                            const startRaw = new Date(challenge.startDate);
+                            const start = new Date(startRaw.getFullYear(), startRaw.getMonth(), startRaw.getDate());
+                            const endRaw = new Date(challenge.endDate!);
+                            const end = new Date(endRaw.getFullYear(), endRaw.getMonth(), endRaw.getDate());
+                            const totalDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                            
+                            const todayLocal = new Date();
+                            const today = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, '0')}-${String(todayLocal.getDate()).padStart(2, '0')}`;
+                            
+                            const formatLocalDate = (date: Date): string => {
+                              const year = date.getFullYear();
+                              const month = String(date.getMonth() + 1).padStart(2, '0');
+                              const day = String(date.getDate()).padStart(2, '0');
+                              return `${year}-${month}-${day}`;
+                            };
+                            
+                            const days = [];
+                            for (let i = 0; i < totalDays; i++) {
+                              const date = new Date(start);
+                              date.setDate(start.getDate() + i);
+                              const dateString = formatLocalDate(date);
+                              const isCompleted = completionDaysCompleted.has(dateString);
+                              const isToday = dateString === today;
+                              days.push({ date: dateString, isCompleted, isToday });
+                            }
+                            
+                            return days.map((day, index) => (
+                              <div
+                                key={index}
+                                className={`w-7 h-7 ${
+                                  day.isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                                } ${day.isToday ? 'ring-2 ring-blue-500' : ''}`}
+                                title={`${day.date} - ${day.isCompleted ? t("completed") : t("notCompleted")}`}
+                              />
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
