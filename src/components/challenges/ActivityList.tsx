@@ -74,6 +74,7 @@ export default function ActivityList({
   const [objectives, setObjectives] = useState<Record<string, Objective>>({});
   const [loading, setLoading] = useState(true);
   const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
+  const [challengeType, setChallengeType] = useState<string | null>(null);
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -122,6 +123,7 @@ export default function ActivityList({
             {},
           );
           setObjectives(objectivesMap);
+          setChallengeType(challenge.challenge_type);
         }
 
         // Fetch activities
@@ -407,23 +409,14 @@ export default function ActivityList({
                           <UserRound className="h-4 w-4" />
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{activity.username}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="text-sm">
-                        {t("addedValue").replace(
-                          "{value}",
-                          `${activity.value} ${objective?.unit}`,
-                        )}{" "}
-                        {t("forObjective")} "{objective?.title}"
-                      </p>
-                      {activity.notes && (
-                        <p className="text-sm text-muted-foreground">
-                          {activity.notes}
-                        </p>
-                      )}
+                      <div>
+                        <span className="font-medium">{activity.username}</span>
+                        {activity.notes && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {activity.notes}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
