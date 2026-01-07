@@ -251,9 +251,14 @@ export default function ChallengePage() {
 
     try {
       // Get all entries for all objectives in this challenge
-      const startDate = new Date(challenge.startDate);
-      const startDateTime = startDate.toISOString();
-      const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+      // Use a wider date range to ensure we catch all entries regardless of timezone
+      const startDateRaw = new Date(challenge.startDate);
+      const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
+      // Start from beginning of start date in local time, converted to UTC
+      const startDateTime = new Date(startDate.getTime() - 12 * 60 * 60 * 1000).toISOString(); // 12 hours before to account for timezone differences
+      
+      const endDateRaw = challenge.endDate ? new Date(challenge.endDate) : null;
+      const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
       
       const query = supabase
         .from('entries')
@@ -263,7 +268,8 @@ export default function ChallengePage() {
         .gte('created_at', startDateTime);
 
       if (endDate) {
-        const endDateTime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        // End at end of end date in local time, converted to UTC, plus buffer
+        const endDateTime = new Date(endDate.getTime() + 36 * 60 * 60 * 1000).toISOString(); // 36 hours after to account for timezone differences
         query.lte('created_at', endDateTime);
       }
 
@@ -276,10 +282,16 @@ export default function ChallengePage() {
 
       if (!entries) return;
 
-      // Group entries by date (YYYY-MM-DD)
+      // Group entries by date (YYYY-MM-DD) - convert UTC timestamp to local date
       const entriesByDate = new Map<string, Set<string>>();
       entries.forEach(entry => {
-        const date = entry.created_at.split('T')[0];
+        // Convert UTC timestamp to local date
+        const entryDate = new Date(entry.created_at);
+        const year = entryDate.getFullYear();
+        const month = String(entryDate.getMonth() + 1).padStart(2, '0');
+        const day = String(entryDate.getDate()).padStart(2, '0');
+        const date = `${year}-${month}-${day}`;
+        
         if (!entriesByDate.has(date)) {
           entriesByDate.set(date, new Set());
         }

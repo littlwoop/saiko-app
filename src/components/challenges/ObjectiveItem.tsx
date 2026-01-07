@@ -317,7 +317,12 @@ export default function ObjectiveItem({
       const entryDates = new Set<string>();
       if (entries) {
         entries.forEach(entry => {
-          const date = entry.created_at.split('T')[0];
+          // Convert UTC timestamp to local date
+          const entryDate = new Date(entry.created_at);
+          const year = entryDate.getFullYear();
+          const month = String(entryDate.getMonth() + 1).padStart(2, '0');
+          const day = String(entryDate.getDate()).padStart(2, '0');
+          const date = `${year}-${month}-${day}`;
           entryDates.add(date);
         });
       }
@@ -333,21 +338,40 @@ export default function ObjectiveItem({
     if (!userIdToQuery) return false;
 
     try {
+      // Parse the date string (YYYY-MM-DD) and create date range in local timezone
+      const [year, month, day] = date.split('-').map(Number);
+      const dateStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const dateEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
+      
+      // Convert to UTC for database query
+      const startUTC = dateStart.toISOString();
+      const endUTC = dateEnd.toISOString();
+      
       const { data: entries, error } = await supabase
         .from('entries')
         .select('created_at')
         .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
-        .gte('created_at', `${date}T00:00:00.000Z`)
-        .lt('created_at', `${date}T23:59:59.999Z`);
+        .gte('created_at', startUTC)
+        .lte('created_at', endUTC);
 
       if (error) {
         console.error('Error checking date entries:', error);
         return false;
       }
 
-      return entries && entries.length > 0;
+      // Check if any entry matches the local date
+      if (!entries || entries.length === 0) return false;
+      
+      // Convert entry timestamps to local dates and check if any match
+      return entries.some(entry => {
+        const entryDate = new Date(entry.created_at);
+        const entryYear = entryDate.getFullYear();
+        const entryMonth = entryDate.getMonth() + 1;
+        const entryDay = entryDate.getDate();
+        return entryYear === year && entryMonth === month && entryDay === day;
+      });
     } catch (error) {
       console.error('Error checking date entries:', error);
       return false;

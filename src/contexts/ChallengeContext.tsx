@@ -636,10 +636,15 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         };
 
         // If completionDate is provided, set created_at to that date
-        // Format: YYYY-MM-DD, convert to ISO timestamp at start of day in UTC
+        // Format: YYYY-MM-DD, convert to ISO timestamp at noon in local timezone (then to UTC)
+        // Using noon ensures the date stays correct when converted back to local timezone
         if (completionDate) {
-          const date = new Date(completionDate + 'T00:00:00.000Z');
-          entryData.created_at = date.toISOString();
+          // Parse the date string (YYYY-MM-DD) and create a date at noon in local timezone
+          const [year, month, day] = completionDate.split('-').map(Number);
+          // Create date at noon local time (12:00) to avoid timezone edge cases
+          // This ensures that when converted to UTC and back, it will always be the same calendar day
+          const localDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+          entryData.created_at = localDate.toISOString();
         }
         
         const { error: insertError } = await supabase.from("entries").insert(entryData);
