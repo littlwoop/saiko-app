@@ -29,6 +29,15 @@ import { v4 as uuidv4, validate as validateUUID } from "uuid";
 import { ChallengeType, Challenge } from "@/types";
 import { useNavigate, useParams } from "react-router-dom";
 
+// Helper function to format date as YYYY-MM-DDTHH:mm:ss.sssZ without timezone conversion
+// This preserves the selected date regardless of user's timezone
+const formatDateForStorage = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}T00:00:00.000Z`;
+};
+
 export default function EditChallengeForm() {
   const { id } = useParams<{ id: string }>();
   const { updateChallenge, getChallenge } = useChallenges();
@@ -208,8 +217,8 @@ export default function EditChallengeForm() {
     await updateChallenge(parseInt(id), {
       title,
       description,
-      startDate: date.from.toISOString(),
-      endDate: noEndDate ? undefined : date.to?.toISOString(),
+      startDate: formatDateForStorage(date.from),
+      endDate: noEndDate ? undefined : (date.to ? formatDateForStorage(date.to) : undefined),
       challenge_type: databaseChallengeType as ChallengeType,
       capedPoints,
       objectives: objectivesWithValidIds,
