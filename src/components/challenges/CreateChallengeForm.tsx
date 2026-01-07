@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { format, addDays } from "date-fns";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
+import { getWeekStart, getWeekEnd, isFullWeeksRange } from "@/lib/week-utils";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CircleX, Trophy, Plus, Info } from "lucide-react";
@@ -49,10 +49,8 @@ export default function CreateChallengeForm() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 30),
-  });
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
+  const [endDate, setEndDate] = useState<Date | undefined>(addDays(new Date(), 30));
   const [capedPoints, setCapedPoints] = useState(false);
   const [challenge_type, setChallengeType] = useState<ChallengeType>("standard");
   const [noEndDate, setNoEndDate] = useState(false);
@@ -68,7 +66,7 @@ export default function CreateChallengeForm() {
     },
   ]);
 
-  // Update objectives when challenge type changes to completion
+  // Update objectives when challenge type changes to completion (weekly uses normal fields)
   useEffect(() => {
     if (challenge_type === "completion") {
       setObjectives(prevObjectives =>
@@ -80,6 +78,27 @@ export default function CreateChallengeForm() {
         }))
       );
     }
+  }, [challenge_type]);
+
+  // Auto-adjust dates to week boundaries when weekly challenge is selected
+  useEffect(() => {
+    if (challenge_type === "weekly" && startDate) {
+      const weekStart = getWeekStart(startDate);
+      
+      // Only update start date if it doesn't align with week boundary
+      if (startDate.getTime() !== weekStart.getTime()) {
+        setStartDate(weekStart);
+      }
+      
+      // Only update end date if it exists and doesn't align with week boundary
+      if (endDate && !noEndDate) {
+        const weekEnd = getWeekEnd(endDate);
+        if (endDate.getTime() !== weekEnd.getTime()) {
+          setEndDate(weekEnd);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge_type]);
 
   const handleAddObjective = () => {
@@ -124,7 +143,7 @@ export default function CreateChallengeForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title || !description || !date?.from) {
+    if (!title || !description || !startDate) {
       toast({
         title: t("error"),
         description: t("fillRequiredFields"),
@@ -134,7 +153,7 @@ export default function CreateChallengeForm() {
     }
 
     // If no end date is set, ensure we have only start date
-    if (!noEndDate && !date.to) {
+    if (!noEndDate && !endDate) {
       toast({
         title: t("error"),
         description: t("fillRequiredFields"),
@@ -143,10 +162,22 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    // Different validation for checklist/collection challenges and completion challenges
+    // Validate full weeks for weekly challenges
+    if (challenge_type === "weekly" && !noEndDate && startDate && endDate) {
+      if (!isFullWeeksRange(startDate, endDate)) {
+        toast({
+          title: t("error"),
+          description: t("mustSelectFullWeeks"),
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Different validation for checklist/collection challenges and completion/weekly challenges
     const hasEmptyObjective = challenge_type === "checklist"
       ? objectives.some(obj => !obj.title)
-      : challenge_type === "completion"
+      : (challenge_type === "completion" || challenge_type === "weekly")
       ? objectives.some(obj => !obj.title)
       : objectives.some(
           (obj) =>
@@ -197,8 +228,8 @@ export default function CreateChallengeForm() {
     createChallenge({
       title,
       description,
-      startDate: formatDateForStorage(date.from),
-      endDate: noEndDate ? undefined : (date.to ? formatDateForStorage(date.to) : undefined),
+      startDate: formatDateForStorage(startDate),
+      endDate: noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined),
       challenge_type: databaseChallengeType as ChallengeType,
       capedPoints,
       objectives: objectivesWithValidIds,
@@ -235,37 +266,97 @@ export default function CreateChallengeForm() {
 
         <div className="space-y-2">
           <Label>{t("challengeDuration")}</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                {date?.from ? (
-                  date.to && !noEndDate ? (
-                    <>
-                      {format(date.from, "LLL dd, yyyy")} -{" "}
-                      {format(date.to, "LLL dd, yyyy")}
-                    </>
-                  ) : (
-                    format(date.from, "LLL dd, yyyy")
-                  )
-                ) : (
-                  <span>{t("pickDateRange")}</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={date?.from}
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate" className="text-sm">{t("startDate") || "Start Date"}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    {startDate ? (
+                      format(startDate, "LLL dd, yyyy")
+                    ) : (
+                      <span>{t("pickStartDate") || "Pick start date"}</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="single"
+                    selected={startDate}
+                    weekStartsOn={1}
+                    onSelect={(date) => {
+                      if (date) {
+                        if (challenge_type === "weekly") {
+                          // Auto-adjust to week start (Monday)
+                          const weekStart = getWeekStart(date);
+                          setStartDate(weekStart);
+                        } else {
+                          setStartDate(date);
+                        }
+                      }
+                    }}
+                    disabled={(date) => {
+                      // Disable dates after end date if end date is set
+                      if (endDate && !noEndDate) {
+                        return date > endDate;
+                      }
+                      return false;
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endDate" className="text-sm">{t("endDate") || "End Date"}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                    disabled={noEndDate}
+                  >
+                    {endDate && !noEndDate ? (
+                      format(endDate, "LLL dd, yyyy")
+                    ) : noEndDate ? (
+                      <span className="text-muted-foreground">{t("noEndDate")}</span>
+                    ) : (
+                      <span>{t("pickEndDate") || "Pick end date"}</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="single"
+                    selected={endDate}
+                    weekStartsOn={1}
+                    onSelect={(date) => {
+                      if (date) {
+                        if (challenge_type === "weekly") {
+                          // Auto-adjust to week end (Sunday)
+                          const weekEnd = getWeekEnd(date);
+                          setEndDate(weekEnd);
+                        } else {
+                          setEndDate(date);
+                        }
+                      }
+                    }}
+                    disabled={(date) => {
+                      // Disable dates before start date
+                      if (startDate) {
+                        return date < startDate;
+                      }
+                      return false;
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
           <div className="flex items-center space-x-2">
             <Checkbox
               id="noEndDate"
@@ -273,7 +364,10 @@ export default function CreateChallengeForm() {
               onCheckedChange={(checked) => {
                 setNoEndDate(checked as boolean);
                 if (checked) {
-                  setDate({ ...date, to: undefined });
+                  setEndDate(undefined);
+                } else if (!endDate) {
+                  // Set default end date if enabling end date
+                  setEndDate(addDays(startDate || new Date(), 30));
                 }
               }}
             />
@@ -325,6 +419,12 @@ export default function CreateChallengeForm() {
                       </p>
                     </div>
                     <div>
+                      <span className="font-semibold text-foreground">{t("weeklyChallenge")}:</span>
+                      <p className="text-muted-foreground mt-1">
+                        {t("weeklyChallengeDescription")}
+                      </p>
+                    </div>
+                    <div>
                       <span className="font-semibold text-foreground">{t("checklistChallenge")}:</span>
                       <p className="text-muted-foreground mt-1">
                         {t("checklistChallengeDescription")}
@@ -344,6 +444,7 @@ export default function CreateChallengeForm() {
               <SelectItem value="standard">{t("standardChallenge")}</SelectItem>
               <SelectItem value="bingo">{t("bingoChallenge")}</SelectItem>
               <SelectItem value="completion">{t("completionChallenge")}</SelectItem>
+              <SelectItem value="weekly">{t("weeklyChallenge")}</SelectItem>
               <SelectItem value="checklist">{t("checklistChallenge")}</SelectItem>
             </SelectContent>
           </Select>

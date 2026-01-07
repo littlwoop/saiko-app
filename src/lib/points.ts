@@ -43,6 +43,10 @@ export function calculateTotalPoints(
       if (challengeType === "completion") {
         // Each entry is worth the pointsPerUnit
         return sum + (progressItem.currentValue * objective.pointsPerUnit);
+      } else if (challengeType === "weekly") {
+        // For weekly challenges, currentValue represents the number of completed weeks
+        // Each completed week is worth the pointsPerUnit
+        return sum + (progressItem.currentValue * objective.pointsPerUnit);
       } else if (challengeType === "checklist" || challengeType === "collection") {
         // For checklist challenges, completed items award 1 point
         return sum + (progressItem.currentValue >= 1 ? 1 : 0);

@@ -77,6 +77,10 @@ export const translations = {
       "Beschreibe, worum es bei dieser Herausforderung geht...",
     challengeDuration: "Dauer der Herausforderung",
     pickDateRange: "Datumsbereich auswählen",
+    startDate: "Startdatum",
+    endDate: "Enddatum",
+    pickStartDate: "Startdatum auswählen",
+    pickEndDate: "Enddatum auswählen",
     challengeObjectives: "Herausforderungsziele",
     addObjective: "Ziel hinzufügen",
     objectiveTitle: "Zieltitel",
@@ -102,6 +106,8 @@ export const translations = {
     bingoChallengeDescription: "Erfülle Ziele in einem 5x5 Raster. Gewinne durch das Abschließen von Reihen, Spalten oder Diagonalen. Erfordert genau 25 Ziele.",
     completionChallenge: "Tages-Challenge",
     completionChallengeDescription: "Verfolge tägliche Abschlüsse. Der Fortschritt wird anhand der Anzahl der Tage gemessen, an denen du deine Ziele erreichst.",
+    weeklyChallenge: "Wochen-Challenge",
+    weeklyChallengeDescription: "Verfolge wöchentliche Abschlüsse. Der Fortschritt wird anhand der Anzahl der Wochen gemessen, in denen du deine Ziele erreichst. Nur vollständige Wochen können ausgewählt werden.",
     checklistChallenge: "Checkliste-Herausforderung",
     checklistChallengeDescription: "Einfache Checkliste. Jedes Ziel ist entweder abgeschlossen oder nicht. Perfekt zum Verfolgen von Aufgaben oder Erfolgen.",
     remove: "Entfernen",
@@ -367,6 +373,7 @@ export const translations = {
 
     // Daily Progress Grid
     dailyProgress: "Täglicher Fortschritt",
+    weeklyProgress: "Wöchentlicher Fortschritt",
     notCompleted: "Nicht abgeschlossen",
     completedToday: "Heute abgeschlossen",
     
@@ -380,6 +387,7 @@ export const translations = {
     invalidDate: "Ungültiges Datum",
     dateBeforeChallengeStart: "Das ausgewählte Datum liegt vor dem Start der Herausforderung",
     dateAfterChallengeEnd: "Das ausgewählte Datum liegt nach dem Ende der Herausforderung",
+    mustSelectFullWeeks: "Für Wochen-Challenges müssen vollständige Wochen ausgewählt werden. Startdatum muss ein Montag und Enddatum muss ein Sonntag sein.",
 
     // Strava Integration
     stravaAppSetup: "Strava App Einrichtung",
@@ -586,6 +594,10 @@ export const translations = {
     descriptionPlaceholder: "Describe what this challenge is about...",
     challengeDuration: "Challenge Duration",
     pickDateRange: "Pick a date range",
+    startDate: "Start Date",
+    endDate: "End Date",
+    pickStartDate: "Pick start date",
+    pickEndDate: "Pick end date",
     challengeObjectives: "Challenge Objectives",
     addObjective: "Add Objective",
     objectiveTitle: "Objective Title",
@@ -610,6 +622,8 @@ export const translations = {
     bingoChallengeDescription: "Complete objectives in a 5x5 grid. Win by completing rows, columns, or diagonals. Requires exactly 25 objectives.",
     completionChallenge: "Daily Challenge",
     completionChallengeDescription: "Track daily completion. Progress is measured by the number of days you complete your objectives.",
+    weeklyChallenge: "Weekly Challenge",
+    weeklyChallengeDescription: "Track weekly completion. Progress is measured by the number of weeks you complete your objectives. Only full weeks can be selected.",
     checklistChallenge: "Checklist Challenge",
     checklistChallengeDescription: "Simple check-off list. Each objective is either completed or not. Perfect for tracking tasks or achievements.",
     remove: "Remove",
@@ -860,6 +874,7 @@ export const translations = {
 
     // Daily Progress Grid
     dailyProgress: "Daily Progress",
+    weeklyProgress: "Weekly Progress",
     notCompleted: "Not completed",
     completedToday: "Completed today",
     
@@ -873,6 +888,7 @@ export const translations = {
     invalidDate: "Invalid Date",
     dateBeforeChallengeStart: "The selected date is before the challenge start date",
     dateAfterChallengeEnd: "The selected date is after the challenge end date",
+    mustSelectFullWeeks: "For weekly challenges, you must select full weeks. Start date must be a Monday and end date must be a Sunday.",
 
     // Strava Integration
     stravaAppSetup: "Strava App Setup",

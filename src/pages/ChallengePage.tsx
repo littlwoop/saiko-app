@@ -49,6 +49,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { Challenge, UserProgress } from "@/types";
+import { getNumberOfWeeks } from "@/lib/week-utils";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ActivityList from "@/components/challenges/ActivityList";
@@ -321,7 +322,7 @@ export default function ChallengePage() {
     if (!challenge || !user) return;
 
     try {
-      const progressData = await getChallengeProgress(challenge.id);
+      const progressData = await getChallengeProgress(challenge.id, challenge.challenge_type);
       setUserProgress(progressData);
       // Refresh completion days for completion challenges
       if (challenge.challenge_type === "completion") {
@@ -421,6 +422,19 @@ export default function ChallengePage() {
         
         setProgress((totalDaysCompleted / totalDays) * 100);
         setDisplayValue({ current: totalDaysCompleted, total: totalDays });
+      } else if (challenge.challenge_type === "weekly") {
+        // For weekly challenges, calculate progress based on weeks completed vs total weeks
+        const startDate = new Date(challenge.startDate);
+        const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+        const totalWeeks = endDate ? getNumberOfWeeks(startDate, endDate) : 52;
+        
+        // Calculate total weeks completed across all objectives
+        const totalWeeksCompleted = progressToUse.reduce((sum, progressItem) => {
+          return sum + progressItem.currentValue;
+        }, 0);
+        
+        setProgress((totalWeeksCompleted / totalWeeks) * 100);
+        setDisplayValue({ current: totalWeeksCompleted, total: totalWeeks });
       } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
         // For collection/checklist challenges, progress is number of completed objectives
         const completedObjectives = progressToUse.filter(p => p.currentValue >= 1).length;

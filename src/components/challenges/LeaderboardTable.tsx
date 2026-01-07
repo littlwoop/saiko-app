@@ -15,6 +15,7 @@ import {
 import { Trophy, UserRound, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { calculateTotalPoints } from '@/lib/points';
+import { getNumberOfWeeks, getWeekIdentifier } from '@/lib/week-utils';
 
 interface LeaderboardTableProps {
   challengeId?: number;
@@ -139,6 +140,10 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     // Group entries by user and objective to get total progress per objective
     const userProgressMap = new Map<string, Map<string, number>>();
     const isCompletionChallenge = challengeData?.challenge_type === "completion";
+    const isWeeklyChallenge = challengeData?.challenge_type === "weekly";
+    
+    // For weekly challenges, we need to track progress per week per objective
+    const weeklyProgressMap = new Map<string, Map<string, Map<string, number>>>(); // userId -> objectiveId -> weekId -> total value
     
     entries.forEach(entry => {
       if (!userProgressMap.has(entry.user_id)) {
@@ -147,14 +152,51 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
       
       const userObjectives = userProgressMap.get(entry.user_id)!;
       const currentValue = userObjectives.get(entry.objective_id) || 0;
-      // For completion challenges, count entries (each entry = 1)
-      // For other challenges, sum the values
-      if (isCompletionChallenge) {
+      
+      if (isWeeklyChallenge) {
+        // For weekly challenges, track progress per week
+        if (!weeklyProgressMap.has(entry.user_id)) {
+          weeklyProgressMap.set(entry.user_id, new Map());
+        }
+        const userWeekMap = weeklyProgressMap.get(entry.user_id)!;
+        if (!userWeekMap.has(entry.objective_id)) {
+          userWeekMap.set(entry.objective_id, new Map());
+        }
+        const objectiveWeekMap = userWeekMap.get(entry.objective_id)!;
+        
+        const entryDate = new Date(entry.created_at);
+        const weekId = getWeekIdentifier(entryDate);
+        const weekTotal = objectiveWeekMap.get(weekId) || 0;
+        objectiveWeekMap.set(weekId, weekTotal + (entry.value || 0));
+      } else if (isCompletionChallenge) {
+        // For completion challenges, count entries (each entry = 1)
         userObjectives.set(entry.objective_id, currentValue + 1);
       } else {
+        // For other challenges, sum the values
         userObjectives.set(entry.objective_id, currentValue + entry.value);
       }
     });
+    
+    // For weekly challenges, calculate completed weeks per objective
+    if (isWeeklyChallenge && challengeData) {
+      challengeData.objectives.forEach(objective => {
+        weeklyProgressMap.forEach((userWeekMap, userId) => {
+          const objectiveWeekMap = userWeekMap.get(objective.id);
+          if (objectiveWeekMap) {
+            const targetValue = objective.targetValue || 1;
+            let completedWeeks = 0;
+            objectiveWeekMap.forEach((weekTotal) => {
+              if (weekTotal >= targetValue) {
+                completedWeeks++;
+              }
+            });
+            
+            const userObjectives = userProgressMap.get(userId)!;
+            userObjectives.set(objective.id, completedWeeks);
+          }
+        });
+      });
+    }
 
     // Create leaderboard entries for ALL participants, including those with 0 points
     const userScores = participants.map(participant => {
@@ -228,13 +270,39 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           );
           
           // Track when this user first reached 100% completion
+          // For weekly challenges, track progress per week
+          const weeklyProgressByObjective = new Map<string, Map<string, number>>(); // objectiveId -> weekId -> total value
+          
           for (const entry of sortedEntries) {
-            const currentValue = objectiveProgress.get(entry.objective_id) || 0;
-            // For completion challenges, count entries (each entry = 1)
-            // For other challenges, sum the values
-            if (challengeData?.challenge_type === "completion") {
+            if (challengeData?.challenge_type === "weekly") {
+              // For weekly challenges, track progress per week per objective
+              if (!weeklyProgressByObjective.has(entry.objective_id)) {
+                weeklyProgressByObjective.set(entry.objective_id, new Map());
+              }
+              const weekMap = weeklyProgressByObjective.get(entry.objective_id)!;
+              
+              const entryDate = new Date(entry.created_at);
+              const weekId = getWeekIdentifier(entryDate);
+              const weekTotal = weekMap.get(weekId) || 0;
+              weekMap.set(weekId, weekTotal + (entry.value || 0));
+              
+              // Calculate completed weeks for this objective
+              const objective = challengeObjectives.find(obj => obj.id === entry.objective_id);
+              const targetValue = objective?.targetValue || 1;
+              let completedWeeks = 0;
+              weekMap.forEach((weekTotal) => {
+                if (weekTotal >= targetValue) {
+                  completedWeeks++;
+                }
+              });
+              objectiveProgress.set(entry.objective_id, completedWeeks);
+            } else if (challengeData?.challenge_type === "completion") {
+              // For completion challenges, count entries (each entry = 1)
+              const currentValue = objectiveProgress.get(entry.objective_id) || 0;
               objectiveProgress.set(entry.objective_id, currentValue + 1);
             } else {
+              // For other challenges, sum the values
+              const currentValue = objectiveProgress.get(entry.objective_id) || 0;
               objectiveProgress.set(entry.objective_id, currentValue + entry.value);
             }
             
@@ -253,6 +321,15 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
               // Calculate total days completed across all objectives
               const totalDaysCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
               allObjectivesComplete = totalDaysCompleted >= totalDays;
+            } else if (challengeData?.challenge_type === "weekly") {
+              // For weekly challenges, check if user has completed as many weeks as the challenge has total weeks
+              const startDate = new Date(challengeData.startDate);
+              const endDate = new Date(challengeData.endDate);
+              const totalWeeks = getNumberOfWeeks(startDate, endDate);
+              
+              // Calculate total weeks completed across all objectives
+              const totalWeeksCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
+              allObjectivesComplete = totalWeeksCompleted >= totalWeeks;
             } else {
               // For standard/bingo challenges, use the existing logic
               allObjectivesComplete = challengeObjectives.every(objective => {
@@ -327,7 +404,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
     const orderMap = new Map();
     
     leaderboard.forEach((entry, index) => {
-      // For completion challenges, check if user has completed as many days as the challenge has total days
+      // For completion and weekly challenges, check if user has completed as many days/weeks as the challenge has total
       let isCompleted: boolean;
       if (challengeData.challenge_type === "completion") {
         // Normalize dates to local timezone start of day
@@ -338,6 +415,11 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         // Calculate total days inclusive: floor the difference and add 1 for inclusive count
         const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         isCompleted = entry.score >= totalDays;
+      } else if (challengeData.challenge_type === "weekly") {
+        const startDate = new Date(challengeData.startDate);
+        const endDate = new Date(challengeData.endDate);
+        const totalWeeks = getNumberOfWeeks(startDate, endDate);
+        isCompleted = entry.score >= totalWeeks;
       } else {
         isCompleted = entry.score >= totalPoints;
       }
@@ -360,13 +442,39 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
         );
         
         // Track when this user first reached 100% completion
+        // For weekly challenges, track progress per week
+        const weeklyProgressByObjective = new Map<string, Map<string, number>>(); // objectiveId -> weekId -> total value
+        
         for (const entry of sortedEntries) {
-          const currentValue = objectiveProgress.get(entry.objective_id) || 0;
-          // For completion challenges, count entries (each entry = 1)
-          // For other challenges, sum the values
-          if (challengeData.challenge_type === "completion") {
+          if (challengeData.challenge_type === "weekly") {
+            // For weekly challenges, track progress per week per objective
+            if (!weeklyProgressByObjective.has(entry.objective_id)) {
+              weeklyProgressByObjective.set(entry.objective_id, new Map());
+            }
+            const weekMap = weeklyProgressByObjective.get(entry.objective_id)!;
+            
+            const entryDate = new Date(entry.created_at);
+            const weekId = getWeekIdentifier(entryDate);
+            const weekTotal = weekMap.get(weekId) || 0;
+            weekMap.set(weekId, weekTotal + (entry.value || 0));
+            
+            // Calculate completed weeks for this objective
+            const objective = challengeObjectives.find(obj => obj.id === entry.objective_id);
+            const targetValue = objective?.targetValue || 1;
+            let completedWeeks = 0;
+            weekMap.forEach((weekTotal) => {
+              if (weekTotal >= targetValue) {
+                completedWeeks++;
+              }
+            });
+            objectiveProgress.set(entry.objective_id, completedWeeks);
+          } else if (challengeData.challenge_type === "completion") {
+            // For completion challenges, count entries (each entry = 1)
+            const currentValue = objectiveProgress.get(entry.objective_id) || 0;
             objectiveProgress.set(entry.objective_id, currentValue + 1);
           } else {
+            // For other challenges, sum the values
+            const currentValue = objectiveProgress.get(entry.objective_id) || 0;
             objectiveProgress.set(entry.objective_id, currentValue + entry.value);
           }
           
@@ -385,6 +493,15 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
             // Calculate total days completed across all objectives
             const totalDaysCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
             allObjectivesComplete = totalDaysCompleted >= totalDays;
+          } else if (challengeData.challenge_type === "weekly") {
+            // For weekly challenges, check if user has completed as many weeks as the challenge has total weeks
+            const startDate = new Date(challengeData.startDate);
+            const endDate = new Date(challengeData.endDate);
+            const totalWeeks = getNumberOfWeeks(startDate, endDate);
+            
+            // Calculate total weeks completed across all objectives
+            const totalWeeksCompleted = Array.from(objectiveProgress.values()).reduce((sum, value) => sum + value, 0);
+            allObjectivesComplete = totalWeeksCompleted >= totalWeeks;
           } else {
             // For standard/bingo challenges, use the existing logic
             allObjectivesComplete = challengeObjectives.every(objective => {
@@ -539,7 +656,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                         {isCurrentUser && <span className="ml-1">(You)</span>}
                         {/* Show checkmark for 100% completion (but not for top 3 finishers who already have completion badges) */}
                         {capedPoints && (() => {
-                          // For completion challenges, check if user has completed as many days as the challenge has total days
+                          // For completion and weekly challenges, check if user has completed as many days/weeks as the challenge has total
                           if (challengeData?.challenge_type === "completion") {
                             // Normalize dates to local timezone start of day
                             const startDateRaw = new Date(challengeData.startDate);
@@ -549,6 +666,11 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
                             // Calculate total days inclusive: floor the difference and add 1 for inclusive count
                             const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                             return entry.score >= totalDays;
+                          } else if (challengeData?.challenge_type === "weekly") {
+                            const startDate = new Date(challengeData.startDate);
+                            const endDate = new Date(challengeData.endDate);
+                            const totalWeeks = getNumberOfWeeks(startDate, endDate);
+                            return entry.score >= totalWeeks;
                           } else {
                             return entry.score >= (challengeData?.totalPoints || 0);
                           }

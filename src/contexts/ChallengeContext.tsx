@@ -7,6 +7,7 @@ import { dailyChallengesService } from "@/lib/daily-challenges";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { calculateTotalPoints } from "@/lib/points";
+import { getNumberOfWeeks, getWeekIdentifier } from "@/lib/week-utils";
 import { v4 as uuidv4, validate as validateUUID } from "uuid";
 
 // Debug logging utility
@@ -204,6 +205,77 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       debug.log("Successfully fetched entries:", entriesData);
 
       if (entriesData) {
+        // For weekly challenges, we need to count only completed weeks (where target is met)
+        if (challengeType === "weekly") {
+          // Get challenge data to access objectives and their targetValues
+          const challenge = await getChallenge(challengeId);
+          if (!challenge) return [];
+
+          // Group entries by objective and week, then count only completed weeks
+          const progressMap: Record<string, UserProgress> = {};
+          const weekProgressMap: Record<string, Record<string, number>> = {}; // objectiveId -> weekId -> total value
+
+          entriesData.forEach((entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: entry.user_id,
+                challengeId: entry.challenge_id,
+                objectiveId: entry.objective_id,
+                currentValue: 0,
+              };
+            }
+
+            // Get the week identifier for this entry
+            const entryDate = new Date(entry.created_at);
+            const weekId = getWeekIdentifier(entryDate);
+
+            // Initialize week progress tracking for this objective
+            if (!weekProgressMap[entry.objective_id]) {
+              weekProgressMap[entry.objective_id] = {};
+            }
+            if (!weekProgressMap[entry.objective_id][weekId]) {
+              weekProgressMap[entry.objective_id][weekId] = 0;
+            }
+
+            // Sum values for this week
+            weekProgressMap[entry.objective_id][weekId] += entry.value || 0;
+          });
+
+          // Count only weeks where target is met
+          // Initialize progress for all objectives, even if they have no entries
+          challenge.objectives.forEach((objective) => {
+            const key = `${challengeId}-${objective.id}`;
+            const targetValue = objective.targetValue || 1;
+            const weeksForObjective = weekProgressMap[objective.id] || {};
+
+            // Initialize progress entry if it doesn't exist
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: user.id,
+                challengeId: challengeId,
+                objectiveId: objective.id,
+                currentValue: 0,
+              };
+            }
+
+            // Count only weeks where target is met
+            let completedWeeks = 0;
+            Object.values(weeksForObjective).forEach((weekTotal) => {
+              if (weekTotal >= targetValue) {
+                completedWeeks++;
+              }
+            });
+
+            progressMap[key].currentValue = completedWeeks;
+          });
+
+          const progress = Object.values(progressMap);
+          debug.log("Calculated progress:", progress);
+          return progress;
+        }
+
+        // For other challenge types, use the original logic
         const progressMap = entriesData.reduce(
           (acc, entry) => {
             const key = `${entry.challenge_id}-${entry.objective_id}`;
@@ -276,6 +348,21 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         // For ongoing completion challenges, use a default large number of days (e.g., 365)
         const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 365 * pointsPerDay;
+      }
+    } else if (challengeData.challenge_type === "weekly") {
+      // For weekly challenges, total points = number of weeks * points per week
+      const startDate = new Date(challengeData.startDate);
+      const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
+      
+      if (endDate) {
+        const weeksCount = getNumberOfWeeks(startDate, endDate);
+        // Use the first objective's pointsPerUnit as the points per week
+        const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = weeksCount * pointsPerWeek;
+      } else {
+        // For ongoing weekly challenges, use a default large number of weeks (e.g., 52)
+        const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = 52 * pointsPerWeek;
       }
     } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
       // For checklist challenges, total points = number of objectives (1 point per objective)
@@ -383,6 +470,19 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       } else {
         const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 365 * pointsPerDay;
+      }
+    } else if (challengeData.challenge_type === "weekly") {
+      // For weekly challenges, total points = number of weeks * points per week
+      const startDate = new Date(challengeData.startDate);
+      const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
+      
+      if (endDate) {
+        const weeksCount = getNumberOfWeeks(startDate, endDate);
+        const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = weeksCount * pointsPerWeek;
+      } else {
+        const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
+        totalPoints = 52 * pointsPerWeek;
       }
     } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
       totalPoints = challengeData.objectives.length;
@@ -734,6 +834,77 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       debug.log("Successfully fetched participant entries:", entriesData);
 
       if (entriesData) {
+        // Get challenge to determine challenge type
+        const challenge = await getChallenge(challengeId);
+        if (!challenge) return [];
+
+        // For weekly challenges, count only completed weeks (where target is met)
+        if (challenge.challenge_type === "weekly") {
+          // Group entries by objective and week, then count only completed weeks
+          const progressMap: Record<string, UserProgress> = {};
+          const weekProgressMap: Record<string, Record<string, number>> = {}; // objectiveId -> weekId -> total value
+
+          entriesData.forEach((entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: entry.user_id,
+                challengeId: entry.challenge_id,
+                objectiveId: entry.objective_id,
+                currentValue: 0,
+              };
+            }
+
+            // Get the week identifier for this entry
+            const entryDate = new Date(entry.created_at);
+            const weekId = getWeekIdentifier(entryDate);
+
+            // Initialize week progress tracking for this objective
+            if (!weekProgressMap[entry.objective_id]) {
+              weekProgressMap[entry.objective_id] = {};
+            }
+            if (!weekProgressMap[entry.objective_id][weekId]) {
+              weekProgressMap[entry.objective_id][weekId] = 0;
+            }
+
+            // Sum values for this week
+            weekProgressMap[entry.objective_id][weekId] += entry.value || 0;
+          });
+
+          // Count only weeks where target is met
+          // Initialize progress for all objectives, even if they have no entries
+          challenge.objectives.forEach((objective) => {
+            const key = `${challengeId}-${objective.id}`;
+            const targetValue = objective.targetValue || 1;
+            const weeksForObjective = weekProgressMap[objective.id] || {};
+
+            // Initialize progress entry if it doesn't exist
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: userId,
+                challengeId: challengeId,
+                objectiveId: objective.id,
+                currentValue: 0,
+              };
+            }
+
+            // Count only weeks where target is met
+            let completedWeeks = 0;
+            Object.values(weeksForObjective).forEach((weekTotal) => {
+              if (weekTotal >= targetValue) {
+                completedWeeks++;
+              }
+            });
+
+            progressMap[key].currentValue = completedWeeks;
+          });
+
+          const progress = Object.values(progressMap);
+          debug.log("Calculated participant progress:", progress);
+          return progress;
+        }
+
+        // For other challenge types, use the original logic
         const progressMap = entriesData.reduce(
           (acc, entry) => {
             const key = `${entry.challenge_id}-${entry.objective_id}`;
@@ -745,7 +916,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
                 currentValue: 0,
               };
             }
-            acc[key].currentValue += entry.value;
+            // Get challenge to check type
+            getChallenge(challengeId).then(challenge => {
+              if (challenge?.challenge_type === "completion") {
+                acc[key].currentValue += 1; // Count entries for completion challenges
+              } else {
+                acc[key].currentValue += entry.value; // Sum values for other challenges
+              }
+            });
             return acc;
           },
           {} as Record<string, UserProgress>,
