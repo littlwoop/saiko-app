@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,16 +68,34 @@ export default function CreateChallengeForm() {
     },
   ]);
 
+  // Update objectives when challenge type changes to completion
+  useEffect(() => {
+    if (challenge_type === "completion") {
+      setObjectives(prevObjectives =>
+        prevObjectives.map(obj => ({
+          ...obj,
+          targetValue: obj.targetValue || 1,
+          unit: obj.unit || "1",
+          pointsPerUnit: obj.pointsPerUnit || 1,
+        }))
+      );
+    }
+  }, [challenge_type]);
+
   const handleAddObjective = () => {
+    const defaultTargetValue = challenge_type === "completion" ? 1 : 0;
+    const defaultUnit = challenge_type === "completion" ? "1" : "";
+    const defaultPointsPerUnit = challenge_type === "completion" ? 1 : 0;
+    
     setObjectives([
       ...objectives,
       {
         id: uuidv4(),
         title: "",
         description: "",
-        targetValue: 0,
-        unit: "",
-        pointsPerUnit: 0,
+        targetValue: defaultTargetValue,
+        unit: defaultUnit,
+        pointsPerUnit: defaultPointsPerUnit,
       },
     ]);
   };
@@ -125,8 +143,10 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    // Different validation for checklist/collection challenges
+    // Different validation for checklist/collection challenges and completion challenges
     const hasEmptyObjective = challenge_type === "checklist"
+      ? objectives.some(obj => !obj.title)
+      : challenge_type === "completion"
       ? objectives.some(obj => !obj.title)
       : objectives.some(
           (obj) =>
@@ -160,11 +180,17 @@ export default function CreateChallengeForm() {
         validId = uuidv4();
       }
       
+      // For completion challenges, set defaults to 1
+      const targetValue = challenge_type === "completion" ? 1 : (Number(obj.targetValue) || undefined);
+      const unit = challenge_type === "completion" ? "1" : obj.unit;
+      const pointsPerUnit = challenge_type === "completion" ? 1 : (Number(obj.pointsPerUnit) || undefined);
+      
       return {
         ...obj,
         id: validId,
-        targetValue: Number(obj.targetValue) || undefined,
-        pointsPerUnit: Number(obj.pointsPerUnit) || undefined,
+        targetValue,
+        unit,
+        pointsPerUnit,
       };
     });
 
@@ -401,7 +427,7 @@ export default function CreateChallengeForm() {
                   />
                 </div>
 
-                {challenge_type !== "checklist" && (
+                {challenge_type !== "checklist" && challenge_type !== "completion" && (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor={`objective-${index}-target`}>

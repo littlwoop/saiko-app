@@ -68,6 +68,20 @@ export default function EditChallengeForm() {
     },
   ]);
 
+  // Update objectives when challenge type changes to completion
+  useEffect(() => {
+    if (challenge_type === "completion") {
+      setObjectives(prevObjectives =>
+        prevObjectives.map(obj => ({
+          ...obj,
+          targetValue: obj.targetValue || 1,
+          unit: obj.unit || "1",
+          pointsPerUnit: obj.pointsPerUnit || 1,
+        }))
+      );
+    }
+  }, [challenge_type]);
+
   // Load challenge data
   useEffect(() => {
     const loadChallenge = async () => {
@@ -92,13 +106,14 @@ export default function EditChallengeForm() {
 
           // Set objectives
           if (challenge.objectives && challenge.objectives.length > 0) {
+            const isCompletion = challenge.challenge_type === "completion";
             setObjectives(challenge.objectives.map(obj => ({
               id: obj.id,
               title: obj.title,
               description: obj.description || "",
-              targetValue: obj.targetValue || 0,
-              unit: obj.unit || "",
-              pointsPerUnit: obj.pointsPerUnit || 0,
+              targetValue: isCompletion ? (obj.targetValue || 1) : (obj.targetValue || 0),
+              unit: isCompletion ? (obj.unit || "1") : (obj.unit || ""),
+              pointsPerUnit: isCompletion ? (obj.pointsPerUnit || 1) : (obj.pointsPerUnit || 0),
             })));
           }
         }
@@ -118,15 +133,19 @@ export default function EditChallengeForm() {
   }, [id, getChallenge, toast, t]);
 
   const handleAddObjective = () => {
+    const defaultTargetValue = challenge_type === "completion" ? 1 : 0;
+    const defaultUnit = challenge_type === "completion" ? "1" : "";
+    const defaultPointsPerUnit = challenge_type === "completion" ? 1 : 0;
+    
     setObjectives([
       ...objectives,
       {
         id: uuidv4(),
         title: "",
         description: "",
-        targetValue: 0,
-        unit: "",
-        pointsPerUnit: 0,
+        targetValue: defaultTargetValue,
+        unit: defaultUnit,
+        pointsPerUnit: defaultPointsPerUnit,
       },
     ]);
   };
@@ -175,7 +194,10 @@ export default function EditChallengeForm() {
       return;
     }
 
+    // Different validation for checklist/collection challenges and completion challenges
     const hasEmptyObjective = challenge_type === "checklist"
+      ? objectives.some(obj => !obj.title)
+      : challenge_type === "completion"
       ? objectives.some(obj => !obj.title)
       : objectives.some(
           (obj) =>
@@ -406,7 +428,7 @@ export default function EditChallengeForm() {
                   />
                 </div>
 
-                {challenge_type !== "checklist" && (
+                {challenge_type !== "checklist" && challenge_type !== "completion" && (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor={`objective-${index}-target`}>
@@ -433,15 +455,15 @@ export default function EditChallengeForm() {
                       <Label htmlFor={`objective-${index}-unit`}>
                         {t("unit")}
                       </Label>
-                  <Input
-                    id={`objective-${index}-unit`}
-                    placeholder={t("unitPlaceholder")}
-                    value={objective.unit}
-                    onChange={(e) =>
-                      handleObjectiveChange(index, "unit", e.target.value)
-                    }
-                    required
-                  />
+                      <Input
+                        id={`objective-${index}-unit`}
+                        placeholder={t("unitPlaceholder")}
+                        value={objective.unit}
+                        onChange={(e) =>
+                          handleObjectiveChange(index, "unit", e.target.value)
+                        }
+                        required
+                      />
                     </div>
 
                     <div className="space-y-2">
