@@ -1,10 +1,11 @@
 import { supabase } from './supabase';
 import { DailyChallenge, DailyChallengeEntry } from '@/types';
+import { getLocalDateString } from './date-utils';
 
 export const dailyChallengesService = {
   // Get a random daily challenge that the user hasn't completed today
   async getTodaysRandomChallenge(userId: string): Promise<DailyChallenge | null> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     
     // First, check if there are any active daily challenges at all
     const { data: totalActiveChallenges, error: totalError } = await supabase
@@ -64,7 +65,7 @@ export const dailyChallengesService = {
 
   // Check if user completed today's challenge
   async checkTodaysCompletion(userId: string, dailyChallengeId: string): Promise<boolean> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     
     const { data, error } = await supabase
       .from('daily_challenge_entries')
@@ -102,7 +103,7 @@ export const dailyChallengesService = {
         value_achieved: valueAchieved,
         points_earned: challenge.points,
         notes: notes,
-        completed_date: new Date().toISOString().split('T')[0]
+        completed_date: getLocalDateString()
       })
       .select()
       .single();

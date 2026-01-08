@@ -14,6 +14,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { dailyChallengesService } from "@/lib/daily-challenges";
 import { getNumberOfWeeks } from "@/lib/week-utils";
+import { getLocalDateString, normalizeToLocalDate, formatLocalDate } from "@/lib/date-utils";
 
 interface DashboardChallengeData {
   challenge: Challenge;
@@ -126,7 +127,7 @@ export default function Dashboard() {
         setIsChallengeLoading(true);
         
         // Check if we already have a challenge for today stored in localStorage
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         const storedChallengeKey = `dailyChallenge_${user.id}_${today}`;
         const storedChallenge = localStorage.getItem(storedChallengeKey);
         
@@ -167,10 +168,8 @@ export default function Dashboard() {
       if (!challenge.endDate) return 0; // Ongoing completion challenge, can't calculate progress
       
       // Normalize dates to local timezone start of day
-      const startDateRaw = new Date(challenge.startDate);
-      const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
-      const endDateRaw = new Date(challenge.endDate);
-      const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+      const startDate = normalizeToLocalDate(challenge.startDate);
+      const endDate = normalizeToLocalDate(challenge.endDate);
       // Calculate total days inclusive: floor the difference and add 1 for inclusive count
       const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       
@@ -214,10 +213,8 @@ export default function Dashboard() {
       if (!challenge.endDate) return `${userChallenge.totalScore}/∞`;
       
       // Normalize dates to local timezone start of day
-      const startDateRaw = new Date(challenge.startDate);
-      const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
-      const endDateRaw = new Date(challenge.endDate);
-      const endDate = new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate());
+      const startDate = normalizeToLocalDate(challenge.startDate);
+      const endDate = normalizeToLocalDate(challenge.endDate);
       // Calculate total days inclusive: floor the difference and add 1 for inclusive count
       const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const daysCompleted = userChallenge.totalScore;
@@ -264,14 +261,6 @@ export default function Dashboard() {
 
   const [userActivityDates, setUserActivityDates] = useState<Set<string>>(new Set());
 
-  // Helper function to format date in local timezone as YYYY-MM-DD
-  const formatLocalDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   // Load user activity data to determine which days have actual entries
   useEffect(() => {
     const loadUserActivity = async () => {
@@ -284,8 +273,8 @@ export default function Dashboard() {
         ninetyDaysAgo.setDate(today.getDate() - 89);
         
         // Normalize to start of day in local timezone
-        const startDateLocal = new Date(ninetyDaysAgo.getFullYear(), ninetyDaysAgo.getMonth(), ninetyDaysAgo.getDate());
-        const endDateLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const startDateLocal = normalizeToLocalDate(ninetyDaysAgo);
+        const endDateLocal = normalizeToLocalDate(today);
         
         // Format dates in local timezone for query
         const startDate = formatLocalDate(startDateLocal);
@@ -313,7 +302,7 @@ export default function Dashboard() {
       date.setDate(today.getDate() - i);
       
       // Normalize to start of day in local timezone
-      const dateNormalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dateNormalized = normalizeToLocalDate(date);
       
       // Format date in local timezone for comparison
       const dateKey = formatLocalDate(dateNormalized);
@@ -338,7 +327,7 @@ export default function Dashboard() {
     let currentDate = new Date(today);
     
     // Normalize to start of day
-    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    currentDate = normalizeToLocalDate(currentDate);
     
     // Check up to 90 days back to find the streak (matching the data we load)
     for (let i = 0; i < 90; i++) {
@@ -392,7 +381,7 @@ export default function Dashboard() {
       setIsFlyingOut(true);
       
       // Clear the stored challenge for today
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       const storedChallengeKey = `dailyChallenge_${user!.id}_${today}`;
       localStorage.removeItem(storedChallengeKey);
       

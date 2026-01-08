@@ -9,6 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { calculateTotalPoints } from "@/lib/points";
 import { getNumberOfWeeks, getWeekIdentifier } from "@/lib/week-utils";
 import { v4 as uuidv4, validate as validateUUID } from "uuid";
+import { utcTimestampToLocalDateString, localDateToUTCStart, localDateToUTCEnd, getLocalDateFromString } from "@/lib/date-utils";
 
 // Debug logging utility
 const debug = {
@@ -295,9 +296,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
               };
             }
 
-            // Get the date string (YYYY-MM-DD) for this entry
-            const entryDate = new Date(entry.created_at);
-            const dayString = entryDate.toISOString().split('T')[0];
+            // Get the date string (YYYY-MM-DD) for this entry (in local timezone)
+            const dayString = utcTimestampToLocalDateString(entry.created_at);
 
             // Initialize day tracking for this objective if needed
             if (!dayProgressMap[entry.objective_id]) {
@@ -791,10 +791,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         // Using noon ensures the date stays correct when converted back to local timezone
         if (completionDate) {
           // Parse the date string (YYYY-MM-DD) and create a date at noon in local timezone
-          const [year, month, day] = completionDate.split('-').map(Number);
-          // Create date at noon local time (12:00) to avoid timezone edge cases
-          // This ensures that when converted to UTC and back, it will always be the same calendar day
-          const localDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+          const localDate = getLocalDateFromString(completionDate);
+          localDate.setHours(12, 0, 0, 0); // Set to noon local time to avoid timezone edge cases
           entryData.created_at = localDate.toISOString();
         }
         
@@ -971,9 +969,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
               };
             }
 
-            // Get the date string (YYYY-MM-DD) for this entry
-            const entryDate = new Date(entry.created_at);
-            const dayString = entryDate.toISOString().split('T')[0];
+            // Get the date string (YYYY-MM-DD) for this entry (in local timezone)
+            const dayString = utcTimestampToLocalDateString(entry.created_at);
 
             // Initialize day tracking for this objective if needed
             if (!dayProgressMap[entry.objective_id]) {
@@ -1191,16 +1188,15 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       // Convert local date strings to UTC timestamps for query
-      // Add time to cover the full day in UTC
-      const startDateTime = new Date(startDate + 'T00:00:00');
-      const endDateTime = new Date(endDate + 'T23:59:59.999');
+      const startDateTime = localDateToUTCStart(startDate);
+      const endDateTime = localDateToUTCEnd(endDate);
       
       const { data: entriesData, error: entriesError } = await supabase
         .from("entries")
         .select("created_at")
         .eq("user_id", user.id)
-        .gte("created_at", startDateTime.toISOString())
-        .lte("created_at", endDateTime.toISOString())
+        .gte("created_at", startDateTime)
+        .lte("created_at", endDateTime)
         .order("created_at", { ascending: false });
 
       if (entriesError) {
@@ -1210,12 +1206,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       // Extract unique dates from entries, converting UTC timestamps to local dates
       const activityDates = entriesData?.map(entry => {
-        // Parse UTC timestamp and convert to local date
-        const utcDate = new Date(entry.created_at);
-        const year = utcDate.getFullYear();
-        const month = String(utcDate.getMonth() + 1).padStart(2, '0');
-        const day = String(utcDate.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return utcTimestampToLocalDateString(entry.created_at);
       }) || [];
 
       // Remove duplicates and return

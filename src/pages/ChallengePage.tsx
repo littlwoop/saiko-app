@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { calculateTotalPoints } from "@/lib/points";
+import { getDateRangeUTC, utcTimestampToLocalDateString, normalizeToLocalDate } from "@/lib/date-utils";
 
 // Strava Logo Component
 const StravaLogo = ({ className }: { className?: string }) => (
@@ -252,26 +253,27 @@ export default function ChallengePage() {
 
     try {
       // Get all entries for all objectives in this challenge
-      // Use a wider date range to ensure we catch all entries regardless of timezone
-      const startDateRaw = new Date(challenge.startDate);
-      const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
-      // Start from beginning of start date in local time, converted to UTC
-      const startDateTime = new Date(startDate.getTime() - 12 * 60 * 60 * 1000).toISOString(); // 12 hours before to account for timezone differences
+      // Normalize dates to local timezone first
+      const startDate = normalizeToLocalDate(challenge.startDate);
+      const endDate = challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null;
       
-      const endDateRaw = challenge.endDate ? new Date(challenge.endDate) : null;
-      const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
+      // Get UTC date range for database query
+      const { startUTC, endUTC } = endDate 
+        ? getDateRangeUTC(startDate, endDate)
+        : {
+            startUTC: startDate.toISOString(),
+            endUTC: new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year buffer for ongoing challenges
+          };
       
       const query = supabase
         .from('entries')
         .select('created_at, objective_id')
         .eq('user_id', userIdToQuery)
         .eq('challenge_id', challenge.id)
-        .gte('created_at', startDateTime);
+        .gte('created_at', startUTC);
 
       if (endDate) {
-        // End at end of end date in local time, converted to UTC, plus buffer
-        const endDateTime = new Date(endDate.getTime() + 36 * 60 * 60 * 1000).toISOString(); // 36 hours after to account for timezone differences
-        query.lte('created_at', endDateTime);
+        query.lte('created_at', endUTC);
       }
 
       const { data: entries, error } = await query;
@@ -286,12 +288,8 @@ export default function ChallengePage() {
       // Group entries by date (YYYY-MM-DD) - convert UTC timestamp to local date
       const entriesByDate = new Map<string, Set<string>>();
       entries.forEach(entry => {
-        // Convert UTC timestamp to local date
-        const entryDate = new Date(entry.created_at);
-        const year = entryDate.getFullYear();
-        const month = String(entryDate.getMonth() + 1).padStart(2, '0');
-        const day = String(entryDate.getDate()).padStart(2, '0');
-        const date = `${year}-${month}-${day}`;
+        // Convert UTC timestamp to local date string
+        const date = utcTimestampToLocalDateString(entry.created_at);
         
         if (!entriesByDate.has(date)) {
           entriesByDate.set(date, new Set());
@@ -635,11 +633,9 @@ export default function ChallengePage() {
   }
 
   // Normalize dates to local timezone start of day to avoid timezone issues
-  const startDateRaw = new Date(challenge.startDate);
-  const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
-  const endDateRaw = challenge.endDate ? new Date(challenge.endDate) : null;
-  const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
-  const today = new Date();
+  const startDate = normalizeToLocalDate(challenge.startDate);
+  const endDate = challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null;
+  const today = normalizeToLocalDate(new Date());
 
   const isActive = today >= startDate && (!endDate || today <= endDate);
   const isFuture = today < startDate;

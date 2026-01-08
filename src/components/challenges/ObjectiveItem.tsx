@@ -38,6 +38,7 @@ import { calculatePoints } from "@/lib/points";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { getWeekIdentifier, getWeekStart, getWeekEnd } from "@/lib/week-utils";
+import { getLocalDateString, localDateToUTCStart, localDateToUTCEnd, utcTimestampToLocalDateString } from "@/lib/date-utils";
 
 interface DailyProgressGridProps {
   startDate?: string;
@@ -325,17 +326,20 @@ export default function ObjectiveItem({
   const hasEntryForToday = async () => {
     if (!userIdToQuery) return false;
 
-    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+    const today = getLocalDateString(); // Get today's date in YYYY-MM-DD format (local timezone)
 
     try {
+      const startUTC = localDateToUTCStart(today);
+      const endUTC = localDateToUTCEnd(today);
+      
       const { data: entries, error } = await supabase
         .from('entries')
         .select('created_at')
         .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
-        .gte('created_at', `${today}T00:00:00.000Z`)
-        .lt('created_at', `${today}T23:59:59.999Z`);
+        .gte('created_at', startUTC)
+        .lte('created_at', endUTC);
 
       if (error) {
         console.error('Error checking today\'s entries:', error);
@@ -355,7 +359,7 @@ export default function ObjectiveItem({
     console.log('getDailyEntries called with:', { challengeStartDate, challengeEndDate, userIdToQuery });
 
     try {
-      // Validate and format dates properly
+      // Parse dates and normalize to local dates first
       const startDate = new Date(challengeStartDate);
       const endDate = challengeEndDate ? new Date(challengeEndDate) : null;
       
@@ -364,7 +368,9 @@ export default function ObjectiveItem({
         return new Set<string>();
       }
       
-      const startDateTime = startDate.toISOString();
+      // Convert to local date strings (YYYY-MM-DD) then to UTC for query
+      const startDateString = getLocalDateString(startDate);
+      const startDateTime = localDateToUTCStart(startDateString);
       
       // If no end date, query all entries from start date onwards
       const query = supabase
@@ -376,7 +382,8 @@ export default function ObjectiveItem({
         .gte('created_at', startDateTime);
       
       if (endDate) {
-        const endDateTime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
+        const endDateString = getLocalDateString(endDate);
+        const endDateTime = localDateToUTCEnd(endDateString);
         query.lte('created_at', endDateTime);
       }
       
@@ -390,12 +397,8 @@ export default function ObjectiveItem({
       const entryDates = new Set<string>();
       if (entries) {
         entries.forEach(entry => {
-          // Convert UTC timestamp to local date
-          const entryDate = new Date(entry.created_at);
-          const year = entryDate.getFullYear();
-          const month = String(entryDate.getMonth() + 1).padStart(2, '0');
-          const day = String(entryDate.getDate()).padStart(2, '0');
-          const date = `${year}-${month}-${day}`;
+          // Convert UTC timestamp to local date string
+          const date = utcTimestampToLocalDateString(entry.created_at);
           entryDates.add(date);
         });
       }
@@ -575,13 +578,8 @@ export default function ObjectiveItem({
 
     try {
       // Parse the date string (YYYY-MM-DD) and create date range in local timezone
-      const [year, month, day] = date.split('-').map(Number);
-      const dateStart = new Date(year, month - 1, day, 0, 0, 0, 0);
-      const dateEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
-      
-      // Convert to UTC for database query
-      const startUTC = dateStart.toISOString();
-      const endUTC = dateEnd.toISOString();
+      const startUTC = localDateToUTCStart(date);
+      const endUTC = localDateToUTCEnd(date);
       
       const { data: entries, error } = await supabase
         .from('entries')
@@ -602,11 +600,8 @@ export default function ObjectiveItem({
       
       // Convert entry timestamps to local dates and check if any match
       return entries.some(entry => {
-        const entryDate = new Date(entry.created_at);
-        const entryYear = entryDate.getFullYear();
-        const entryMonth = entryDate.getMonth() + 1;
-        const entryDay = entryDate.getDate();
-        return entryYear === year && entryMonth === month && entryDay === day;
+        const entryDateString = utcTimestampToLocalDateString(entry.created_at);
+        return entryDateString === date;
       });
     } catch (error) {
       console.error('Error checking date entries:', error);
@@ -772,7 +767,7 @@ export default function ObjectiveItem({
       getDailyEntries().then((entries) => setDailyEntries(entries));
       
       // If the selected date is today, update hasEntryToday
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       if (dateString === today) {
         setHasEntryToday(true);
       }
@@ -819,7 +814,7 @@ export default function ObjectiveItem({
       setHasEntryToday(true); // Mark as completed for today
       
       // Update daily entries with today's date
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       setDailyEntries(prev => new Set([...prev, today]));
       
       // Also refresh from database to ensure consistency
