@@ -275,6 +275,61 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           return progress;
         }
 
+        // For completion challenges, count unique days per objective
+        if (challengeType === "completion") {
+          // Get challenge data to access objectives
+          const challenge = await getChallenge(challengeId);
+          if (!challenge) return [];
+
+          const progressMap: Record<string, UserProgress> = {};
+          const dayProgressMap: Record<string, Set<string>> = {}; // objectiveId -> Set of day strings
+
+          entriesData.forEach((entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: entry.user_id,
+                challengeId: entry.challenge_id,
+                objectiveId: entry.objective_id,
+                currentValue: 0,
+              };
+            }
+
+            // Get the date string (YYYY-MM-DD) for this entry
+            const entryDate = new Date(entry.created_at);
+            const dayString = entryDate.toISOString().split('T')[0];
+
+            // Initialize day tracking for this objective if needed
+            if (!dayProgressMap[entry.objective_id]) {
+              dayProgressMap[entry.objective_id] = new Set();
+            }
+
+            // Add this day to the set (Set automatically handles duplicates)
+            dayProgressMap[entry.objective_id].add(dayString);
+          });
+
+          // Initialize progress for all objectives and count unique days
+          challenge.objectives.forEach((objective) => {
+            const key = `${challengeId}-${objective.id}`;
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: user.id,
+                challengeId: challengeId,
+                objectiveId: objective.id,
+                currentValue: 0,
+              };
+            }
+
+            // Count unique days for this objective
+            const uniqueDays = dayProgressMap[objective.id]?.size || 0;
+            progressMap[key].currentValue = uniqueDays;
+          });
+
+          const progress = Object.values(progressMap);
+          debug.log("Calculated progress:", progress);
+          return progress;
+        }
+
         // For other challenge types, use the original logic
         const progressMap = entriesData.reduce(
           (acc, entry) => {
@@ -287,12 +342,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
                 currentValue: 0,
               };
             }
-            // For completion challenges, count entries instead of summing values
-            if (challengeType === "completion") {
-              acc[key].currentValue += 1; // Count each entry
-            } else {
-              acc[key].currentValue += entry.value; // Sum values for standard/bingo
-            }
+            // Sum values for standard/bingo challenges
+            acc[key].currentValue += entry.value || 0;
             return acc;
           },
           {} as Record<string, UserProgress>,
@@ -904,6 +955,57 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           return progress;
         }
 
+        // For completion challenges, count unique days per objective
+        if (challenge.challenge_type === "completion") {
+          const progressMap: Record<string, UserProgress> = {};
+          const dayProgressMap: Record<string, Set<string>> = {}; // objectiveId -> Set of day strings
+
+          entriesData.forEach((entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: entry.user_id,
+                challengeId: entry.challenge_id,
+                objectiveId: entry.objective_id,
+                currentValue: 0,
+              };
+            }
+
+            // Get the date string (YYYY-MM-DD) for this entry
+            const entryDate = new Date(entry.created_at);
+            const dayString = entryDate.toISOString().split('T')[0];
+
+            // Initialize day tracking for this objective if needed
+            if (!dayProgressMap[entry.objective_id]) {
+              dayProgressMap[entry.objective_id] = new Set();
+            }
+
+            // Add this day to the set (Set automatically handles duplicates)
+            dayProgressMap[entry.objective_id].add(dayString);
+          });
+
+          // Initialize progress for all objectives and count unique days
+          challenge.objectives.forEach((objective) => {
+            const key = `${challengeId}-${objective.id}`;
+            if (!progressMap[key]) {
+              progressMap[key] = {
+                userId: userId,
+                challengeId: challengeId,
+                objectiveId: objective.id,
+                currentValue: 0,
+              };
+            }
+
+            // Count unique days for this objective
+            const uniqueDays = dayProgressMap[objective.id]?.size || 0;
+            progressMap[key].currentValue = uniqueDays;
+          });
+
+          const progress = Object.values(progressMap);
+          debug.log("Calculated participant progress:", progress);
+          return progress;
+        }
+
         // For other challenge types, use the original logic
         const progressMap = entriesData.reduce(
           (acc, entry) => {
@@ -916,14 +1018,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
                 currentValue: 0,
               };
             }
-            // Get challenge to check type
-            getChallenge(challengeId).then(challenge => {
-              if (challenge?.challenge_type === "completion") {
-                acc[key].currentValue += 1; // Count entries for completion challenges
-              } else {
-                acc[key].currentValue += entry.value; // Sum values for other challenges
-              }
-            });
+            // Sum values for standard/bingo challenges
+            acc[key].currentValue += entry.value || 0;
             return acc;
           },
           {} as Record<string, UserProgress>,
