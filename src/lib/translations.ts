@@ -203,6 +203,11 @@ export const translations = {
     iosNotificationRequirement: "Hinweis: Auf iOS funktionieren Benachrichtigungen nur, wenn die App als PWA installiert ist.",
     enableNotificationsFailed: "Benachrichtigungen konnten nicht aktiviert werden",
     enableNotificationsFailedDescription: "Bitte versuche es erneut oder überprüfe deine Browsereinstellungen.",
+    pushNotifications: "Push-Benachrichtigungen",
+    pushNotificationsDescription: "Erhalte täglich um 18:00 Uhr Erinnerungen zu deinen Herausforderungen",
+    notificationsBlocked: "Benachrichtigungen sind blockiert. Bitte aktiviere sie in deinen Browsereinstellungen.",
+    sending: "Wird gesendet...",
+    sendTestNotification: "Testbenachrichtigung senden",
 
     target: "Ziel",
     deadline: "Frist",
@@ -730,6 +735,11 @@ export const translations = {
     iosNotificationRequirement: "Note: On iOS, notifications only work when the app is installed as a PWA.",
     enableNotificationsFailed: "Failed to Enable Notifications",
     enableNotificationsFailedDescription: "Please try again or check your browser settings.",
+    pushNotifications: "Push Notifications",
+    pushNotificationsDescription: "Receive daily reminders at 6 PM about your challenges",
+    notificationsBlocked: "Notifications are blocked. Please enable them in your browser settings.",
+    sending: "Sending...",
+    sendTestNotification: "Send Test Notification",
 
     target: "Target",
     deadline: "Deadline",

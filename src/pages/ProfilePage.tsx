@@ -469,7 +469,7 @@ export default function ProfilePage() {
                             <div className="flex items-center gap-2">
                               <Bell className="h-5 w-5 text-gray-600" />
                               <Label htmlFor="push-notifications" className="text-base font-medium">
-                                Push Notifications
+                                {t("pushNotifications")}
                               </Label>
                             </div>
                             <Switch
@@ -480,11 +480,11 @@ export default function ProfilePage() {
                             />
                           </div>
                           <p className="text-sm text-muted-foreground mb-3">
-                            Receive daily reminders at 6 PM about your challenges
+                            {t("pushNotificationsDescription")}
                           </p>
                           {notificationPermission === 'denied' && (
                             <p className="text-sm text-red-600 dark:text-red-400">
-                              Notifications are blocked. Please enable them in your browser settings.
+                              {t("notificationsBlocked")}
                             </p>
                           )}
                           {isPushSubscribed && notificationPermission === 'granted' && (
@@ -499,12 +499,12 @@ export default function ProfilePage() {
                               {isTestingNotification ? (
                                 <>
                                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600 mr-2"></div>
-                                  Sending...
+                                  {t("sending")}
                                 </>
                               ) : (
                                 <>
                                   <Bell className="h-3 w-3 mr-2" />
-                                  Send Test Notification
+                                  {t("sendTestNotification")}
                                 </>
                               )}
                             </Button>
