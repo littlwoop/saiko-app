@@ -194,7 +194,7 @@ export const translations = {
     // Notifications
     enableNotifications: "Benachrichtigungen aktivieren",
     enableNotificationsTitle: "Benachrichtigungen aktivieren",
-    enableNotificationsDescription: "Aktiviere Benachrichtigungen, um täglich um 18:00 Uhr an deine täglichen Herausforderungen erinnert zu werden.",
+    enableNotificationsDescription: "Aktiviere Benachrichtigungen, um täglich um 18:00 Uhr an deine Abschluss-Herausforderungen erinnert zu werden, die du heute noch nicht beendet hast.",
     enableNotificationsButton: "Benachrichtigungen aktivieren",
     notificationsEnabled: "Benachrichtigungen aktiviert",
     notificationsEnabledDescription: "Du wirst täglich um 18:00 Uhr an deine Herausforderungen erinnert.",
@@ -721,7 +721,7 @@ export const translations = {
     // Notifications
     enableNotifications: "Enable Notifications",
     enableNotificationsTitle: "Enable Notifications",
-    enableNotificationsDescription: "Enable notifications to get reminded daily at 6 PM about your daily challenges.",
+    enableNotificationsDescription: "Enable notifications to get reminded daily at 6 PM about your completion challenges that you haven't finished today.",
     enableNotificationsButton: "Enable Notifications",
     notificationsEnabled: "Notifications Enabled",
     notificationsEnabledDescription: "You'll be reminded daily at 6 PM about your challenges.",

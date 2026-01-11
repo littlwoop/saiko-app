@@ -1,5 +1,5 @@
 /**
- * Notification utility for managing daily challenge reminders
+ * Notification utility for managing completion challenge reminders
  */
 
 const NOTIFICATION_PERMISSION_KEY = 'notification-permission-requested';
@@ -157,7 +157,7 @@ async function registerBackgroundSync(userId: string, date: string): Promise<voi
       // @ts-expect-error - Background Sync API (experimental)
       if (registration.sync) {
         // @ts-expect-error - Background Sync API
-        await registration.sync.register(`check-daily-challenge-${userId}-${date}`);
+        await registration.sync.register(`check-completion-challenge-${userId}-${date}`);
         console.log('Background sync registered for notifications');
       }
     } catch (error) {
@@ -168,7 +168,7 @@ async function registerBackgroundSync(userId: string, date: string): Promise<voi
 }
 
 /**
- * Schedule a notification for the daily challenge reminder
+ * Schedule a notification for the completion challenge reminder
  */
 export async function scheduleDailyChallengeReminder(userId: string, date: string): Promise<void> {
   if (!('serviceWorker' in navigator)) {
@@ -225,7 +225,155 @@ export async function scheduleDailyChallengeReminder(userId: string, date: strin
 }
 
 /**
- * Check if daily challenge is completed and show reminder if not
+ * Check if user has completed a completion challenge for a specific date
+ */
+async function isCompletionChallengeCompleted(
+  userId: string,
+  challengeId: number,
+  date: string
+): Promise<boolean> {
+  const { supabase } = await import('./supabase');
+  const { getLocalDateFromString, localDateToUTCStart, localDateToUTCEnd, utcTimestampToLocalDateString } = await import('./date-utils');
+  
+  try {
+    // Get the challenge to check its objectives
+    const { data: challenge, error: challengeError } = await supabase
+      .from('challenges')
+      .select('objectives, start_date, end_date')
+      .eq('id', challengeId)
+      .single();
+
+    if (challengeError || !challenge) {
+      console.error('Error fetching challenge:', challengeError);
+      return true; // Assume completed if we can't check
+    }
+
+    // Check if challenge is active on this date
+    const checkDate = getLocalDateFromString(date);
+    const startDate = getLocalDateFromString(challenge.start_date);
+    const endDate = challenge.end_date ? getLocalDateFromString(challenge.end_date) : null;
+
+    // If date is before start or after end (if end exists), don't send notification
+    if (checkDate < startDate || (endDate && checkDate > endDate)) {
+      return true; // Not active on this date, consider "completed"
+    }
+
+    // Parse objectives if it's a JSON string, otherwise use directly
+    let objectives: Array<{ id: string | number }>;
+    if (typeof challenge.objectives === 'string') {
+      try {
+        objectives = JSON.parse(challenge.objectives);
+      } catch {
+        console.error('Error parsing objectives JSON');
+        return true; // Assume completed if we can't parse
+      }
+    } else if (Array.isArray(challenge.objectives)) {
+      objectives = challenge.objectives;
+    } else {
+      console.error('Objectives is not an array');
+      return true; // Assume completed if invalid format
+    }
+
+    if (!objectives || objectives.length === 0) {
+      return true; // No objectives, consider completed
+    }
+
+    // Get all objective IDs as strings for comparison
+    const objectiveIds = new Set<string>(
+      objectives.map(obj => String(obj.id || obj))
+    );
+
+    // Get UTC date range for the specific date
+    const dateStartUTC = localDateToUTCStart(date);
+    const dateEndUTC = localDateToUTCEnd(date);
+
+    // Get all entries for this challenge and user on this date
+    const { data: entries, error: entriesError } = await supabase
+      .from('entries')
+      .select('objective_id, created_at')
+      .eq('user_id', userId)
+      .eq('challenge_id', challengeId)
+      .gte('created_at', dateStartUTC)
+      .lte('created_at', dateEndUTC);
+
+    if (entriesError) {
+      console.error('Error fetching entries:', entriesError);
+      return true; // Assume completed if we can't check
+    }
+
+    if (!entries || entries.length === 0) {
+      return false; // No entries for this date
+    }
+
+    // Convert entries to local dates and collect objective IDs that have entries for this date
+    const objectivesWithEntries = new Set<string>();
+    entries.forEach(entry => {
+      const entryDate = utcTimestampToLocalDateString(entry.created_at);
+      if (entryDate === date) {
+        objectivesWithEntries.add(String(entry.objective_id));
+      }
+    });
+
+    // Check if all objectives have entries for this date
+    for (const objectiveId of objectiveIds) {
+      if (!objectivesWithEntries.has(objectiveId)) {
+        return false; // Missing entry for this objective
+      }
+    }
+
+    return true; // All objectives have entries for this date
+  } catch (error) {
+    console.error('Error checking completion challenge:', error);
+    return true; // Assume completed on error
+  }
+}
+
+/**
+ * Get all active completion challenges the user has joined
+ */
+async function getActiveCompletionChallenges(userId: string): Promise<Array<{ id: number; title: string }>> {
+  const { supabase } = await import('./supabase');
+  const { normalizeToLocalDate } = await import('./date-utils');
+
+  try {
+    const today = new Date();
+    const todayNormalized = normalizeToLocalDate(today);
+
+    // Get all challenges the user has joined that are completion type
+    const { data: challenges, error } = await supabase
+      .from('challenges')
+      .select('id, title, challenge_type, start_date, end_date, participants')
+      .eq('challenge_type', 'completion')
+      .contains('participants', JSON.stringify([userId]));
+
+    if (error) {
+      console.error('Error fetching completion challenges:', error);
+      return [];
+    }
+
+    if (!challenges) return [];
+
+    // Filter for active challenges (started but not ended)
+    return challenges
+      .filter(challenge => {
+        const startDate = normalizeToLocalDate(challenge.start_date);
+        const endDate = challenge.end_date ? normalizeToLocalDate(challenge.end_date) : null;
+        
+        // Challenge is active if today is >= start and (no end date or today <= end)
+        return todayNormalized >= startDate && (!endDate || todayNormalized <= endDate);
+      })
+      .map(challenge => ({
+        id: challenge.id,
+        title: challenge.title,
+      }));
+  } catch (error) {
+    console.error('Error getting active completion challenges:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if completion challenges are completed and show reminder if not
  */
 export async function checkAndShowReminder(userId: string, date: string): Promise<void> {
   if (getNotificationPermission() !== 'granted') {
@@ -242,25 +390,46 @@ export async function checkAndShowReminder(userId: string, date: string): Promis
       return;
     }
 
-    // Import here to avoid circular dependencies
-    const { dailyChallengesService } = await import('./daily-challenges');
+    // Get all active completion challenges the user has joined
+    const activeChallenges = await getActiveCompletionChallenges(userId);
     
-    // Check if there's an active challenge for today
-    const todaysChallenge = await dailyChallengesService.getTodaysRandomChallenge(userId);
+    if (activeChallenges.length === 0) {
+      // No active completion challenges
+      return;
+    }
+
+    // Check each challenge to see if it's completed for today
+    const incompleteChallenges: Array<{ id: number; title: string }> = [];
     
-    if (todaysChallenge) {
-      // Challenge exists and not completed - show reminder
+    for (const challenge of activeChallenges) {
+      const isCompleted = await isCompletionChallengeCompleted(userId, challenge.id, date);
+      if (!isCompleted) {
+        incompleteChallenges.push(challenge);
+      }
+    }
+
+    if (incompleteChallenges.length > 0) {
+      // Show notification for incomplete challenges
       const registration = await navigator.serviceWorker.ready;
       
-      await registration.showNotification('Daily Challenge Reminder', {
-        body: `Don't forget to complete today's challenge: ${todaysChallenge.title}`,
+      const challengeCount = incompleteChallenges.length;
+      const title = challengeCount === 1 
+        ? 'Daily Challenge Reminder'
+        : `${challengeCount} Daily Challenge Reminders`;
+      
+      const body = challengeCount === 1
+        ? `Don't forget to complete today's challenge: ${incompleteChallenges[0].title}`
+        : `Don't forget to complete your ${challengeCount} daily challenge${challengeCount > 1 ? 's' : ''} today`;
+      
+      await registration.showNotification(title, {
+        body,
         icon: '/icon-192.png',
         badge: '/icon-192.png',
-        tag: `daily-challenge-${date}`,
+        tag: `completion-challenge-${date}`,
         requireInteraction: false,
         data: {
           url: '/dashboard',
-          challengeId: todaysChallenge.id,
+          challengeIds: incompleteChallenges.map(c => c.id),
         },
       });
 
@@ -365,7 +534,7 @@ export function stopPeriodicReminderCheck(): void {
 }
 
 /**
- * Setup daily challenge reminder notifications
+ * Setup completion challenge reminder notifications
  * Should be called when user logs in or dashboard loads
  */
 export async function setupDailyChallengeReminders(userId: string): Promise<void> {
