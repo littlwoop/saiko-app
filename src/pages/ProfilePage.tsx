@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usePWAInstall } from "@/contexts/PWAInstallContext";
+import { EnableNotificationsButton } from "@/components/notifications/EnableNotificationsButton";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -342,6 +343,15 @@ export default function ProfilePage() {
                           </Button>
                         </div>
                       )}
+                      <div className="mb-4">
+                        <Label className="mb-2 block">{t("notifications") || "Notifications"}</Label>
+                        <EnableNotificationsButton 
+                          vapidPublicKey={import.meta.env.VITE_VAPID_PUBLIC_KEY}
+                        />
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {t("enableNotificationsDescription") || "Enable push notifications to receive reminders about incomplete challenges"}
+                        </p>
+                      </div>
                       <form className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">{t("fullName")}</Label>

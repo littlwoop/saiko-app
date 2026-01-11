@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCompletionNotifications } from "@/hooks/use-completion-notifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,12 @@ export default function Dashboard() {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const isMobile = useIsMobile();
+  
+  // Enable completion challenge notifications
+  // Checks once on mount, then every 30 minutes
+  // Only sends one notification per day about incomplete challenges
+  const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  useCompletionNotifications(true, 30 * 60 * 1000, vapidPublicKey); // Check every 30 minutes
   
   const [activeChallenges, setActiveChallenges] = useState<DashboardChallengeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
