@@ -11,20 +11,6 @@ import { getNumberOfWeeks, getWeekIdentifier } from "@/lib/week-utils";
 import { v4 as uuidv4, validate as validateUUID } from "uuid";
 import { utcTimestampToLocalDateString, localDateToUTCStart, localDateToUTCEnd, getLocalDateFromString } from "@/lib/date-utils";
 
-// Debug logging utility
-const debug = {
-  log: (...args: unknown[]): void => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("[ChallengeContext]", ...args);
-    }
-  },
-  error: (...args: unknown[]): void => {
-    if (process.env.NODE_ENV === "development") {
-      console.error("[ChallengeContext]", ...args);
-    }
-  },
-};
-
 interface ChallengeContextType {
   createChallenge: (
     challenge: Omit<
@@ -88,7 +74,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const getChallenge = async (
     challengeId: number,
   ): Promise<Challenge | null> => {
-    debug.log(`Getting challenge with ID: ${challengeId}`);
     try {
       // Fetch challenge data
       const { data: challengeData, error: challengeError } = await supabase
@@ -98,7 +83,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (challengeError) {
-        debug.error("Error fetching challenge:", challengeError);
         toast({
           title: "Error",
           description: challengeError.message,
@@ -121,11 +105,9 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       let objectives: Objective[] = [];
 
       if (objectivesError) {
-        debug.error("Error fetching objectives:", objectivesError);
         // Fallback to JSON field for backward compatibility
         if (challengeData.objectives && Array.isArray(challengeData.objectives)) {
           objectives = challengeData.objectives;
-          debug.log("Using objectives from JSON field (fallback)");
         }
       } else if (objectivesData && objectivesData.length > 0) {
         // Convert database format to Objective interface
@@ -137,12 +119,10 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           unit: obj.unit || undefined,
           pointsPerUnit: obj.points_per_unit !== null ? Number(obj.points_per_unit) : undefined,
         }));
-        debug.log("Successfully fetched objectives from table");
       } else {
         // Fallback to JSON field if no objectives in table
         if (challengeData.objectives && Array.isArray(challengeData.objectives)) {
           objectives = challengeData.objectives;
-          debug.log("Using objectives from JSON field (no data in table)");
         }
       }
 
@@ -151,10 +131,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         objectives,
       };
 
-      debug.log("Successfully fetched challenge:", result);
       return result;
     } catch (err) {
-      debug.error("Unexpected error:", err);
       toast({
         title: "Error",
         description: "Failed to load challenge",
@@ -166,7 +144,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get all challenges for the current user
   const getUserChallenges = async (): Promise<UserChallenge[]> => {
-    debug.log("Getting challenges for user:", user?.id);
     if (!user) return [];
 
     try {
@@ -176,7 +153,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .contains("participants", JSON.stringify([user.id]));
 
       if (challengesError) {
-        debug.error("Error fetching user challenges:", challengesError);
         toast({
           title: "Error",
           description: challengesError.message,
@@ -185,8 +161,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return [];
       }
 
-      debug.log("Successfully fetched user challenges:", challengesData);
-      
       // Fetch objectives for all challenges
       const challengeIds = (challengesData || []).map((c) => c.id);
       const { data: allObjectivesData } = await supabase
@@ -240,7 +214,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       return userChallengesWithProgress;
     } catch (err) {
-      debug.error("Unexpected error:", err);
       toast({
         title: "Error",
         description: "Failed to load user challenges",
@@ -255,9 +228,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     challengeId: number,
     challengeType?: ChallengeType,
   ): Promise<UserProgress[]> => {
-    debug.log(
-      `Getting progress for challenge: ${challengeId}, user: ${user?.id}`,
-    );
     if (!user) return [];
 
     try {
@@ -270,7 +240,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .returns<Entry[]>();
 
       if (entriesError) {
-        debug.error("Error fetching entries:", entriesError);
         toast({
           title: "Error",
           description: "Failed to load progress data",
@@ -278,8 +247,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         });
         return [];
       }
-
-      debug.log("Successfully fetched entries:", entriesData);
 
       if (entriesData) {
         // For weekly challenges, we need to count only completed weeks (where target is met)
@@ -348,7 +315,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           });
 
           const progress = Object.values(progressMap);
-          debug.log("Calculated progress:", progress);
           return progress;
         }
 
@@ -402,7 +368,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           });
 
           const progress = Object.values(progressMap);
-          debug.log("Calculated progress:", progress);
           return progress;
         }
 
@@ -426,13 +391,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         );
 
         const progress = Object.values(progressMap);
-        debug.log("Calculated progress:", progress);
         return progress;
       }
 
       return [];
     } catch (error) {
-      debug.error("Error loading entries:", error);
       toast({
         title: "Error",
         description: "Failed to load challenge progress",
@@ -449,7 +412,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
     >,
   ) => {
-    debug.log("Creating new challenge:", challengeData);
     if (!user) {
       toast({
         title: "Error",
@@ -526,8 +488,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       objectives: objectivesWithValidIds,
     };
 
-    debug.log("Prepared challenge data:", newChallengeWithValidIds);
-
     // Insert challenge (keep objectives in JSON for backward compatibility during migration)
     const { data: insertedChallenge, error } = await supabase
       .from("challenges")
@@ -536,7 +496,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       .single();
 
     if (error) {
-      debug.error("Error creating challenge:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -546,7 +505,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (!insertedChallenge) {
-      debug.error("Challenge was created but no data returned");
       toast({
         title: "Error",
         description: "Challenge created but failed to retrieve data",
@@ -573,18 +531,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .insert(objectivesToInsert);
 
       if (objectivesError) {
-        debug.error("Error inserting objectives:", objectivesError);
         toast({
           title: "Warning",
           description: "Challenge created but some objectives may not have been saved correctly",
           variant: "destructive",
         });
-      } else {
-        debug.log("Successfully inserted objectives into table");
       }
     }
 
-    debug.log("Successfully created challenge");
     toast({
       title: "Success!",
       description: "Challenge created successfully",
@@ -599,7 +553,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
     >,
   ) => {
-    debug.log("Updating challenge:", challengeId, challengeData);
     if (!user) {
       toast({
         title: "Error",
@@ -684,8 +637,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       totalPoints,
     };
 
-    debug.log("Prepared update data:", updateData);
-
     // Update challenge (keep objectives in JSON for backward compatibility during migration)
     const { error } = await supabase
       .from("challenges")
@@ -693,7 +644,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       .eq("id", challengeId);
 
     if (error) {
-      debug.error("Error updating challenge:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -710,7 +660,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       .eq("challenge_id", challengeId);
 
     if (deleteError) {
-      debug.error("Error deleting old objectives:", deleteError);
       // Continue anyway - we'll try to insert new ones
     }
 
@@ -732,18 +681,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .insert(objectivesToInsert);
 
       if (objectivesError) {
-        debug.error("Error inserting objectives:", objectivesError);
         toast({
           title: "Warning",
           description: "Challenge updated but some objectives may not have been saved correctly",
           variant: "destructive",
         });
-      } else {
-        debug.log("Successfully updated objectives in table");
       }
     }
 
-    debug.log("Successfully updated challenge");
     toast({
       title: "Success!",
       description: "Challenge updated successfully",
@@ -752,7 +697,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Join a challenge
   const joinChallenge = async (challengeId: number) => {
-    debug.log(`Joining challenge: ${challengeId}, user: ${user?.id}`);
     if (!user) {
       toast({
         title: "Error",
@@ -770,11 +714,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (fetchError) {
-        debug.error("Error fetching challenge:", fetchError);
         throw fetchError;
       }
-
-      debug.log("Current challenge data:", challengeData);
 
       // Check if challenge is completed
       if (challengeData?.endDate) {
@@ -795,7 +736,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         : [];
 
       if (currentParticipants.includes(user.id)) {
-        debug.log("User already joined this challenge");
         toast({
           title: "Info",
           description: "You've already joined this challenge",
@@ -811,17 +751,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .eq("id", challengeId);
 
       if (updateError) {
-        debug.error("Error updating participants:", updateError);
         throw updateError;
       }
 
-      debug.log("Successfully joined challenge");
       toast({
         title: "Success!",
         description: "You've joined the challenge successfully",
       });
     } catch (error) {
-      debug.error("Error joining challenge:", error);
       toast({
         title: "Error",
         description: "Failed to join challenge",
@@ -832,7 +769,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Leave a challenge
   const leaveChallenge = async (challengeId: number) => {
-    debug.log(`Leaving challenge: ${challengeId}, user: ${user?.id}`);
     if (!user) {
       toast({
         title: "Error",
@@ -850,18 +786,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (fetchError) {
-        debug.error("Error fetching challenge:", fetchError);
         throw fetchError;
       }
-
-      debug.log("Current challenge data:", challengeData);
 
       const currentParticipants = Array.isArray(challengeData?.participants)
         ? challengeData.participants
         : [];
 
       if (!currentParticipants.includes(user.id)) {
-        debug.log("User is not a participant in this challenge");
         toast({
           title: "Info",
           description: "You're not a participant in this challenge",
@@ -877,17 +809,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .eq("id", challengeId);
 
       if (updateError) {
-        debug.error("Error updating participants:", updateError);
         throw updateError;
       }
 
-      debug.log("Successfully left challenge");
       toast({
         title: "Success!",
         description: "You've left the challenge successfully",
       });
     } catch (error) {
-      debug.error("Error leaving challenge:", error);
       toast({
         title: "Error",
         description: "Failed to leave challenge",
@@ -905,14 +834,10 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     notes?: string,
     completionDate?: string,
   ) => {
-    debug.log(
-      `Updating progress - Challenge: ${challengeId}, Objective: ${objectiveId}, Value: ${value}, Notes: ${notes}, CompletionDate: ${completionDate}`,
-    );
     if (!user) return;
 
     try {
       if (value === 0) {
-        debug.log("Resetting objective progress");
         const { error: deleteError } = await supabase
           .from("entries")
           .delete()
@@ -921,17 +846,13 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           .eq("objective_id", objectiveId);
 
         if (deleteError) {
-          debug.error("Error deleting entries:", deleteError);
           return;
         }
       } else {
-        debug.log("Creating new progress entry");
-        
         // Validate and potentially generate UUID for objective_id
         // If the objective_id is not a valid UUID (e.g., legacy numeric IDs), we can't insert it
         // In this case, we should log an error and inform the user
         if (!validateUUID(objectiveId)) {
-          debug.error("Invalid objective ID (not a UUID):", objectiveId);
           toast({
             title: "Error",
             description: "Invalid objective ID. Please refresh the challenge and try again.",
@@ -963,12 +884,10 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         const { error: insertError } = await supabase.from("entries").insert(entryData);
 
         if (insertError) {
-          debug.error("Error creating entry:", insertError);
           return;
         }
       }
 
-      debug.log("Successfully updated progress");
       toast({
         title: value === 0 ? t("objectiveReset") : t("progressUpdated"),
         description:
@@ -977,7 +896,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
             : t("progressUpdatedDescription"),
       });
     } catch (error) {
-      debug.error("Error updating progress:", error);
       toast({
         title: "Error",
         description: "Failed to update progress. Please try again.",
@@ -1022,9 +940,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     challengeId: number,
     userId: string,
   ): Promise<UserProgress[]> => {
-    debug.log(
-      `Getting progress for participant - Challenge: ${challengeId}, User: ${userId}`,
-    );
     try {
       const { data: entriesData, error: entriesError } = await supabase
         .from("entries")
@@ -1035,7 +950,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .returns<Entry[]>();
 
       if (entriesError) {
-        debug.error("Error fetching entries:", entriesError);
         toast({
           title: "Error",
           description: "Failed to load progress data",
@@ -1043,8 +957,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         });
         return [];
       }
-
-      debug.log("Successfully fetched participant entries:", entriesData);
 
       if (entriesData) {
         // Get challenge to determine challenge type
@@ -1113,7 +1025,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           });
 
           const progress = Object.values(progressMap);
-          debug.log("Calculated participant progress:", progress);
           return progress;
         }
 
@@ -1163,7 +1074,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           });
 
           const progress = Object.values(progressMap);
-          debug.log("Calculated participant progress:", progress);
           return progress;
         }
 
@@ -1187,13 +1097,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         );
 
         const progress = Object.values(progressMap);
-        debug.log("Calculated participant progress:", progress);
         return progress;
       }
 
       return [];
     } catch (error) {
-      debug.error("Error loading entries:", error);
       toast({
         title: "Error",
         description: "Failed to load challenge progress",
@@ -1207,7 +1115,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const getParticipants = async (
     challengeId: number,
   ): Promise<Array<{ id: string; name: string; avatar?: string }>> => {
-    debug.log(`Getting participants for challenge: ${challengeId}`);
     try {
       const { data: challengeData, error: challengeError } = await supabase
         .from("challenges")
@@ -1216,11 +1123,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (challengeError || !challengeData) {
-        debug.error("Error fetching challenge:", challengeError);
         return [];
       }
-
-      debug.log("Challenge participants:", challengeData.participants);
 
       // Try to fetch from user_profiles table first
       const { data: profiles, error: profilesError } = await supabase
@@ -1229,7 +1133,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .in("id", challengeData.participants);
 
       if (profilesError) {
-        debug.error("Error fetching participant profiles:", profilesError);
         // If user_profiles table doesn't exist or has no data, return basic participant info
         return challengeData.participants.map((id) => ({
           id,
@@ -1237,8 +1140,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           avatar: undefined,
         }));
       }
-
-      debug.log("Participant profiles:", profiles);
 
       const participants = challengeData.participants.map((id) => {
         const profile = profiles?.find((p) => p.id === id);
@@ -1249,10 +1150,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         };
       });
 
-      debug.log("Processed participants:", participants);
       return participants;
     } catch (error) {
-      debug.error("Error loading participants:", error);
       return [];
     }
   };
@@ -1263,7 +1162,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     name: string,
     avatarUrl?: string,
   ): Promise<void> => {
-    debug.log(`Creating/updating user profile for: ${userId}`);
     try {
       const { error } = await supabase
         .from("user_profiles")
@@ -1275,13 +1173,9 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         });
 
       if (error) {
-        debug.error("Error creating/updating user profile:", error);
         throw error;
       }
-
-      debug.log("Successfully created/updated user profile");
     } catch (error) {
-      debug.error("Error creating/updating user profile:", error);
       throw error;
     }
   };
@@ -1290,7 +1184,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   const getCreatorAvatar = async (
     userId: string,
   ): Promise<string | undefined> => {
-    debug.log(`Getting creator avatar for user: ${userId}`);
     try {
       const { data, error } = await supabase
         .from("user_profiles")
@@ -1299,14 +1192,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) {
-        debug.error("Error fetching creator avatar:", error);
         return undefined;
       }
 
-      debug.log("Creator avatar URL:", data?.avatar_url);
       return data?.avatar_url;
     } catch (error) {
-      debug.error("Error loading creator avatar:", error);
       return undefined;
     }
   };
@@ -1317,7 +1207,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     valueAchieved?: number, 
     notes?: string
   ): Promise<void> => {
-    debug.log(`Completing daily challenge: ${dailyChallengeId}`);
     if (!user) return;
 
     try {
@@ -1329,14 +1218,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         notes
       );
 
-      debug.log("Successfully completed daily challenge");
       toast({
         title: "Challenge Completed! 🎉",
         description: "Great job! You've completed today's challenge.",
         variant: "default",
       });
     } catch (error) {
-      debug.error("Unexpected error completing daily challenge:", error);
       toast({
         title: "Error",
         description: "Failed to complete challenge",
@@ -1347,7 +1234,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
   // Get user activity dates within a date range
   const getUserActivityDates = async (startDate: string, endDate: string): Promise<string[]> => {
-    debug.log(`Getting user activity dates from ${startDate} to ${endDate}`);
     if (!user) return [];
 
     try {
@@ -1364,7 +1250,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         .order("created_at", { ascending: false });
 
       if (entriesError) {
-        debug.error("Error fetching user activity dates:", entriesError);
         return [];
       }
 
@@ -1376,7 +1261,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       // Remove duplicates and return
       return [...new Set(activityDates)];
     } catch (error) {
-      debug.error("Error loading user activity dates:", error);
       return [];
     }
   };

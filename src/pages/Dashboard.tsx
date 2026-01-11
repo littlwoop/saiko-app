@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [isFlyingOut, setIsFlyingOut] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [showNotificationAlert, setShowNotificationAlert] = useState(false);
 
   useEffect(() => {
     const loadActiveChallenges = async () => {
@@ -180,14 +181,15 @@ export default function Dashboard() {
       const permission = getNotificationPermission();
       setNotificationPermission(permission);
 
+      let subscribed = false;
       if (permission === 'granted' && isPushNotificationSupported()) {
-        const subscribed = await isSubscribedToPushNotifications();
+        subscribed = await isSubscribedToPushNotifications();
         setIsPushSubscribed(subscribed);
       }
 
       // Show alert if not subscribed and permission is granted, or if permission is default
       const shouldShowAlert = 
-        (permission === 'granted' && !isPushSubscribed && isPushNotificationSupported()) ||
+        (permission === 'granted' && !subscribed && isPushNotificationSupported()) ||
         (permission === 'default' && isPushNotificationSupported());
 
       const dismissedKey = 'push-notification-alert-dismissed';
@@ -197,7 +199,7 @@ export default function Dashboard() {
     };
 
     checkPushNotifications();
-  }, [user, isPushSubscribed]);
+  }, [user]);
 
   const calculateProgress = (item: DashboardChallengeData) => {
     const { challenge, userProgress, userChallenge } = item;
