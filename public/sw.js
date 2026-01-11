@@ -20,6 +20,8 @@ self.addEventListener('message', (event) => {
 
 // Push event listener - handle push notifications
 self.addEventListener('push', (event) => {
+  console.log('Push event received!', event);
+  
   let notificationData = {
     title: 'Challenge Crafters Unite',
     body: 'You have incomplete challenges!',
@@ -31,7 +33,24 @@ self.addEventListener('push', (event) => {
 
   if (event.data) {
     try {
-      const data = event.data.json();
+      // Try to parse as JSON first
+      let data;
+      try {
+        data = event.data.json();
+        console.log('Parsed push data as JSON:', data);
+      } catch (jsonError) {
+        // If JSON parsing fails, try as text
+        const text = event.data.text();
+        console.log('Push data as text:', text);
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error('Could not parse push data:', parseError);
+          // Use text as body if JSON parsing fails
+          data = { body: text };
+        }
+      }
+
       notificationData = {
         title: data.title || notificationData.title,
         body: data.body || notificationData.body,
@@ -45,7 +64,11 @@ self.addEventListener('push', (event) => {
       console.error('Error parsing push notification data:', e);
       // Use default notification data
     }
+  } else {
+    console.log('Push event has no data');
   }
+
+  console.log('Showing notification with data:', notificationData);
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title, {
@@ -55,6 +78,12 @@ self.addEventListener('push', (event) => {
       tag: notificationData.tag,
       requireInteraction: notificationData.requireInteraction,
       data: notificationData.data,
+      vibrate: [200, 100, 200],
+      timestamp: Date.now(),
+    }).then(() => {
+      console.log('Notification shown successfully');
+    }).catch((error) => {
+      console.error('Error showing notification:', error);
     })
   );
 });

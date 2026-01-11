@@ -97,6 +97,8 @@ serve(async (req) => {
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
         try {
+          console.log(`Attempting to send to subscription: ${sub.endpoint.substring(0, 50)}...`);
+          
           const subscription = {
             endpoint: sub.endpoint,
             keys: {
@@ -105,21 +107,45 @@ serve(async (req) => {
             },
           };
 
+          console.log('Sending notification with payload:', notificationPayload);
+
           const result = await webpush.sendNotification(
             subscription,
             notificationPayload
           );
 
+          console.log(`Push notification response: ${result.status} ${result.statusText}`);
+          
+          // Log response headers for debugging
+          const responseHeaders: Record<string, string> = {};
+          result.headers.forEach((value, key) => {
+            responseHeaders[key] = value;
+          });
+          console.log('Response headers:', responseHeaders);
+
+          // Check if response is ok
+          if (!result.ok) {
+            const errorText = await result.text();
+            console.error(`Push service returned error: ${result.status} ${errorText}`);
+            throw new Error(`Push service error: ${result.status} ${errorText}`);
+          }
+
           return {
             endpoint: sub.endpoint,
             status: result.status,
             statusText: result.statusText,
+            ok: result.ok,
           };
         } catch (error) {
           console.error(`Failed to send to ${sub.endpoint}:`, error);
+          console.error('Error details:', {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
           throw {
             endpoint: sub.endpoint,
             error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
           };
         }
       })

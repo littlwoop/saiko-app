@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { usePWAInstall } from "@/contexts/PWAInstallContext";
 import { EnableNotificationsButton } from "@/components/notifications/EnableNotificationsButton";
+import { DebugNotifications } from "@/components/notifications/DebugNotifications";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -351,6 +352,7 @@ export default function ProfilePage() {
                         <p className="text-sm text-muted-foreground mt-2">
                           {t("enableNotificationsDescription") || "Enable push notifications to receive reminders about incomplete challenges"}
                         </p>
+                        <DebugNotifications />
                       </div>
                       <form className="space-y-4">
                         <div className="space-y-2">
