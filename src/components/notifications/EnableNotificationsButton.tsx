@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Bell, BellOff, Send } from 'lucide-react';
+import { Bell, BellOff } from 'lucide-react';
 import { 
   subscribeToPushNotifications, 
   unsubscribeFromPushNotifications,
   getCurrentPushSubscription,
   isPushNotificationSupported 
 } from '@/lib/push-subscription';
-import { requestNotificationPermission, getNotificationPermission, sendPushNotification } from '@/lib/notifications';
+import { requestNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useToast } from '@/components/ui/use-toast';
 
 interface EnableNotificationsButtonProps {
@@ -20,7 +20,6 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
   const { toast } = useToast();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isTesting, setIsTesting] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
@@ -165,69 +164,6 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
     }
   };
 
-  const handleTestNotification = async () => {
-    if (!user) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to test notifications',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!isSubscribed) {
-      toast({
-        title: 'Not Subscribed',
-        description: 'Please enable notifications first before testing',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsTesting(true);
-
-    try {
-      try {
-        const success = await sendPushNotification(user.id, {
-          title: 'Test Notification',
-          body: 'This is a test push notification! If you see this, push notifications are working correctly.',
-          icon: '/icon-192.png',
-          badge: '/icon-192.png',
-          tag: 'test-notification',
-          requireInteraction: false,
-          data: {
-            type: 'test',
-            timestamp: new Date().toISOString(),
-          },
-        });
-
-        if (success) {
-          toast({
-            title: 'Test Notification Sent',
-            description: 'Check your notifications. You should receive a test push notification shortly.',
-          });
-        } else {
-          throw new Error('Failed to send test notification - check Edge Function logs');
-        }
-      } catch (pushError: any) {
-        console.error('Push notification error details:', pushError);
-        throw new Error(
-          pushError?.message || 
-          'Failed to send test notification. Check that the Edge Function is deployed and VAPID keys are configured.'
-        );
-      }
-    } catch (error) {
-      console.error('Error sending test notification:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to send test notification',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   if (!isPushNotificationSupported()) {
     return null;
   }
@@ -243,26 +179,15 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
 
   if (isSubscribed) {
     return (
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Button 
-          onClick={handleDisableNotifications} 
-          variant="outline"
-          disabled={isLoading}
-          className="w-full sm:w-auto"
-        >
-          <BellOff className="mr-2 h-4 w-4" />
-          Disable Notifications
-        </Button>
-        <Button 
-          onClick={handleTestNotification} 
-          variant="secondary"
-          disabled={isTesting}
-          className="w-full sm:w-auto"
-        >
-          <Send className="mr-2 h-4 w-4" />
-          {isTesting ? 'Sending...' : 'Test Push Notification'}
-        </Button>
-      </div>
+      <Button 
+        onClick={handleDisableNotifications} 
+        variant="outline"
+        disabled={isLoading}
+        className="w-full sm:w-auto"
+      >
+        <BellOff className="mr-2 h-4 w-4" />
+        Disable Notifications
+      </Button>
     );
   }
 

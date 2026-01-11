@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { usePWAInstall } from "@/contexts/PWAInstallContext";
 import { EnableNotificationsButton } from "@/components/notifications/EnableNotificationsButton";
-import { DebugNotifications } from "@/components/notifications/DebugNotifications";
+import { TestNotificationButton } from "@/components/notifications/TestNotificationButton";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -346,13 +346,15 @@ export default function ProfilePage() {
                       )}
                       <div className="mb-4 space-y-2">
                         <Label className="mb-2 block">{t("notifications") || "Notifications"}</Label>
-                        <EnableNotificationsButton 
-                          vapidPublicKey={import.meta.env.VITE_VAPID_PUBLIC_KEY}
-                        />
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <EnableNotificationsButton 
+                            vapidPublicKey={import.meta.env.VITE_VAPID_PUBLIC_KEY}
+                          />
+                          <TestNotificationButton />
+                        </div>
                         <p className="text-sm text-muted-foreground mt-2">
                           {t("enableNotificationsDescription") || "Enable push notifications to receive reminders about incomplete challenges"}
                         </p>
-                        <DebugNotifications />
                       </div>
                       <form className="space-y-4">
                         <div className="space-y-2">
