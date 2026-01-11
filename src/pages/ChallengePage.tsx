@@ -90,6 +90,7 @@ export default function ChallengePage() {
     getParticipantProgress,
     getParticipants,
     getCreatorAvatar,
+    getUserChallengeStartDate,
   } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -150,12 +151,22 @@ export default function ChallengePage() {
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [joiningChallenge, setJoiningChallenge] = useState(false);
   const [completionDaysCompleted, setCompletionDaysCompleted] = useState<Set<string>>(new Set());
+  const [userStartDate, setUserStartDate] = useState<string | null>(null);
 
-  const hasJoined = user && challenge?.participants.includes(user.id);
+  const hasJoined = user && challenge?.participants && challenge.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
   
-  // Check if challenge is completed
-  const isCompleted = challenge?.endDate ? new Date() > new Date(challenge.endDate) : false;
+  // Check if challenge is completed (not applicable for repeating challenges)
+  const isCompleted = challenge?.isRepeating ? false : (challenge?.endDate ? new Date() > new Date(challenge.endDate) : false);
+
+  // Load user start date for repeating challenges
+  useEffect(() => {
+    if (challenge?.isRepeating && user && hasJoined) {
+      getUserChallengeStartDate(challenge.id, user.id).then(setUserStartDate);
+    } else {
+      setUserStartDate(null);
+    }
+  }, [challenge?.isRepeating, challenge?.id, user, hasJoined, getUserChallengeStartDate]);
 
   const handleJoinChallenge = async () => {
     if (!challenge) return;
@@ -254,8 +265,12 @@ export default function ChallengePage() {
     try {
       // Get all entries for all objectives in this challenge
       // Normalize dates to local timezone first
-      const startDate = normalizeToLocalDate(challenge.startDate);
-      const endDate = challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null;
+      // For repeating challenges, use user's start date
+      const effectiveStartDate = challenge.isRepeating && userStartDate
+        ? normalizeToLocalDate(new Date(userStartDate))
+        : challenge.startDate ? normalizeToLocalDate(challenge.startDate) : null;
+      const startDate = effectiveStartDate || normalizeToLocalDate(new Date()); // Fallback to today if no start date
+      const endDate = challenge.isRepeating ? null : (challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null);
       
       // Get UTC date range for database query
       const { startUTC, endUTC } = endDate 
@@ -405,13 +420,19 @@ export default function ChallengePage() {
       
       // For completion challenges, calculate progress based on days completed vs total days
       if (challenge.challenge_type === "completion") {
-        // Normalize dates to local timezone start of day
-        const startDateRaw = new Date(challenge.startDate);
+        // For repeating challenges, use user's start date
+        const effectiveStartDate = challenge.isRepeating && userStartDate
+          ? new Date(userStartDate)
+          : challenge.startDate ? new Date(challenge.startDate) : new Date();
+        const startDateRaw = effectiveStartDate;
         const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
-        const endDateRaw = challenge.endDate ? new Date(challenge.endDate) : null;
+        const endDateRaw = challenge.isRepeating ? null : (challenge.endDate ? new Date(challenge.endDate) : null);
         const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
         // Calculate total days inclusive: floor the difference and add 1 for inclusive count
-        const totalDays = endDate ? Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365;
+        // For repeating challenges, use days since start
+        const totalDays = challenge.isRepeating 
+          ? Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+          : (endDate ? Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365);
         
         // Calculate total days completed across all objectives
         const totalDaysCompleted = progressToUse.reduce((sum, progressItem) => {
@@ -422,9 +443,16 @@ export default function ChallengePage() {
         setDisplayValue({ current: totalDaysCompleted, total: totalDays });
       } else if (challenge.challenge_type === "weekly") {
         // For weekly challenges, calculate progress based on weeks completed vs total weeks
-        const startDate = new Date(challenge.startDate);
-        const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
-        const totalWeeks = endDate ? getNumberOfWeeks(startDate, endDate) : 52;
+        // For repeating challenges, use user's start date
+        const effectiveStartDate = challenge.isRepeating && userStartDate
+          ? new Date(userStartDate)
+          : challenge.startDate ? new Date(challenge.startDate) : new Date();
+        const startDate = effectiveStartDate;
+        const endDate = challenge.isRepeating ? null : (challenge.endDate ? new Date(challenge.endDate) : null);
+        // For repeating challenges, calculate weeks since start
+        const totalWeeks = challenge.isRepeating
+          ? Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1)
+          : (endDate ? getNumberOfWeeks(startDate, endDate) : 52);
         
         // Calculate total weeks completed across all objectives
         const totalWeeksCompleted = progressToUse.reduce((sum, progressItem) => {
@@ -633,12 +661,15 @@ export default function ChallengePage() {
   }
 
   // Normalize dates to local timezone start of day to avoid timezone issues
-  const startDate = normalizeToLocalDate(challenge.startDate);
-  const endDate = challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null;
+  // For repeating challenges, use user's start date if available
+  const displayStartDate = challenge.isRepeating && userStartDate
+    ? normalizeToLocalDate(new Date(userStartDate))
+    : challenge.startDate ? normalizeToLocalDate(challenge.startDate) : null;
+  const endDate = challenge.isRepeating ? null : (challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null);
   const today = normalizeToLocalDate(new Date());
 
-  const isActive = today >= startDate && (!endDate || today <= endDate);
-  const isFuture = today < startDate;
+  const isActive = displayStartDate ? (today >= displayStartDate && (!endDate || today <= endDate)) : false;
+  const isFuture = displayStartDate ? today < displayStartDate : false;
   const isPast = endDate ? today > endDate : false;
 
   const daysLeft = endDate ? Math.ceil(
@@ -740,12 +771,26 @@ export default function ChallengePage() {
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {format(startDate, t("dateFormatShort"), { locale })}
-                  {endDate && (
-                    <> - {format(endDate, t("dateFormatLong"), { locale })}</>
-                  )}
-                  {!endDate && (
-                    <> - {t("ongoing")}</>
+                  {challenge.isRepeating ? (
+                    hasJoined && userStartDate ? (
+                      <>
+                        {t("started") || "Started"}: {format(new Date(userStartDate), t("dateFormatShort"), { locale })} - {t("ongoing")}
+                      </>
+                    ) : (
+                      t("repeatingChallengeAvailable") || "Available - Start when you join"
+                    )
+                  ) : displayStartDate ? (
+                    <>
+                      {format(displayStartDate, t("dateFormatShort"), { locale })}
+                      {endDate && (
+                        <> - {format(endDate, t("dateFormatLong"), { locale })}</>
+                      )}
+                      {!endDate && (
+                        <> - {t("ongoing")}</>
+                      )}
+                    </>
+                  ) : (
+                    t("noDatesSet") || "No dates set"
                   )}
                 </span>
               </div>
@@ -1002,8 +1047,8 @@ export default function ChallengePage() {
                         selectedUserId !== null && selectedUserId !== user?.id
                       }
                       onProgressUpdate={refreshProgress}
-                      challengeStartDate={challenge.startDate}
-                      challengeEndDate={challenge.endDate}
+                      challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
+                      challengeEndDate={challenge.isRepeating ? undefined : challenge.endDate}
                       selectedUserId={selectedUserId}
                     />
                   ))}
@@ -1030,8 +1075,8 @@ export default function ChallengePage() {
                         selectedUserId !== null && selectedUserId !== user?.id
                       }
                       onProgressUpdate={refreshProgress}
-                      challengeStartDate={challenge.startDate}
-                      challengeEndDate={challenge.endDate}
+                      challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
+                      challengeEndDate={challenge.isRepeating ? undefined : challenge.endDate}
                       selectedUserId={selectedUserId}
                     />
                   ))}
@@ -1147,26 +1192,63 @@ export default function ChallengePage() {
           
           <div className="space-y-4 pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground">{t("startDate") || "Start Date"}</span>
-                  <span className="font-medium">
-                    {format(startDate, t("dateFormatLong"), { locale })}
-                  </span>
-                </div>
-              </div>
-              
-              {endDate && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div className="flex flex-col">
-                    <span className="text-sm text-muted-foreground">{t("endDate") || "End Date"}</span>
-                    <span className="font-medium">
-                      {format(endDate, t("dateFormatLong"), { locale })}
-                    </span>
+              {challenge.isRepeating ? (
+                <>
+                  {hasJoined && userStartDate ? (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm text-muted-foreground">{t("youStarted") || "You Started"}</span>
+                        <span className="font-medium">
+                          {format(new Date(userStartDate), t("dateFormatLong"), { locale })}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm text-muted-foreground">{t("repeatingChallenge") || "Repeating Challenge"}</span>
+                        <span className="font-medium">
+                          {t("startWhenYouJoin") || "Start when you join"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="text-sm text-muted-foreground">{t("endDate") || "End Date"}</span>
+                      <span className="font-medium">
+                        {t("ongoing") || "Ongoing"}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="text-sm text-muted-foreground">{t("startDate") || "Start Date"}</span>
+                      <span className="font-medium">
+                        {displayStartDate ? format(displayStartDate, t("dateFormatLong"), { locale }) : (challenge.isRepeating && hasJoined && userStartDate ? format(new Date(userStartDate), t("dateFormatLong"), { locale }) : (t("noDateSet") || "No date set"))}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {endDate && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm text-muted-foreground">{t("endDate") || "End Date"}</span>
+                        <span className="font-medium">
+                          {format(endDate, t("dateFormatLong"), { locale })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               
               <div className="flex items-center gap-2">

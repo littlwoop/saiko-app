@@ -43,14 +43,26 @@ export default function ChallengeCard({
 
   const locale = language === "de" ? de : enUS;
 
-  const hasJoined = user && challenge.participants.includes(user.id);
+  const hasJoined = user && challenge.participants && challenge.participants.includes(user.id);
+  const { getUserChallengeStartDate } = useChallenges();
+  const [userStartDate, setUserStartDate] = useState<string | null>(null);
 
-  const startDate = new Date(challenge.startDate);
-  const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+  // For repeating challenges, get user-specific start date
+  useEffect(() => {
+    if (challenge.isRepeating && user && hasJoined) {
+      getUserChallengeStartDate(challenge.id, user.id).then(setUserStartDate);
+    }
+  }, [challenge.isRepeating, challenge.id, user, hasJoined, getUserChallengeStartDate]);
+
+  // Determine dates to display
+  const displayStartDate = challenge.isRepeating && userStartDate 
+    ? new Date(userStartDate)
+    : challenge.startDate ? new Date(challenge.startDate) : null;
+  const endDate = challenge.isRepeating ? null : (challenge.endDate ? new Date(challenge.endDate) : null);
   const today = new Date();
 
-  const isActive = today >= startDate && (!endDate || today <= endDate);
-  const isFuture = today < startDate;
+  const isActive = displayStartDate ? (today >= displayStartDate && (!endDate || today <= endDate)) : false;
+  const isFuture = displayStartDate ? today < displayStartDate : false;
   const isPast = endDate ? today > endDate : false;
 
   const totalObjectives = challenge.objectives?.length || 0;
@@ -178,11 +190,25 @@ export default function ChallengeCard({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>
-              {format(startDate, t("dateFormatShort"), { locale })}
-              {endDate ? (
-                <> - {format(endDate, t("dateFormatLong"), { locale })}</>
+              {challenge.isRepeating ? (
+                hasJoined && userStartDate ? (
+                  <>
+                    {t("started") || "Started"}: {format(new Date(userStartDate), t("dateFormatShort"), { locale })} - {t("ongoing")}
+                  </>
+                ) : (
+                  t("repeatingChallengeAvailable") || "Available - Start when you join"
+                )
+              ) : displayStartDate ? (
+                <>
+                  {format(displayStartDate, t("dateFormatShort"), { locale })}
+                  {endDate ? (
+                    <> - {format(endDate, t("dateFormatLong"), { locale })}</>
+                  ) : (
+                    <> - {t("ongoing")}</>
+                  )}
+                </>
               ) : (
-                <> - {t("ongoing")}</>
+                t("noDatesSet") || "No dates set"
               )}
             </span>
           </div>

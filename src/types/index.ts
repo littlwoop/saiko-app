@@ -32,6 +32,7 @@ export interface Challenge {
   challenge_type: ChallengeType;
   capedPoints?: boolean;
   strava?: boolean; // Flag to indicate if Strava integration is enabled
+  isRepeating?: boolean; // Flag to indicate if challenge is repeating (no start/end dates)
 }
 
 export interface UserProgress {

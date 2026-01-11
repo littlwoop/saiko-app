@@ -31,17 +31,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usePWAInstall } from "@/contexts/PWAInstallContext";
-import {
-  requestNotificationPermission,
-  getNotificationPermission,
-  subscribeToPushNotifications,
-  unsubscribeFromPushNotifications,
-  isSubscribedToPushNotifications,
-  isPushNotificationSupported,
-  sendTestPushNotification,
-} from "@/lib/push-notifications";
-import { Bell, BellOff } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -63,10 +52,6 @@ export default function ProfilePage() {
     y: 0,
   });
   const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
-  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false);
-  const [isTestingNotification, setIsTestingNotification] = useState(false);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -232,110 +217,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Check push notification status
-  useEffect(() => {
-    const checkPushNotifications = async () => {
-      if (!user) return;
-
-      const permission = getNotificationPermission();
-      setNotificationPermission(permission);
-
-      if (permission === 'granted' && isPushNotificationSupported()) {
-        const subscribed = await isSubscribedToPushNotifications();
-        setIsPushSubscribed(subscribed);
-      }
-    };
-
-    checkPushNotifications();
-  }, [user]);
-
-  const handleTogglePushNotifications = async (enabled: boolean) => {
-    if (!user) return;
-
-    if (enabled) {
-      setIsEnablingNotifications(true);
-      try {
-        const granted = await requestNotificationPermission();
-        const newPermission = getNotificationPermission();
-        setNotificationPermission(newPermission);
-
-        if (granted && isPushNotificationSupported()) {
-          const subscription = await subscribeToPushNotifications(user.id);
-          if (subscription) {
-            setIsPushSubscribed(true);
-            toast({
-              title: t("success"),
-              description: "Push notifications enabled successfully!",
-            });
-          } else {
-            toast({
-              title: t("error"),
-              description: "Failed to subscribe to push notifications",
-              variant: "destructive",
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error enabling push notifications:', error);
-        toast({
-          title: t("error"),
-          description: "Failed to enable push notifications",
-          variant: "destructive",
-        });
-      } finally {
-        setIsEnablingNotifications(false);
-      }
-    } else {
-      try {
-        const unsubscribed = await unsubscribeFromPushNotifications(user.id);
-        if (unsubscribed) {
-          setIsPushSubscribed(false);
-          toast({
-            title: t("success"),
-            description: "Push notifications disabled",
-          });
-        }
-      } catch (error) {
-        console.error('Error disabling push notifications:', error);
-        toast({
-          title: t("error"),
-          description: "Failed to disable push notifications",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const handleTestNotification = async () => {
-    if (!user) return;
-
-    setIsTestingNotification(true);
-    try {
-      const result = await sendTestPushNotification(user.id);
-      if (result.success) {
-        toast({
-          title: t("success"),
-          description: result.message || "Test notification sent! Check your notifications.",
-        });
-      } else {
-        toast({
-          title: t("error"),
-          description: result.error || "Failed to send test notification",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error('Error testing notification:', error);
-      toast({
-        title: t("error"),
-        description: error.message || "Failed to send test notification",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTestingNotification(false);
-    }
-  };
-
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -459,56 +340,6 @@ export default function ProfilePage() {
                           >
                             {t("installAppConfirm")}
                           </Button>
-                        </div>
-                      )}
-                      
-                      {/* Push Notifications Settings */}
-                      {isPushNotificationSupported() && (
-                        <div className="mb-4 p-4 border rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Bell className="h-5 w-5 text-gray-600" />
-                              <Label htmlFor="push-notifications" className="text-base font-medium">
-                                {t("pushNotifications")}
-                              </Label>
-                            </div>
-                            <Switch
-                              id="push-notifications"
-                              checked={isPushSubscribed && notificationPermission === 'granted'}
-                              onCheckedChange={handleTogglePushNotifications}
-                              disabled={isEnablingNotifications || notificationPermission === 'denied'}
-                            />
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {t("pushNotificationsDescription")}
-                          </p>
-                          {notificationPermission === 'denied' && (
-                            <p className="text-sm text-red-600 dark:text-red-400">
-                              {t("notificationsBlocked")}
-                            </p>
-                          )}
-                          {isPushSubscribed && notificationPermission === 'granted' && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleTestNotification}
-                              disabled={isTestingNotification}
-                              className="mt-2"
-                            >
-                              {isTestingNotification ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600 mr-2"></div>
-                                  {t("sending")}
-                                </>
-                              ) : (
-                                <>
-                                  <Bell className="h-3 w-3 mr-2" />
-                                  {t("sendTestNotification")}
-                                </>
-                              )}
-                            </Button>
-                          )}
                         </div>
                       )}
                       <form className="space-y-4">

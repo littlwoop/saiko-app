@@ -54,6 +54,7 @@ export default function CreateChallengeForm() {
   const [capedPoints, setCapedPoints] = useState(false);
   const [challenge_type, setChallengeType] = useState<ChallengeType>("standard");
   const [noEndDate, setNoEndDate] = useState(false);
+  const [isRepeating, setIsRepeating] = useState(false);
 
   const [objectives, setObjectives] = useState([
     {
@@ -143,7 +144,7 @@ export default function CreateChallengeForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title || !description || !startDate) {
+    if (!title || !description) {
       toast({
         title: t("error"),
         description: t("fillRequiredFields"),
@@ -152,18 +153,30 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    // If no end date is set, ensure we have only start date
-    if (!noEndDate && !endDate) {
-      toast({
-        title: t("error"),
-        description: t("fillRequiredFields"),
-        variant: "destructive",
-      });
-      return;
+    // For repeating challenges, dates are not required
+    if (!isRepeating) {
+      if (!startDate) {
+        toast({
+          title: t("error"),
+          description: t("fillRequiredFields"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // If no end date is set, ensure we have only start date
+      if (!noEndDate && !endDate) {
+        toast({
+          title: t("error"),
+          description: t("fillRequiredFields"),
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
-    // Validate full weeks for weekly challenges
-    if (challenge_type === "weekly" && !noEndDate && startDate && endDate) {
+    // Validate full weeks for weekly challenges (only if not repeating)
+    if (!isRepeating && challenge_type === "weekly" && !noEndDate && startDate && endDate) {
       if (!isFullWeeksRange(startDate, endDate)) {
         toast({
           title: t("error"),
@@ -228,11 +241,12 @@ export default function CreateChallengeForm() {
     createChallenge({
       title,
       description,
-      startDate: formatDateForStorage(startDate),
-      endDate: noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined),
+      startDate: isRepeating ? undefined : (startDate ? formatDateForStorage(startDate) : undefined),
+      endDate: isRepeating ? undefined : (noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined)),
       challenge_type: databaseChallengeType as ChallengeType,
       capedPoints,
       objectives: objectivesWithValidIds,
+      isRepeating,
     });
 
     navigate("/challenges");
@@ -265,116 +279,140 @@ export default function CreateChallengeForm() {
         </div>
 
         <div className="space-y-2">
-          <Label>{t("challengeDuration")}</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate" className="text-sm">{t("startDate") || "Start Date"}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    {startDate ? (
-                      format(startDate, "LLL dd, yyyy")
-                    ) : (
-                      <span>{t("pickStartDate") || "Pick start date"}</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="single"
-                    selected={startDate}
-                    weekStartsOn={1}
-                    onSelect={(date) => {
-                      if (date) {
-                        if (challenge_type === "weekly") {
-                          // Auto-adjust to week start (Monday)
-                          const weekStart = getWeekStart(date);
-                          setStartDate(weekStart);
-                        } else {
-                          setStartDate(date);
-                        }
-                      }
-                    }}
-                    disabled={(date) => {
-                      // Disable dates after end date if end date is set
-                      if (endDate && !noEndDate) {
-                        return date > endDate;
-                      }
-                      return false;
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate" className="text-sm">{t("endDate") || "End Date"}</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    disabled={noEndDate}
-                  >
-                    {endDate && !noEndDate ? (
-                      format(endDate, "LLL dd, yyyy")
-                    ) : noEndDate ? (
-                      <span className="text-muted-foreground">{t("noEndDate")}</span>
-                    ) : (
-                      <span>{t("pickEndDate") || "Pick end date"}</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="single"
-                    selected={endDate}
-                    weekStartsOn={1}
-                    onSelect={(date) => {
-                      if (date) {
-                        if (challenge_type === "weekly") {
-                          // Auto-adjust to week end (Sunday)
-                          const weekEnd = getWeekEnd(date);
-                          setEndDate(weekEnd);
-                        } else {
-                          setEndDate(date);
-                        }
-                      }
-                    }}
-                    disabled={(date) => {
-                      // Disable dates before start date
-                      if (startDate) {
-                        return date < startDate;
-                      }
-                      return false;
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              id="noEndDate"
-              checked={noEndDate}
+              id="isRepeating"
+              checked={isRepeating}
               onCheckedChange={(checked) => {
-                setNoEndDate(checked as boolean);
+                setIsRepeating(checked as boolean);
                 if (checked) {
+                  setStartDate(undefined);
                   setEndDate(undefined);
-                } else if (!endDate) {
-                  // Set default end date if enabling end date
-                  setEndDate(addDays(startDate || new Date(), 30));
+                  setNoEndDate(false);
+                } else {
+                  setStartDate(new Date());
+                  setEndDate(addDays(new Date(), 30));
                 }
               }}
             />
-            <Label htmlFor="noEndDate" className="text-sm font-normal cursor-pointer">
-              {t("noEndDate")}
+            <Label htmlFor="isRepeating" className="text-sm font-normal cursor-pointer">
+              {t("repeatingChallenge") || "Repeating Challenge (users start when they join)"}
             </Label>
           </div>
+          {!isRepeating && (
+            <>
+              <Label>{t("challengeDuration")}</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate" className="text-sm">{t("startDate") || "Start Date"}</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        {startDate ? (
+                          format(startDate, "LLL dd, yyyy")
+                        ) : (
+                          <span>{t("pickStartDate") || "Pick start date"}</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="single"
+                        selected={startDate}
+                        weekStartsOn={1}
+                        onSelect={(date) => {
+                          if (date) {
+                            if (challenge_type === "weekly") {
+                              // Auto-adjust to week start (Monday)
+                              const weekStart = getWeekStart(date);
+                              setStartDate(weekStart);
+                            } else {
+                              setStartDate(date);
+                            }
+                          }
+                        }}
+                        disabled={(date) => {
+                          // Disable dates after end date if end date is set
+                          if (endDate && !noEndDate) {
+                            return date > endDate;
+                          }
+                          return false;
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate" className="text-sm">{t("endDate") || "End Date"}</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                        disabled={noEndDate}
+                      >
+                        {endDate && !noEndDate ? (
+                          format(endDate, "LLL dd, yyyy")
+                        ) : noEndDate ? (
+                          <span className="text-muted-foreground">{t("noEndDate")}</span>
+                        ) : (
+                          <span>{t("pickEndDate") || "Pick end date"}</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="single"
+                        selected={endDate}
+                        weekStartsOn={1}
+                        onSelect={(date) => {
+                          if (date) {
+                            if (challenge_type === "weekly") {
+                              // Auto-adjust to week end (Sunday)
+                              const weekEnd = getWeekEnd(date);
+                              setEndDate(weekEnd);
+                            } else {
+                              setEndDate(date);
+                            }
+                          }
+                        }}
+                        disabled={(date) => {
+                          // Disable dates before start date
+                          if (startDate) {
+                            return date < startDate;
+                          }
+                          return false;
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="noEndDate"
+                  checked={noEndDate}
+                  onCheckedChange={(checked) => {
+                    setNoEndDate(checked as boolean);
+                    if (checked) {
+                      setEndDate(undefined);
+                    } else if (!endDate) {
+                      // Set default end date if enabling end date
+                      setEndDate(addDays(startDate || new Date(), 30));
+                    }
+                  }}
+                />
+                <Label htmlFor="noEndDate" className="text-sm font-normal cursor-pointer">
+                  {t("noEndDate")}
+                </Label>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-2">

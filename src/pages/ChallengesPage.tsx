@@ -124,12 +124,12 @@ export default function ChallengesPage() {
 
   // Get user's joined challenges
   const userJoinedChallenges = user
-    ? filteredChallenges.filter((challenge) => challenge.participants.includes(user.id))
+    ? filteredChallenges.filter((challenge) => challenge.participants && challenge.participants.includes(user.id))
     : [];
 
   // Get other available challenges
   const availableChallenges = user
-    ? filteredChallenges.filter((challenge) => !challenge.participants.includes(user.id))
+    ? filteredChallenges.filter((challenge) => !challenge.participants || !challenge.participants.includes(user.id))
     : filteredChallenges;
 
   const sortedAllChallenges = useMemo(() => {
@@ -201,7 +201,7 @@ export default function ChallengesPage() {
       return [];
     }
     const joined = filteredChallenges.filter((challenge) =>
-      challenge.participants.includes(user.id)
+      challenge.participants && challenge.participants.includes(user.id)
     );
     const today = new Date();
     
