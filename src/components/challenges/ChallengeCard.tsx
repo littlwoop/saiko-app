@@ -53,7 +53,7 @@ export default function ChallengeCard({
   const isFuture = today < startDate;
   const isPast = endDate ? today > endDate : false;
 
-  const totalObjectives = challenge.objectives.length;
+  const totalObjectives = challenge.objectives?.length || 0;
   const progressPercentage = (userScore / challenge.totalPoints) * 100;
 
   // Load progress when the component mounts or when userScore changes
@@ -64,7 +64,7 @@ export default function ChallengeCard({
         try {
           const progressData = await getChallengeProgress(challenge.id, challenge.challenge_type);
           const totalPoints = calculateTotalPoints(
-            challenge.objectives,
+            challenge.objectives || [],
             progressData,
             challenge.capedPoints,
             challenge.challenge_type
@@ -89,7 +89,7 @@ export default function ChallengeCard({
           } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
             // For collection/checklist challenges, progress is number of completed objectives
             const completedObjectives = progressData.filter(p => p.currentValue >= 1).length;
-            const totalObjectives = challenge.objectives.length;
+            const totalObjectives = challenge.objectives?.length || 0;
             
             setProgress((completedObjectives / totalObjectives) * 100);
             setDisplayValue({ current: completedObjectives, total: totalObjectives });

@@ -45,7 +45,49 @@ export default function ChallengesPage() {
         return;
       }
 
-      setChallenges(challengesData || []);
+      if (!challengesData) {
+        setChallenges([]);
+        return;
+      }
+
+      // Fetch objectives for all challenges
+      const challengeIds = challengesData.map((c) => c.id);
+      const { data: allObjectivesData } = await supabase
+        .from('objectives')
+        .select('*')
+        .in('challenge_id', challengeIds)
+        .order('challenge_id', { ascending: true })
+        .order('order', { ascending: true });
+
+      // Group objectives by challenge_id
+      const objectivesByChallenge: Record<number, any[]> = {};
+      if (allObjectivesData) {
+        allObjectivesData.forEach((obj) => {
+          if (!objectivesByChallenge[obj.challenge_id]) {
+            objectivesByChallenge[obj.challenge_id] = [];
+          }
+          objectivesByChallenge[obj.challenge_id].push({
+            id: obj.id,
+            title: obj.title,
+            description: obj.description || undefined,
+            targetValue: obj.target_value !== null ? Number(obj.target_value) : undefined,
+            unit: obj.unit || undefined,
+            pointsPerUnit: obj.points_per_unit !== null ? Number(obj.points_per_unit) : undefined,
+          });
+        });
+      }
+
+      // Merge objectives into challenges (with fallback to JSON field for backward compatibility)
+      const challengesWithObjectives = challengesData.map((challenge) => {
+        const objectives = objectivesByChallenge[challenge.id] || 
+                          (Array.isArray(challenge.objectives) ? challenge.objectives : []);
+        return {
+          ...challenge,
+          objectives,
+        };
+      });
+
+      setChallenges(challengesWithObjectives);
 
       // Get user's challenges if logged in
       if (user) {
