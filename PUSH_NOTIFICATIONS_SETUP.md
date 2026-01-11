@@ -126,15 +126,23 @@ SELECT cron.schedule(
    - The function sends push notifications to all of the user's registered devices
    - Users receive the notification even if they're not on the website
 
-## Edge Function Implementation Note
+## Edge Function Implementation
 
-The current `send-push-notification` Edge Function uses a simplified implementation. For production use, you should:
+The `send-push-notification` Edge Function uses the `deno.land/x/webpush` library for proper:
+1. VAPID authentication
+2. Payload encryption (AES-GCM)
+3. Web Push Protocol compliance
 
-1. Use the `web-push` library properly with VAPID signing
-2. Implement proper payload encryption
-3. Handle notification delivery status and cleanup invalid subscriptions
+### Required Environment Variables
 
-You may need to use a Deno-compatible web-push library or implement the encryption manually.
+Make sure to set these in Supabase Edge Function secrets:
+- `VAPID_PUBLIC_KEY` - Your VAPID public key
+- `VAPID_PRIVATE_KEY` - Your VAPID private key
+- `VAPID_CONTACT_EMAIL` - Email address (optional, format: `mailto:admin@example.com`)
+
+## Troubleshooting
+
+If push notifications are not working, see [PUSH_NOTIFICATION_TROUBLESHOOTING.md](./PUSH_NOTIFICATION_TROUBLESHOOTING.md) for detailed troubleshooting steps.
 
 ## Troubleshooting
 

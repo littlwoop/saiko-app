@@ -187,26 +187,34 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
     setIsTesting(true);
 
     try {
-      const success = await sendPushNotification(user.id, {
-        title: 'Test Notification',
-        body: 'This is a test push notification! If you see this, push notifications are working correctly.',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        tag: 'test-notification',
-        requireInteraction: false,
-        data: {
-          type: 'test',
-          timestamp: new Date().toISOString(),
-        },
-      });
-
-      if (success) {
-        toast({
-          title: 'Test Notification Sent',
-          description: 'Check your notifications. You should receive a test push notification shortly.',
+      try {
+        const success = await sendPushNotification(user.id, {
+          title: 'Test Notification',
+          body: 'This is a test push notification! If you see this, push notifications are working correctly.',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: 'test-notification',
+          requireInteraction: false,
+          data: {
+            type: 'test',
+            timestamp: new Date().toISOString(),
+          },
         });
-      } else {
-        throw new Error('Failed to send test notification');
+
+        if (success) {
+          toast({
+            title: 'Test Notification Sent',
+            description: 'Check your notifications. You should receive a test push notification shortly.',
+          });
+        } else {
+          throw new Error('Failed to send test notification - check Edge Function logs');
+        }
+      } catch (pushError: any) {
+        console.error('Push notification error details:', pushError);
+        throw new Error(
+          pushError?.message || 
+          'Failed to send test notification. Check that the Edge Function is deployed and VAPID keys are configured.'
+        );
       }
     } catch (error) {
       console.error('Error sending test notification:', error);

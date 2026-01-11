@@ -78,13 +78,21 @@ export async function sendPushNotification(
 
     if (error) {
       console.error('Error sending push notification:', error);
-      return false;
+      throw error;
     }
 
-    return true;
+    // Log response for debugging
+    if (data) {
+      console.log('Push notification response:', data);
+      if (data.failed && data.failed > 0) {
+        console.error('Some notifications failed:', data.details);
+      }
+    }
+
+    return data?.successful > 0 || false;
   } catch (error) {
     console.error('Error sending push notification:', error);
-    return false;
+    throw error;
   }
 }
 

@@ -1,16 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { WebPush } from 'https://deno.land/x/webpush@v1.1.2/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface PushSubscription {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-}
 
 interface NotificationPayload {
   title: string;
@@ -20,105 +15,6 @@ interface NotificationPayload {
   tag?: string;
   requireInteraction?: boolean;
   data?: Record<string, unknown>;
-}
-
-// URL-safe base64 decode
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-// Encrypt payload for push notification
-async function encryptPayload(
-  payload: string,
-  p256dh: string,
-  auth: string
-): Promise<ArrayBuffer> {
-  const p256dhKey = urlBase64ToUint8Array(p256dh);
-  const authSecret = urlBase64ToUint8Array(auth);
-
-  const key = await crypto.subtle.importKey(
-    'raw',
-    p256dhKey,
-    {
-      name: 'ECDH',
-      namedCurve: 'P-256',
-    },
-    false,
-    []
-  );
-
-  const publicKey = await crypto.subtle.importKey(
-    'raw',
-    p256dhKey,
-    {
-      name: 'ECDH',
-      namedCurve: 'P-256',
-    },
-    false,
-    ['deriveBits']
-  );
-
-  const sharedSecret = await crypto.subtle.deriveBits(
-    {
-      name: 'ECDH',
-      public: publicKey,
-    },
-    key,
-    256
-  );
-
-  // For simplicity, we'll use a library or implement proper encryption
-  // This is a simplified version - in production, use web-push library
-  return new TextEncoder().encode(payload);
-}
-
-// Send push notification using web-push
-async function sendPushNotification(
-  subscription: PushSubscription,
-  payload: NotificationPayload,
-  vapidPublicKey: string,
-  vapidPrivateKey: string
-): Promise<Response> {
-  const endpoint = subscription.endpoint;
-  
-  // Create the notification payload
-  const notificationData = {
-    title: payload.title,
-    body: payload.body,
-    icon: payload.icon || '/icon-192.png',
-    badge: payload.badge || '/icon-192.png',
-    tag: payload.tag || 'notification',
-    requireInteraction: payload.requireInteraction || false,
-    data: payload.data || {},
-  };
-
-  // For now, we'll use a simple approach with fetch
-  // In production, you should use the web-push library with proper encryption
-  try {
-    // This is a simplified implementation
-    // In production, use the web-push npm package which handles VAPID signing properly
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'TTL': '86400',
-      },
-      body: JSON.stringify(notificationData),
-    });
-
-    return response;
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-    throw error;
-  }
 }
 
 serve(async (req) => {
@@ -133,13 +29,14 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
+    const vapidContactEmail = Deno.env.get('VAPID_CONTACT_EMAIL') || 'mailto:admin@example.com';
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing Supabase configuration');
     }
 
     if (!vapidPublicKey || !vapidPrivateKey) {
-      throw new Error('Missing VAPID keys');
+      throw new Error('Missing VAPID keys. Make sure VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are set in Supabase Edge Function secrets.');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -161,12 +58,16 @@ serve(async (req) => {
       .eq('user_id', userId);
 
     if (error) {
+      console.error('Error fetching subscriptions:', error);
       throw error;
     }
 
     if (!subscriptions || subscriptions.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No push subscriptions found for user' }),
+        JSON.stringify({ 
+          message: 'No push subscriptions found for user',
+          userId 
+        }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404,
@@ -174,30 +75,92 @@ serve(async (req) => {
       );
     }
 
+    // Initialize web-push with VAPID keys
+    const webpush = new WebPush({
+      publicKey: vapidPublicKey,
+      privateKey: vapidPrivateKey,
+      subject: vapidContactEmail,
+    });
+
+    // Create notification payload
+    const notificationPayload = JSON.stringify({
+      title: notification.title,
+      body: notification.body,
+      icon: notification.icon || '/icon-192.png',
+      badge: notification.badge || '/icon-192.png',
+      tag: notification.tag || 'notification',
+      requireInteraction: notification.requireInteraction || false,
+      data: notification.data || {},
+    });
+
     // Send notification to all subscriptions
     const results = await Promise.allSettled(
-      subscriptions.map((sub) =>
-        sendPushNotification(
-          {
+      subscriptions.map(async (sub) => {
+        try {
+          const subscription = {
             endpoint: sub.endpoint,
-            p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
-          notification,
-          vapidPublicKey,
-          vapidPrivateKey
-        )
-      )
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth,
+            },
+          };
+
+          const result = await webpush.sendNotification(
+            subscription,
+            notificationPayload
+          );
+
+          return {
+            endpoint: sub.endpoint,
+            status: result.status,
+            statusText: result.statusText,
+          };
+        } catch (error) {
+          console.error(`Failed to send to ${sub.endpoint}:`, error);
+          throw {
+            endpoint: sub.endpoint,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      })
     );
 
     const successful = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.filter((r) => r.status === 'rejected').length;
+
+    // Log detailed results
+    const details = results.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return {
+          index,
+          status: 'success',
+          endpoint: subscriptions[index].endpoint,
+          responseStatus: result.value.status,
+        };
+      } else {
+        return {
+          index,
+          status: 'failed',
+          endpoint: subscriptions[index].endpoint,
+          error: result.reason?.error || String(result.reason),
+        };
+      }
+    });
+
+    // Log failures for debugging
+    details.forEach((detail) => {
+      if (detail.status === 'failed') {
+        console.error(`Failed notification ${detail.index}:`, detail.error);
+      }
+    });
 
     return new Response(
       JSON.stringify({
         message: `Sent ${successful} notification(s), ${failed} failed`,
         successful,
         failed,
+        total: subscriptions.length,
+        details,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -207,7 +170,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in send-push-notification function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
