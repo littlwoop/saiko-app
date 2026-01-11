@@ -15,6 +15,7 @@ import { useTranslation } from "@/lib/translations";
 import { dailyChallengesService } from "@/lib/daily-challenges";
 import { getNumberOfWeeks } from "@/lib/week-utils";
 import { getLocalDateString, normalizeToLocalDate, formatLocalDate } from "@/lib/date-utils";
+import { setupDailyChallengeReminders } from "@/lib/notifications";
 
 interface DashboardChallengeData {
   challenge: Challenge;
@@ -158,6 +159,36 @@ export default function Dashboard() {
     };
 
     loadTodaysChallenge();
+  }, [user]);
+
+  // Setup daily challenge reminder notifications
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (!user) return;
+      
+      try {
+        await setupDailyChallengeReminders(user.id);
+      } catch (error) {
+        console.error("Error setting up notifications:", error);
+      }
+    };
+
+    setupNotifications();
+    
+    // Also check when page becomes visible (user returns to tab/app)
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && user) {
+        // Re-setup reminders when user returns to check if we missed the 18:00 window
+        await setupDailyChallengeReminders(user.id);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Cleanup is handled in the notifications module
+    };
   }, [user]);
 
   const calculateProgress = (item: DashboardChallengeData) => {
@@ -384,6 +415,10 @@ export default function Dashboard() {
       const today = getLocalDateString();
       const storedChallengeKey = `dailyChallenge_${user!.id}_${today}`;
       localStorage.removeItem(storedChallengeKey);
+      
+      // Clear reminder flag since challenge is now completed
+      const reminderShownKey = `reminder-shown-${user!.id}-${today}`;
+      localStorage.removeItem(reminderShownKey);
       
       // After animation, check if there are any more challenges available for today
       setTimeout(async () => {

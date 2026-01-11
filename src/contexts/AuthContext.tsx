@@ -271,6 +271,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
+      // Clear notification schedules and stop periodic checks before clearing user
+      const currentUser = userRef.current;
+      if (currentUser) {
+        const { clearUserSchedules, stopPeriodicReminderCheck } = await import('@/lib/notifications');
+        clearUserSchedules(currentUser.id);
+        stopPeriodicReminderCheck();
+      }
+
       // Clear the user state first
       setUser(null);
 
