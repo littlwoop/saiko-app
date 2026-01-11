@@ -191,6 +191,19 @@ export const translations = {
     installAppDismiss: "Jetzt nicht",
     installAppConfirm: "Als App installieren",
 
+    // Notifications
+    enableNotifications: "Benachrichtigungen aktivieren",
+    enableNotificationsTitle: "Benachrichtigungen aktivieren",
+    enableNotificationsDescription: "Aktiviere Benachrichtigungen, um täglich um 18:00 Uhr an deine täglichen Herausforderungen erinnert zu werden.",
+    enableNotificationsButton: "Benachrichtigungen aktivieren",
+    notificationsEnabled: "Benachrichtigungen aktiviert",
+    notificationsEnabledDescription: "Du wirst täglich um 18:00 Uhr an deine Herausforderungen erinnert.",
+    notificationPermissionDenied: "Benachrichtigungsberechtigung verweigert",
+    notificationPermissionDeniedDescription: "Bitte aktiviere Benachrichtigungen in deinen Browsereinstellungen.",
+    iosNotificationRequirement: "Hinweis: Auf iOS funktionieren Benachrichtigungen nur, wenn die App als PWA installiert ist.",
+    enableNotificationsFailed: "Benachrichtigungen konnten nicht aktiviert werden",
+    enableNotificationsFailedDescription: "Bitte versuche es erneut oder überprüfe deine Browsereinstellungen.",
+
     target: "Ziel",
     deadline: "Frist",
     viewChallenge: "Herausforderung ansehen",
@@ -704,6 +717,19 @@ export const translations = {
       "Add Saiko to your device for faster access and a full-screen experience.",
     installAppDismiss: "Not now",
     installAppConfirm: "Install as app",
+
+    // Notifications
+    enableNotifications: "Enable Notifications",
+    enableNotificationsTitle: "Enable Notifications",
+    enableNotificationsDescription: "Enable notifications to get reminded daily at 6 PM about your daily challenges.",
+    enableNotificationsButton: "Enable Notifications",
+    notificationsEnabled: "Notifications Enabled",
+    notificationsEnabledDescription: "You'll be reminded daily at 6 PM about your challenges.",
+    notificationPermissionDenied: "Notification Permission Denied",
+    notificationPermissionDeniedDescription: "Please enable notifications in your browser settings.",
+    iosNotificationRequirement: "Note: On iOS, notifications only work when the app is installed as a PWA.",
+    enableNotificationsFailed: "Failed to Enable Notifications",
+    enableNotificationsFailedDescription: "Please try again or check your browser settings.",
 
     target: "Target",
     deadline: "Deadline",
