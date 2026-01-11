@@ -343,7 +343,7 @@ export default function ProfilePage() {
                           </Button>
                         </div>
                       )}
-                      <div className="mb-4">
+                      <div className="mb-4 space-y-2">
                         <Label className="mb-2 block">{t("notifications") || "Notifications"}</Label>
                         <EnableNotificationsButton 
                           vapidPublicKey={import.meta.env.VITE_VAPID_PUBLIC_KEY}
