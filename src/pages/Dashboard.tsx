@@ -16,6 +16,15 @@ import { useTranslation } from "@/lib/translations";
 import { dailyChallengesService } from "@/lib/daily-challenges";
 import { getNumberOfWeeks } from "@/lib/week-utils";
 import { getLocalDateString, normalizeToLocalDate, formatLocalDate } from "@/lib/date-utils";
+import {
+  requestNotificationPermission,
+  getNotificationPermission,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  isSubscribedToPushNotifications,
+  isPushNotificationSupported,
+  sendTestPushNotification,
+} from "@/lib/push-notifications";
 
 interface DashboardChallengeData {
   challenge: Challenge;
@@ -37,6 +46,8 @@ export default function Dashboard() {
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isFlyingOut, setIsFlyingOut] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
 
   useEffect(() => {
     const loadActiveChallenges = async () => {
@@ -160,6 +171,33 @@ export default function Dashboard() {
 
     loadTodaysChallenge();
   }, [user]);
+
+  // Check push notification support and subscription status
+  useEffect(() => {
+    const checkPushNotifications = async () => {
+      if (!user) return;
+
+      const permission = getNotificationPermission();
+      setNotificationPermission(permission);
+
+      if (permission === 'granted' && isPushNotificationSupported()) {
+        const subscribed = await isSubscribedToPushNotifications();
+        setIsPushSubscribed(subscribed);
+      }
+
+      // Show alert if not subscribed and permission is granted, or if permission is default
+      const shouldShowAlert = 
+        (permission === 'granted' && !isPushSubscribed && isPushNotificationSupported()) ||
+        (permission === 'default' && isPushNotificationSupported());
+
+      const dismissedKey = 'push-notification-alert-dismissed';
+      const wasDismissed = localStorage.getItem(dismissedKey) === 'true';
+
+      setShowNotificationAlert(shouldShowAlert && !wasDismissed);
+    };
+
+    checkPushNotifications();
+  }, [user, isPushSubscribed]);
 
   const calculateProgress = (item: DashboardChallengeData) => {
     const { challenge, userProgress, userChallenge } = item;
@@ -370,6 +408,7 @@ export default function Dashboard() {
     }
   };
 
+
   const handleCompleteChallenge = async () => {
     if (!todaysChallenge) return;
     
@@ -437,6 +476,7 @@ export default function Dashboard() {
           {t("welcomeBack").replace("{name}", user?.name || "")}
         </h1>
       </div>
+
 
       {/* Streak History */}
       <div className="mb-6 sm:mb-8">

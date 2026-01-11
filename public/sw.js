@@ -32,23 +32,54 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Handle push events (for future push notification support)
+// Handle push events for Web Push notifications
 self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body || 'Don\'t forget to complete your daily challenge!',
-      icon: NOTIFICATION_ICON,
-      badge: NOTIFICATION_ICON,
-      tag: 'daily-challenge-reminder',
-      requireInteraction: false,
-      data: data.data || {}
-    };
+  let notificationData = {
+    title: 'Daily Challenge Reminder',
+    body: 'Don\'t forget to complete your daily challenge!',
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_ICON,
+    tag: 'daily-challenge-reminder',
+    data: {}
+  };
 
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'Daily Challenge Reminder', options)
-    );
+  // Try to parse push data
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      notificationData = {
+        title: data.title || notificationData.title,
+        body: data.body || notificationData.body,
+        icon: data.icon || NOTIFICATION_ICON,
+        badge: data.badge || NOTIFICATION_ICON,
+        tag: data.tag || notificationData.tag,
+        data: data.data || {}
+      };
+    } catch (e) {
+      // If data is not JSON, try as text
+      try {
+        const text = event.data.text();
+        if (text) {
+          notificationData.body = text;
+        }
+      } catch (e2) {
+        console.error('Error parsing push data:', e2);
+      }
+    }
   }
+
+  const options = {
+    body: notificationData.body,
+    icon: notificationData.icon,
+    badge: notificationData.badge,
+    tag: notificationData.tag,
+    requireInteraction: false,
+    data: notificationData.data
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, options)
+  );
 });
 
 // Listen for messages from clients (for future use with push notifications)
