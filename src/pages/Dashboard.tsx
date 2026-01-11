@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Trophy, Check, Minus, Bell, BellOff, X } from "lucide-react";
+import { Trophy, Check, Minus } from "lucide-react";
 import { Challenge, UserChallenge, DailyChallenge, UserProgress } from "@/types";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -16,13 +16,6 @@ import { useTranslation } from "@/lib/translations";
 import { dailyChallengesService } from "@/lib/daily-challenges";
 import { getNumberOfWeeks } from "@/lib/week-utils";
 import { getLocalDateString, normalizeToLocalDate, formatLocalDate } from "@/lib/date-utils";
-import { 
-  setupDailyChallengeReminders, 
-  requestNotificationPermission, 
-  getNotificationPermission,
-  getMobileNotificationInfo,
-  hasRequestedNotificationPermission
-} from "@/lib/notifications";
 
 interface DashboardChallengeData {
   challenge: Challenge;
@@ -44,9 +37,6 @@ export default function Dashboard() {
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isFlyingOut, setIsFlyingOut] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  const [showNotificationAlert, setShowNotificationAlert] = useState(false);
-  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false);
 
   useEffect(() => {
     const loadActiveChallenges = async () => {
@@ -170,75 +160,6 @@ export default function Dashboard() {
 
     loadTodaysChallenge();
   }, [user]);
-
-  // Check notification permission status
-  useEffect(() => {
-    if (!user) return;
-    
-    const checkPermission = () => {
-      const permission = getNotificationPermission();
-      setNotificationPermission(permission);
-      
-      // Show alert if permission is not granted and hasn't been dismissed
-      // Only show if permission hasn't been requested yet OR if it was previously denied
-      const shouldShowAlert = permission !== 'granted' && 
-        (!hasRequestedNotificationPermission() || permission === 'default');
-      
-      // Check if user dismissed the alert
-      const dismissedKey = 'notification-alert-dismissed';
-      const wasDismissed = localStorage.getItem(dismissedKey) === 'true';
-      
-      setShowNotificationAlert(shouldShowAlert && !wasDismissed);
-    };
-    
-    checkPermission();
-    
-    // Also check when page becomes visible
-    const handleVisibilityChange = () => {
-      checkPermission();
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user]);
-
-  // Setup daily challenge reminder notifications
-  useEffect(() => {
-    const setupNotifications = async () => {
-      if (!user) return;
-      
-      try {
-        // Only setup if permission is granted
-        if (getNotificationPermission() === 'granted') {
-          await setupDailyChallengeReminders(user.id);
-        }
-      } catch (error) {
-        console.error("Error setting up notifications:", error);
-      }
-    };
-
-    setupNotifications();
-    
-    // Also check when page becomes visible (user returns to tab/app)
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && user) {
-        // Re-setup reminders when user returns to check if we missed the 18:00 window
-        if (getNotificationPermission() === 'granted') {
-          await setupDailyChallengeReminders(user.id);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      // Cleanup is handled in the notifications module
-    };
-  }, [user, notificationPermission]);
 
   const calculateProgress = (item: DashboardChallengeData) => {
     const { challenge, userProgress, userChallenge } = item;
@@ -449,35 +370,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleEnableNotifications = async () => {
-    if (!user) return;
-    
-    setIsEnablingNotifications(true);
-    try {
-      const granted = await requestNotificationPermission();
-      const newPermission = getNotificationPermission();
-      setNotificationPermission(newPermission);
-      
-      if (granted) {
-        // Setup reminders if permission was granted
-        await setupDailyChallengeReminders(user.id);
-        setShowNotificationAlert(false);
-      } else {
-        // If permission was denied or failed, keep alert visible but update state
-        setShowNotificationAlert(newPermission !== 'granted');
-      }
-    } catch (error) {
-      console.error("Error enabling notifications:", error);
-    } finally {
-      setIsEnablingNotifications(false);
-    }
-  };
-
-  const handleDismissNotificationAlert = () => {
-    setShowNotificationAlert(false);
-    localStorage.setItem('notification-alert-dismissed', 'true');
-  };
-
   const handleCompleteChallenge = async () => {
     if (!todaysChallenge) return;
     
@@ -493,10 +385,6 @@ export default function Dashboard() {
       const today = getLocalDateString();
       const storedChallengeKey = `dailyChallenge_${user!.id}_${today}`;
       localStorage.removeItem(storedChallengeKey);
-      
-      // Clear reminder flag since challenge is now completed
-      const reminderShownKey = `reminder-shown-${user!.id}-${today}`;
-      localStorage.removeItem(reminderShownKey);
       
       // After animation, check if there are any more challenges available for today
       setTimeout(async () => {
@@ -549,64 +437,6 @@ export default function Dashboard() {
           {t("welcomeBack").replace("{name}", user?.name || "")}
         </h1>
       </div>
-
-      {/* Notification Permission Alert */}
-      {showNotificationAlert && user && (
-        <Alert className="mb-4 sm:mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-          <Bell className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-900 dark:text-blue-100">
-            {t("enableNotificationsTitle")}
-          </AlertTitle>
-          <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2">
-            <p className="mb-3">{t("enableNotificationsDescription")}</p>
-            {getMobileNotificationInfo().requiresInstall && (
-              <p className="text-sm mb-3 italic">
-                {t("iosNotificationRequirement")}
-              </p>
-            )}
-            <div className="flex flex-col sm:flex-row gap-2 mt-3">
-              <Button
-                onClick={handleEnableNotifications}
-                disabled={isEnablingNotifications}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {isEnablingNotifications ? (
-                  <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
-                    {t("loading")}
-                  </>
-                ) : (
-                  <>
-                    <Bell className="h-3 w-3 mr-2" />
-                    {t("enableNotificationsButton")}
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleDismissNotificationAlert}
-                variant="ghost"
-                size="sm"
-                className="text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
-              >
-                <X className="h-3 w-3 mr-2" />
-                {t("close")}
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Notification Permission Denied Alert */}
-      {notificationPermission === 'denied' && user && (
-        <Alert variant="destructive" className="mb-4 sm:mb-6">
-          <BellOff className="h-4 w-4" />
-          <AlertTitle>{t("notificationPermissionDenied")}</AlertTitle>
-          <AlertDescription>
-            {t("notificationPermissionDeniedDescription")}
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Streak History */}
       <div className="mb-6 sm:mb-8">
