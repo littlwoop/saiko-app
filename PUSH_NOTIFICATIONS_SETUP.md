@@ -213,6 +213,54 @@ SELECT cron.schedule(
 
 **Note:** Replace `YOUR_SERVICE_ROLE_KEY` with your Supabase service role key (found in Settings → API).
 
+#### Changing the Notification Time
+
+To change when notifications are sent, you need to update the cron schedule:
+
+1. **First, unschedule the existing job:**
+   ```sql
+   SELECT cron.unschedule('daily-challenge-reminder');
+   ```
+
+2. **Create a new schedule with your desired time:**
+   ```sql
+   SELECT cron.schedule(
+     'daily-challenge-reminder',
+     '0 20 * * *', -- Change this: format is 'minute hour * * *' (UTC)
+     $$
+     SELECT
+       net.http_post(
+         url := 'https://your-project-ref.supabase.co/functions/v1/daily-challenge-reminder',
+         headers := jsonb_build_object(
+           'Content-Type', 'application/json',
+           'Authorization', 'Bearer YOUR_SERVICE_ROLE_KEY'
+         ),
+         body := jsonb_build_object('cron', true)
+       ) AS request_id;
+     $$
+   );
+   ```
+
+**Cron format examples:**
+- `'0 20 * * *'` - Daily at 20:00 UTC (8 PM UTC)
+- `'0 12 * * *'` - Daily at 12:00 UTC (noon UTC)
+- `'30 18 * * *'` - Daily at 18:30 UTC (6:30 PM UTC)
+- `'0 9 * * *'` - Daily at 09:00 UTC (9 AM UTC)
+
+**Important:** Times are in UTC. Convert your local time to UTC when setting the schedule.
+
+**To check existing cron jobs:**
+```sql
+SELECT * FROM cron.job;
+```
+
+**To view job schedule:**
+```sql
+SELECT * FROM cron.job WHERE jobname = 'daily-challenge-reminder';
+```
+
+3. **Update text descriptions** (optional): If you want the UI to reflect the new time, update the translation files in `src/lib/translations.ts` to mention your chosen time.
+
 ### Option 2: Using External Cron Service
 
 You can use services like:
