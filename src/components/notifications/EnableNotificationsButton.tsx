@@ -226,7 +226,7 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
 
   if (isLoading) {
     return (
-      <Button disabled variant="outline">
+      <Button disabled variant="outline" className="w-full sm:w-auto">
         <Bell className="mr-2 h-4 w-4" />
         Loading...
       </Button>
@@ -235,11 +235,12 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
 
   if (isSubscribed) {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button 
           onClick={handleDisableNotifications} 
           variant="outline"
           disabled={isLoading}
+          className="w-full sm:w-auto"
         >
           <BellOff className="mr-2 h-4 w-4" />
           Disable Notifications
@@ -248,6 +249,7 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
           onClick={handleTestNotification} 
           variant="secondary"
           disabled={isTesting}
+          className="w-full sm:w-auto"
         >
           <Send className="mr-2 h-4 w-4" />
           {isTesting ? 'Sending...' : 'Test Push Notification'}
@@ -258,7 +260,12 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
 
   if (permission === 'denied') {
     return (
-      <Button disabled variant="outline" title="Notification permission was denied. Please enable it in your browser settings.">
+      <Button 
+        disabled 
+        variant="outline" 
+        className="w-full sm:w-auto"
+        title="Notification permission was denied. Please enable it in your browser settings."
+      >
         <BellOff className="mr-2 h-4 w-4" />
         Notifications Blocked
       </Button>
@@ -270,6 +277,7 @@ export function EnableNotificationsButton({ vapidPublicKey }: EnableNotification
       onClick={handleEnableNotifications} 
       variant="default"
       disabled={isLoading || !vapidPublicKey}
+      className="w-full sm:w-auto"
     >
       <Bell className="mr-2 h-4 w-4" />
       Enable Notifications
