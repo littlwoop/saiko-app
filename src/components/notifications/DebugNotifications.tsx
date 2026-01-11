@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { getCurrentPushSubscription } from '@/lib/push-subscription';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { TestNotificationButton } from './TestNotificationButton';
 
 export function DebugNotifications() {
   const { user } = useAuth();
@@ -182,6 +183,11 @@ export function DebugNotifications() {
           >
             Refresh Status
           </Button>
+        </div>
+
+        {/* Test Notification Button */}
+        <div className="pt-2">
+          <TestNotificationButton />
         </div>
 
         {subscriptionInfo && (

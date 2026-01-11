@@ -97,7 +97,8 @@ serve(async (req) => {
     const results = await Promise.allSettled(
       subscriptions.map(async (sub) => {
         try {
-          console.log(`Attempting to send to subscription: ${sub.endpoint.substring(0, 50)}...`);
+          console.log(`[Edge Function] Attempting to send to subscription: ${sub.endpoint.substring(0, 50)}...`);
+          console.log(`[Edge Function] Subscription keys present: p256dh=${!!sub.p256dh}, auth=${!!sub.auth}`);
           
           const subscription = {
             endpoint: sub.endpoint,
@@ -107,27 +108,53 @@ serve(async (req) => {
             },
           };
 
-          console.log('Sending notification with payload:', notificationPayload);
+          console.log('[Edge Function] Sending notification with payload:', notificationPayload);
+          console.log('[Edge Function] VAPID config:', {
+            publicKey: vapidPublicKey.substring(0, 20) + '...',
+            hasPrivateKey: !!vapidPrivateKey,
+            subject: vapidContactEmail,
+          });
 
           const result = await webpush.sendNotification(
             subscription,
             notificationPayload
           );
 
-          console.log(`Push notification response: ${result.status} ${result.statusText}`);
+          console.log(`[Edge Function] Push notification response: ${result.status} ${result.statusText}`);
           
           // Log response headers for debugging
           const responseHeaders: Record<string, string> = {};
           result.headers.forEach((value, key) => {
             responseHeaders[key] = value;
           });
-          console.log('Response headers:', responseHeaders);
-
-          // Check if response is ok
+          console.log('[Edge Function] Response headers:', JSON.stringify(responseHeaders, null, 2));
+          
+          // Check if response is ok BEFORE reading body
           if (!result.ok) {
-            const errorText = await result.text();
-            console.error(`Push service returned error: ${result.status} ${errorText}`);
+            let errorText = '';
+            try {
+              errorText = await result.text();
+            } catch (e) {
+              errorText = 'Could not read error response';
+            }
+            console.error(`[Edge Function] Push service returned error: ${result.status} ${errorText}`);
             throw new Error(`Push service error: ${result.status} ${errorText}`);
+          }
+
+          // Log success - response should be 201 or 200
+          if (result.status === 201 || result.status === 200) {
+            console.log('[Edge Function] Push notification sent successfully! Status:', result.status);
+            // Optionally read response body for debugging
+            try {
+              const responseText = await result.text();
+              if (responseText) {
+                console.log('[Edge Function] Response body:', responseText);
+              }
+            } catch (e) {
+              // Response already consumed or empty, that's fine
+            }
+          } else {
+            console.warn(`[Edge Function] Unexpected status code: ${result.status}`);
           }
 
           return {
