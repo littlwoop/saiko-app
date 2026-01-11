@@ -90,24 +90,69 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<Challenge | null> => {
     debug.log(`Getting challenge with ID: ${challengeId}`);
     try {
-      const { data, error } = await supabase
+      // Fetch challenge data
+      const { data: challengeData, error: challengeError } = await supabase
         .from("challenges")
         .select("*")
         .eq("id", challengeId)
         .single();
 
-      if (error) {
-        debug.error("Error fetching challenge:", error);
+      if (challengeError) {
+        debug.error("Error fetching challenge:", challengeError);
         toast({
           title: "Error",
-          description: error.message,
+          description: challengeError.message,
           variant: "destructive",
         });
         return null;
       }
 
-      debug.log("Successfully fetched challenge:", data);
-      return data;
+      if (!challengeData) {
+        return null;
+      }
+
+      // Fetch objectives from the objectives table
+      const { data: objectivesData, error: objectivesError } = await supabase
+        .from("objectives")
+        .select("*")
+        .eq("challenge_id", challengeId)
+        .order("order", { ascending: true });
+
+      let objectives: Objective[] = [];
+
+      if (objectivesError) {
+        debug.error("Error fetching objectives:", objectivesError);
+        // Fallback to JSON field for backward compatibility
+        if (challengeData.objectives && Array.isArray(challengeData.objectives)) {
+          objectives = challengeData.objectives;
+          debug.log("Using objectives from JSON field (fallback)");
+        }
+      } else if (objectivesData && objectivesData.length > 0) {
+        // Convert database format to Objective interface
+        objectives = objectivesData.map((obj) => ({
+          id: obj.id,
+          title: obj.title,
+          description: obj.description || undefined,
+          targetValue: obj.target_value !== null ? Number(obj.target_value) : undefined,
+          unit: obj.unit || undefined,
+          pointsPerUnit: obj.points_per_unit !== null ? Number(obj.points_per_unit) : undefined,
+        }));
+        debug.log("Successfully fetched objectives from table");
+      } else {
+        // Fallback to JSON field if no objectives in table
+        if (challengeData.objectives && Array.isArray(challengeData.objectives)) {
+          objectives = challengeData.objectives;
+          debug.log("Using objectives from JSON field (no data in table)");
+        }
+      }
+
+      const result = {
+        ...challengeData,
+        objectives,
+      };
+
+      debug.log("Successfully fetched challenge:", result);
+      return result;
     } catch (err) {
       debug.error("Unexpected error:", err);
       toast({
@@ -142,12 +187,43 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       debug.log("Successfully fetched user challenges:", challengesData);
       
+      // Fetch objectives for all challenges
+      const challengeIds = (challengesData || []).map((c) => c.id);
+      const { data: allObjectivesData } = await supabase
+        .from("objectives")
+        .select("*")
+        .in("challenge_id", challengeIds)
+        .order("challenge_id", { ascending: true })
+        .order("order", { ascending: true });
+
+      // Group objectives by challenge_id
+      const objectivesByChallenge: Record<number, Objective[]> = {};
+      if (allObjectivesData) {
+        allObjectivesData.forEach((obj) => {
+          if (!objectivesByChallenge[obj.challenge_id]) {
+            objectivesByChallenge[obj.challenge_id] = [];
+          }
+          objectivesByChallenge[obj.challenge_id].push({
+            id: obj.id,
+            title: obj.title,
+            description: obj.description || undefined,
+            targetValue: obj.target_value !== null ? Number(obj.target_value) : undefined,
+            unit: obj.unit || undefined,
+            pointsPerUnit: obj.points_per_unit !== null ? Number(obj.points_per_unit) : undefined,
+          });
+        });
+      }
+      
       // Calculate actual progress for each challenge
       const userChallengesWithProgress = await Promise.all(
         (challengesData || []).map(async (challenge) => {
+          // Use objectives from table, fallback to JSON field
+          const objectives = objectivesByChallenge[challenge.id] || 
+                            (Array.isArray(challenge.objectives) ? challenge.objectives : []);
+          
           const progress = await getChallengeProgress(challenge.id, challenge.challenge_type);
           const totalScore = calculateTotalPoints(
-            challenge.objectives,
+            objectives,
             progress,
             challenge.capedPoints,
             challenge.challenge_type
@@ -452,7 +528,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
     debug.log("Prepared challenge data:", newChallengeWithValidIds);
 
-    const { error } = await supabase.from("challenges").insert([newChallengeWithValidIds]);
+    // Insert challenge (keep objectives in JSON for backward compatibility during migration)
+    const { data: insertedChallenge, error } = await supabase
+      .from("challenges")
+      .insert([newChallengeWithValidIds])
+      .select()
+      .single();
 
     if (error) {
       debug.error("Error creating challenge:", error);
@@ -461,13 +542,53 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      debug.log("Successfully created challenge");
-      toast({
-        title: "Success!",
-        description: "Challenge created successfully",
-      });
+      return;
     }
+
+    if (!insertedChallenge) {
+      debug.error("Challenge was created but no data returned");
+      toast({
+        title: "Error",
+        description: "Challenge created but failed to retrieve data",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Insert objectives into the objectives table
+    if (objectivesWithValidIds.length > 0) {
+      const objectivesToInsert = objectivesWithValidIds.map((obj, index) => ({
+        id: obj.id,
+        challenge_id: insertedChallenge.id,
+        title: obj.title,
+        description: obj.description || null,
+        target_value: obj.targetValue !== undefined ? obj.targetValue : null,
+        unit: obj.unit || null,
+        points_per_unit: obj.pointsPerUnit !== undefined ? obj.pointsPerUnit : null,
+        order: index,
+      }));
+
+      const { error: objectivesError } = await supabase
+        .from("objectives")
+        .insert(objectivesToInsert);
+
+      if (objectivesError) {
+        debug.error("Error inserting objectives:", objectivesError);
+        toast({
+          title: "Warning",
+          description: "Challenge created but some objectives may not have been saved correctly",
+          variant: "destructive",
+        });
+      } else {
+        debug.log("Successfully inserted objectives into table");
+      }
+    }
+
+    debug.log("Successfully created challenge");
+    toast({
+      title: "Success!",
+      description: "Challenge created successfully",
+    });
   };
 
   // Update an existing challenge
@@ -565,6 +686,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
     debug.log("Prepared update data:", updateData);
 
+    // Update challenge (keep objectives in JSON for backward compatibility during migration)
     const { error } = await supabase
       .from("challenges")
       .update(updateData)
@@ -577,13 +699,55 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      debug.log("Successfully updated challenge");
-      toast({
-        title: "Success!",
-        description: "Challenge updated successfully",
-      });
+      return;
     }
+
+    // Update objectives in the objectives table
+    // First, delete existing objectives for this challenge
+    const { error: deleteError } = await supabase
+      .from("objectives")
+      .delete()
+      .eq("challenge_id", challengeId);
+
+    if (deleteError) {
+      debug.error("Error deleting old objectives:", deleteError);
+      // Continue anyway - we'll try to insert new ones
+    }
+
+    // Insert updated objectives
+    if (objectivesWithValidIds.length > 0) {
+      const objectivesToInsert = objectivesWithValidIds.map((obj, index) => ({
+        id: obj.id,
+        challenge_id: challengeId,
+        title: obj.title,
+        description: obj.description || null,
+        target_value: obj.targetValue !== undefined ? obj.targetValue : null,
+        unit: obj.unit || null,
+        points_per_unit: obj.pointsPerUnit !== undefined ? obj.pointsPerUnit : null,
+        order: index,
+      }));
+
+      const { error: objectivesError } = await supabase
+        .from("objectives")
+        .insert(objectivesToInsert);
+
+      if (objectivesError) {
+        debug.error("Error inserting objectives:", objectivesError);
+        toast({
+          title: "Warning",
+          description: "Challenge updated but some objectives may not have been saved correctly",
+          variant: "destructive",
+        });
+      } else {
+        debug.log("Successfully updated objectives in table");
+      }
+    }
+
+    debug.log("Successfully updated challenge");
+    toast({
+      title: "Success!",
+      description: "Challenge updated successfully",
+    });
   };
 
   // Join a challenge

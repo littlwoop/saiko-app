@@ -94,7 +94,7 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
           );
           setUserAvatars(avatarMap);
           
-          // Also fetch challenge data to get objectives, total points, and challenge type
+          // Fetch challenge data and objectives
           const { data: challengeDataResult, error: challengeError } = await supabase
             .from('challenges')
             .select('objectives, totalPoints, challenge_type, startDate, endDate')
@@ -102,7 +102,34 @@ export default function LeaderboardTable({ challengeId, capedPoints = false, onU
             .single();
             
           if (!challengeError && challengeDataResult) {
-            setChallengeData(challengeDataResult);
+            // Try to fetch objectives from the objectives table
+            const { data: objectivesData } = await supabase
+              .from('objectives')
+              .select('*')
+              .eq('challenge_id', challengeId)
+              .order('order', { ascending: true });
+
+            let objectives: ChallengeObjective[] = [];
+            
+            if (objectivesData && objectivesData.length > 0) {
+              // Use objectives from table
+              objectives = objectivesData.map((obj) => ({
+                id: obj.id,
+                title: obj.title,
+                description: obj.description || '',
+                targetValue: obj.target_value !== null ? Number(obj.target_value) : 0,
+                unit: obj.unit || '',
+                pointsPerUnit: obj.points_per_unit !== null ? Number(obj.points_per_unit) : 0,
+              }));
+            } else if (challengeDataResult.objectives && Array.isArray(challengeDataResult.objectives)) {
+              // Fallback to JSON field
+              objectives = challengeDataResult.objectives;
+            }
+
+            setChallengeData({
+              ...challengeDataResult,
+              objectives,
+            });
           }
         }
 
