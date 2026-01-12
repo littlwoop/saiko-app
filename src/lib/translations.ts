@@ -97,7 +97,7 @@ export const translations = {
     capedPoints: "Punkte auf Zielwert begrenzen",
     noEndDate: "Kein Enddatum (laufende Herausforderung)",
     ongoing: "Laufend",
-    repeatingChallenge: "Individuelles Startdatum (Startet bei Beitritt)",
+    repeatingChallenge: "Individuell",
     repeatingChallengeDurationHint: "Jeder Nutzer erhält diese Anzahl von Tagen ab seinem Beitrittsdatum",
     challengeType: "Herausforderungstyp",
     selectChallengeType: "Herausforderungstyp auswählen",
@@ -121,6 +121,9 @@ export const translations = {
 
     // Challenge Page
     joinChallenge: "Herausforderung beitreten",
+    joinRepeatingChallenge: "Herausforderung heute starten?",
+    joinRepeatingChallengeDescription: "Diese Herausforderung startet heute. Möchtest du wirklich beitreten und die Herausforderung jetzt starten?",
+    startToday: "Ja, heute starten",
     leaveChallenge: "Herausforderung verlassen",
     leaveChallengeConfirmation: "Herausforderung wirklich verlassen?",
     leaveChallengeConfirmationDescription: "Möchtest du diese Herausforderung wirklich verlassen? Du verlierst deinen gesamten Fortschritt und kannst später wieder beitreten.",
@@ -615,7 +618,7 @@ export const translations = {
     capedPoints: "Cap points at target value",
     noEndDate: "No end date (ongoing challenge)",
     ongoing: "Ongoing",
-    repeatingChallenge: "Individual start date (starts when joining)",
+    repeatingChallenge: "Individual",
     repeatingChallengeDurationHint: "Each user will get this many days starting from when they join",
     challengeType: "Challenge Type",
     selectChallengeType: "Select challenge type",
@@ -639,6 +642,9 @@ export const translations = {
 
     // Challenge Page
     joinChallenge: "Join Challenge",
+    joinRepeatingChallenge: "Start Challenge Today?",
+    joinRepeatingChallengeDescription: "This challenge will start today. Are you sure you want to join and start the challenge now?",
+    startToday: "Yes, start today",
     leaveChallenge: "Leave Challenge",
     leaveChallengeConfirmation: "Leave Challenge?",
     leaveChallengeConfirmationDescription: "Are you sure you want to leave this challenge? You will lose all your progress and can rejoin later.",

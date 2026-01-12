@@ -154,6 +154,7 @@ export default function ChallengePage() {
   const [completionDaysCompleted, setCompletionDaysCompleted] = useState<Set<string>>(new Set());
   const [userStartDate, setUserStartDate] = useState<string | null>(null);
   const [userEndDate, setUserEndDate] = useState<string | null>(null);
+  const [showJoinConfirmDialog, setShowJoinConfirmDialog] = useState(false);
 
   const hasJoined = user && challenge?.participants && challenge.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
@@ -187,6 +188,19 @@ export default function ChallengePage() {
       });
       return;
     }
+    
+    // Check if it's a repeating challenge - if so, show confirmation dialog
+    if (challenge.isRepeating) {
+      setShowJoinConfirmDialog(true);
+      return;
+    }
+    
+    // For non-repeating challenges, join directly
+    await performJoinChallenge();
+  };
+
+  const performJoinChallenge = async () => {
+    if (!challenge) return;
     setJoiningChallenge(true);
     try {
       await joinChallenge(challenge.id);
@@ -202,6 +216,7 @@ export default function ChallengePage() {
       console.error("Error joining challenge:", error);
     } finally {
       setJoiningChallenge(false);
+      setShowJoinConfirmDialog(false);
     }
   };
 
@@ -1206,6 +1221,29 @@ export default function ChallengePage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {leavingChallenge ? t("leaving") : t("leaveChallenge")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation dialog for joining repeating challenges */}
+      <AlertDialog open={showJoinConfirmDialog} onOpenChange={setShowJoinConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("joinRepeatingChallenge") || "Start Challenge Today?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("joinRepeatingChallengeDescription") || "This challenge will start today. Are you sure you want to join and start the challenge now?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={joiningChallenge}>
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={performJoinChallenge}
+              disabled={joiningChallenge}
+            >
+              {joiningChallenge ? t("joining") : (t("startToday") || "Yes, start today")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

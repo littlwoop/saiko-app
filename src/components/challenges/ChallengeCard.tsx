@@ -15,6 +15,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { calculateTotalPoints } from "@/lib/points";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -39,6 +49,7 @@ export default function ChallengeCard({
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [displayValue, setDisplayValue] = useState({ current: 0, total: 0 });
+  const [showJoinConfirmDialog, setShowJoinConfirmDialog] = useState(false);
   const navigate = useNavigate();
 
   const locale = language === "de" ? de : enUS;
@@ -141,7 +152,22 @@ export default function ChallengeCard({
     getChallengeProgress,
   ]);
 
-  const handleJoinChallenge = async () => {
+  const handleJoinChallenge = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    // Check if it's a repeating challenge - if so, show confirmation dialog
+    const isRepeating = challenge.isRepeating || (challenge as any).is_repeating;
+    if (isRepeating) {
+      setShowJoinConfirmDialog(true);
+      return;
+    }
+    
+    // For non-repeating challenges, join directly
+    await performJoinChallenge();
+  };
+
+  const performJoinChallenge = async () => {
     setLoading(true);
     try {
       await joinChallenge(challenge.id);
@@ -150,6 +176,7 @@ export default function ChallengeCard({
       console.error("Error joining challenge:", error);
     } finally {
       setLoading(false);
+      setShowJoinConfirmDialog(false);
     }
   };
 
@@ -165,34 +192,44 @@ export default function ChallengeCard({
       onClick={handleCardClick}
     >
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start gap-2">
           <CardTitle className="line-clamp-1 text-lg">
             {challenge.title}
           </CardTitle>
-          {isActive && (
-            <Badge
-              variant="outline"
-              className="bg-green-50 text-green-700 border-green-200"
-            >
-              {t("active")}
-            </Badge>
-          )}
-          {isFuture && (
-            <Badge
-              variant="outline"
-              className="bg-blue-50 text-blue-700 border-blue-200"
-            >
-              {t("upcoming")}
-            </Badge>
-          )}
-          {isPast && (
-            <Badge
-              variant="outline"
-              className="bg-gray-50 text-gray-700 border-gray-200"
-            >
-              {t("completed")}
-            </Badge>
-          )}
+          <div className="flex flex-col gap-1 items-end flex-shrink-0">
+            {(challenge.isRepeating || (challenge as any).is_repeating) && (
+              <Badge
+                variant="outline"
+                className="bg-purple-50 text-purple-700 border-purple-200 text-xs"
+              >
+                {t("repeatingChallenge") || "Individual start date"}
+              </Badge>
+            )}
+            {isActive && (
+              <Badge
+                variant="outline"
+                className="bg-green-50 text-green-700 border-green-200 text-xs"
+              >
+                {t("active")}
+              </Badge>
+            )}
+            {isFuture && (
+              <Badge
+                variant="outline"
+                className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
+              >
+                {t("upcoming")}
+              </Badge>
+            )}
+            {isPast && (
+              <Badge
+                variant="outline"
+                className="bg-gray-50 text-gray-700 border-gray-200 text-xs"
+              >
+                {t("completed")}
+              </Badge>
+            )}
+          </div>
         </div>
         <CardDescription className="line-clamp-2">
           {challenge.description}
@@ -269,10 +306,7 @@ export default function ChallengeCard({
           !hasJoined && showJoin && (
             <Button
               className="w-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleJoinChallenge();
-              }}
+              onClick={handleJoinChallenge}
               disabled={loading || isPast}
             >
               <Trophy className="mr-2 h-4 w-4" />
@@ -285,6 +319,29 @@ export default function ChallengeCard({
           </Button>
         )}
       </CardFooter>
+
+      {/* Confirmation dialog for repeating challenges */}
+      <AlertDialog open={showJoinConfirmDialog} onOpenChange={setShowJoinConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("joinRepeatingChallenge") || "Start Challenge Today?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("joinRepeatingChallengeDescription") || "This challenge will start today. Are you sure you want to join and start the challenge now?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={performJoinChallenge}
+              disabled={loading}
+            >
+              {loading ? t("joining") : (t("startToday") || "Yes, start today")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
