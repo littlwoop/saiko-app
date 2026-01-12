@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, CheckCircle, Check, RotateCcw } from "lucide-react";
+import { Trophy, CheckCircle, Check, RotateCcw, Hand } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -1117,37 +1117,49 @@ export default function ObjectiveItem({
       year: "numeric"
     });
 
+    const isClickable = !readOnly && !hasEntryToday;
+    const isCompletedState = isCompleted || hasEntryToday;
+
     return (
       <>
         <Card 
-          className={`select-none mb-3 transition-colors ${
-            isCompleted || hasEntryToday ? "border-green-200 bg-green-50/50" : "border-gray-200 hover:border-gray-300"
-          } ${!readOnly && !hasEntryToday ? "cursor-pointer hover:shadow-md" : ""}`}
-          onClick={!readOnly && !hasEntryToday ? (e) => {
+          className={`select-none mb-3 transition-all duration-200 ${
+            isCompletedState 
+              ? "border-green-200 bg-green-50/50" 
+              : ""
+          } ${isClickable ? "cursor-pointer hover:shadow-md" : ""}`}
+          onClick={isClickable ? (e) => {
             if (e.detail === 1) {
               handleQuickAdd();
             }
           } : undefined}
         >
-          <CardHeader className="pb-2 pt-3 px-3 text-center">
-            <CardTitle className="text-sm font-medium leading-tight flex items-center justify-center gap-1.5">
-              {isCompleted && (
-                <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+          <CardHeader className="pb-3 pt-4 px-4 text-center">
+            <CardTitle className="text-sm font-medium leading-tight flex items-center justify-center gap-1.5 mb-1">
+              {isCompletedState && (
+                <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
               )}
-              <span className={isCompleted ? "line-through text-gray-600" : "text-gray-900"}>
+              <span className={isCompletedState ? "line-through text-gray-600" : "text-gray-900"}>
                 {objective.title}
               </span>
             </CardTitle>
-            <CardDescription className="text-xs text-gray-500 mt-0.5">
+            <CardDescription className="text-xs text-gray-500 mb-2">
               {formattedDate}
             </CardDescription>
-            {(isCompleted || hasEntryToday) && (
+            {isCompletedState ? (
               <div className="mt-1">
-                <div className="bg-green-100 text-green-800 text-xs font-medium px-1.5 py-0.5 rounded-full inline-block">
+                <div className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full inline-block">
                   {hasEntryToday ? t("completedToday") : t("complete")}
                 </div>
               </div>
-            )}
+            ) : isClickable ? (
+              <div className="mt-2 flex flex-col items-center gap-2">
+                <div className="bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-lg inline-flex items-center gap-2 shadow-md">
+                  <Hand className="h-4 w-4" />
+                  <span>{t("tapToComplete")}</span>
+                </div>
+              </div>
+            ) : null}
           </CardHeader>
         </Card>
         {!readOnly && (
