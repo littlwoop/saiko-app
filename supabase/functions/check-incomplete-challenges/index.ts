@@ -33,7 +33,7 @@ serve(async (req) => {
     // Get all active completion challenges
     const { data: challenges, error: challengesError } = await supabase
       .from('challenges')
-      .select('id, title, challenge_type, startDate, endDate, isRepeating, participants')
+      .select('id, title, challenge_type, startDate, endDate, is_repeating, participants')
       .eq('challenge_type', 'completion');
 
     if (challengesError) {
@@ -87,7 +87,7 @@ serve(async (req) => {
       for (const userId of challenge.participants) {
         // Determine effective start date
         const startKey = `${userId}-${challenge.id}`;
-        const effectiveStartDate = challenge.isRepeating && userStartDates.has(startKey)
+        const effectiveStartDate = challenge.is_repeating && userStartDates.has(startKey)
           ? new Date(userStartDates.get(startKey)!)
           : challenge.startDate
             ? new Date(challenge.startDate)
@@ -99,7 +99,7 @@ serve(async (req) => {
         const todayDate = new Date(today);
         if (effectiveStartDate > todayDate) continue; // Not started yet
 
-        const endDate = challenge.isRepeating
+        const endDate = challenge.is_repeating
           ? null
           : challenge.endDate
             ? new Date(challenge.endDate)
