@@ -384,7 +384,7 @@ export const translations = {
     completedToday: "Heute abgeschlossen",
     
     // Past Completion Dialog
-    addPastCompletion: "Vergangenen Tag hinzufügen",
+    addPastCompletion: "Vergangenen Tag abschließen",
     selectDateToAddCompletion: "Wähle ein Datum aus, um einen Abschluss für einen vergangenen Tag hinzuzufügen",
     selectedDate: "Ausgewählt",
     addCompletion: "Abschluss hinzufügen",
