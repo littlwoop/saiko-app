@@ -55,6 +55,7 @@ export default function CreateChallengeForm() {
   const [challenge_type, setChallengeType] = useState<ChallengeType>("standard");
   const [noEndDate, setNoEndDate] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
+  const [durationDays, setDurationDays] = useState<number>(30); // Duration in days for repeating challenges
 
   const [objectives, setObjectives] = useState([
     {
@@ -153,26 +154,36 @@ export default function CreateChallengeForm() {
       return;
     }
 
-    // For repeating challenges, dates are required (they define the duration template)
+    // For repeating challenges, duration is required
     // For non-repeating challenges, start date is required
-    if (!startDate) {
-      toast({
-        title: t("error"),
-        description: t("fillRequiredFields"),
-        variant: "destructive",
-      });
-      return;
-    }
+    if (isRepeating) {
+      if (!durationDays || durationDays <= 0) {
+        toast({
+          title: t("error"),
+          description: "Please enter a valid duration (in days)",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      if (!startDate) {
+        toast({
+          title: t("error"),
+          description: t("fillRequiredFields"),
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // For repeating challenges, end date is required to define duration
-    // For non-repeating challenges, end date is required unless noEndDate is checked
-    if (isRepeating ? !endDate : (!noEndDate && !endDate)) {
-      toast({
-        title: t("error"),
-        description: isRepeating ? "End date is required to define challenge duration" : t("fillRequiredFields"),
-        variant: "destructive",
-      });
-      return;
+      // For non-repeating challenges, end date is required unless noEndDate is checked
+      if (!noEndDate && !endDate) {
+        toast({
+          title: t("error"),
+          description: t("fillRequiredFields"),
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Validate full weeks for weekly challenges (only if not repeating)
@@ -238,13 +249,28 @@ export default function CreateChallengeForm() {
       };
     });
 
+    // For repeating challenges, calculate startDate and endDate from duration
+    // Use a reference date (2024-01-01) for startDate, and add duration for endDate
+    // This allows us to store the duration while keeping the date format
+    let finalStartDate: string | undefined;
+    let finalEndDate: string | undefined;
+
+    if (isRepeating) {
+      // Use a fixed reference date (2024-01-01) as startDate
+      const referenceStartDate = new Date(2024, 0, 1); // January 1, 2024
+      const calculatedEndDate = addDays(referenceStartDate, durationDays);
+      finalStartDate = formatDateForStorage(referenceStartDate);
+      finalEndDate = formatDateForStorage(calculatedEndDate);
+    } else {
+      finalStartDate = startDate ? formatDateForStorage(startDate) : undefined;
+      finalEndDate = noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined);
+    }
+
     createChallenge({
       title,
       description,
-      startDate: startDate ? formatDateForStorage(startDate) : undefined,
-      endDate: isRepeating 
-        ? (endDate ? formatDateForStorage(endDate) : undefined)
-        : (noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined)),
+      startDate: finalStartDate,
+      endDate: finalEndDate,
       challenge_type: databaseChallengeType as ChallengeType,
       capedPoints,
       objectives: objectivesWithValidIds,
@@ -288,15 +314,13 @@ export default function CreateChallengeForm() {
               onCheckedChange={(checked) => {
                 setIsRepeating(checked as boolean);
                 if (checked) {
-                  // For repeating challenges, initialize dates if not set (used as duration template)
-                  if (!startDate) {
-                    setStartDate(new Date());
-                  }
-                  if (!endDate) {
-                    setEndDate(addDays(new Date(), 30));
-                  }
                   setNoEndDate(false);
+                  // Initialize duration to 30 days if not set
+                  if (!durationDays || durationDays <= 0) {
+                    setDurationDays(30);
+                  }
                 } else {
+                  // When unchecking, initialize dates if not set
                   if (!startDate) {
                     setStartDate(new Date());
                   }
@@ -310,14 +334,28 @@ export default function CreateChallengeForm() {
               {t("repeatingChallenge") || "Repeating Challenge (users start when they join)"}
             </Label>
           </div>
-          {isRepeating && (
+          {isRepeating ? (
+            <div className="space-y-2">
+              <Label htmlFor="durationDays">{t("challengeDuration") || "Challenge Duration (days)"}</Label>
+              <Input
+                id="durationDays"
+                type="number"
+                min="1"
+                value={durationDays}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10);
+                  if (!isNaN(value) && value > 0) {
+                    setDurationDays(value);
+                  }
+                }}
+                placeholder="30"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("repeatingChallengeDurationHint") || "Each user will get this many days starting from when they join"}
+              </p>
+            </div>
+          ) : (
             <>
-              <Label>{t("challengeDuration") || "Challenge Duration (template for each user)"}</Label>
-            </>
-          )}
-          {(
-            <>
-              <Label>{t("challengeDuration")}</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDate" className="text-sm">{t("startDate") || "Start Date"}</Label>
