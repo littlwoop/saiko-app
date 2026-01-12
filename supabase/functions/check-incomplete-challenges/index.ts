@@ -53,13 +53,17 @@ serve(async (req) => {
     // Get all user challenge starts for repeating challenges
     const { data: userChallengeStarts } = await supabase
       .from('user_challenge_starts')
-      .select('user_id, challenge_id, start_date');
+      .select('user_id, challenge_id, start_date, end_date');
 
     const userStartDates = new Map<string, string>();
+    const userEndDates = new Map<string, string>();
     if (userChallengeStarts) {
       userChallengeStarts.forEach((start) => {
         const key = `${start.user_id}-${start.challenge_id}`;
         userStartDates.set(key, start.start_date);
+        if (start.end_date) {
+          userEndDates.set(key, start.end_date);
+        }
       });
     }
 
@@ -99,8 +103,12 @@ serve(async (req) => {
         const todayDate = new Date(today);
         if (effectiveStartDate > todayDate) continue; // Not started yet
 
+        // For repeating challenges, use user's end date if available
+        // For non-repeating challenges, use challenge's end date
         const endDate = challenge.is_repeating
-          ? null
+          ? (userEndDates.has(startKey)
+              ? new Date(userEndDates.get(startKey)!)
+              : null)
           : challenge.endDate
             ? new Date(challenge.endDate)
             : null;

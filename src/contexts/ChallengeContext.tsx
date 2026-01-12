@@ -47,6 +47,7 @@ interface ChallengeContextType {
   ) => Promise<Array<{ id: string; name: string; avatar?: string }>>;
   getCreatorAvatar: (userId: string) => Promise<string | undefined>;
   getUserChallengeStartDate: (challengeId: number, userId: string) => Promise<string | null>;
+  getUserChallengeEndDate: (challengeId: number, userId: string) => Promise<string | null>;
   getUserActivityDates: (startDate: string, endDate: string) => Promise<string[]>;
   completeDailyChallenge: (dailyChallengeId: string, valueAchieved?: number, notes?: string) => Promise<void>;
 }
@@ -750,7 +751,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data: challengeData, error: fetchError } = await supabase
         .from("challenges")
-        .select("participants, endDate, is_repeating")
+        .select("participants, startDate, endDate, is_repeating")
         .eq("id", challengeId)
         .single();
 
@@ -798,14 +799,45 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         throw updateError;
       }
 
-      // For repeating challenges, record the start date for this user
+      // For repeating challenges, record the start date and calculate end date for this user
       if (isRepeating) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of day
+        
+        let endDate: Date | null = null;
+        
+        // Calculate duration from challenge's startDate and endDate
+        if (challengeData?.startDate && challengeData?.endDate) {
+          const challengeStartDate = new Date(challengeData.startDate);
+          const challengeEndDate = new Date(challengeData.endDate);
+          
+          // Normalize to start of day to avoid timezone issues
+          challengeStartDate.setHours(0, 0, 0, 0);
+          challengeEndDate.setHours(23, 59, 59, 999); // End of day
+          
+          // Calculate duration in milliseconds
+          const durationMs = challengeEndDate.getTime() - challengeStartDate.getTime();
+          
+          // Add duration to today to get end date
+          endDate = new Date(today.getTime() + durationMs);
+          endDate.setHours(23, 59, 59, 999); // Set to end of day
+        } else {
+          // Fallback: if challenge doesn't have dates, use default 30 days
+          endDate = new Date(today);
+          endDate.setDate(endDate.getDate() + 30);
+          endDate.setHours(23, 59, 59, 999);
+        }
+        
+        // Use upsert to handle case where user has already joined before
         const { error: startDateError } = await supabase
           .from("user_challenge_starts")
-          .insert({
+          .upsert({
             user_id: user.id,
             challenge_id: challengeId,
-            start_date: new Date().toISOString(),
+            start_date: today.toISOString(),
+            end_date: endDate.toISOString(),
+          }, {
+            onConflict: 'user_id,challenge_id'
           });
 
         if (startDateError) {
@@ -1284,6 +1316,29 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Get user's end date for a repeating challenge
+  const getUserChallengeEndDate = async (
+    challengeId: number,
+    userId: string,
+  ): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("user_challenge_starts")
+        .select("end_date")
+        .eq("challenge_id", challengeId)
+        .eq("user_id", userId)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return data.end_date;
+    } catch (error) {
+      return null;
+    }
+  };
+
   // Complete a daily challenge
   const completeDailyChallenge = async (
     dailyChallengeId: string, 
@@ -1363,6 +1418,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     createOrUpdateUserProfile,
     getCreatorAvatar,
     getUserChallengeStartDate,
+    getUserChallengeEndDate,
     getUserActivityDates,
     completeDailyChallenge,
   };

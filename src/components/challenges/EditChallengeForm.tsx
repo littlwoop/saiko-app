@@ -210,25 +210,26 @@ export default function EditChallengeForm() {
       return;
     }
 
-    // For repeating challenges, dates are not required
-    if (!isRepeating) {
-      if (!startDate) {
-        toast({
-          title: t("error"),
-          description: t("fillRequiredFields"),
-          variant: "destructive",
-        });
-        return;
-      }
+    // For repeating challenges, dates are required (they define the duration template)
+    // For non-repeating challenges, start date is required
+    if (!startDate) {
+      toast({
+        title: t("error"),
+        description: t("fillRequiredFields"),
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (!noEndDate && !endDate) {
-        toast({
-          title: t("error"),
-          description: t("fillRequiredFields"),
-          variant: "destructive",
-        });
-        return;
-      }
+    // For repeating challenges, end date is required to define duration
+    // For non-repeating challenges, end date is required unless noEndDate is checked
+    if (isRepeating ? !endDate : (!noEndDate && !endDate)) {
+      toast({
+        title: t("error"),
+        description: isRepeating ? "End date is required to define challenge duration" : t("fillRequiredFields"),
+        variant: "destructive",
+      });
+      return;
     }
 
     // Validate full weeks for weekly challenges (only if not repeating)
@@ -294,8 +295,10 @@ export default function EditChallengeForm() {
     await updateChallenge(parseInt(id), {
       title,
       description,
-      startDate: isRepeating ? undefined : (startDate ? formatDateForStorage(startDate) : undefined),
-      endDate: isRepeating ? undefined : (noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined)),
+      startDate: startDate ? formatDateForStorage(startDate) : undefined,
+      endDate: isRepeating 
+        ? (endDate ? formatDateForStorage(endDate) : undefined)
+        : (noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined)),
       challenge_type: databaseChallengeType as ChallengeType,
       capedPoints,
       objectives: objectivesWithValidIds,
@@ -351,12 +354,21 @@ export default function EditChallengeForm() {
               onCheckedChange={(checked) => {
                 setIsRepeating(checked as boolean);
                 if (checked) {
-                  setStartDate(undefined);
-                  setEndDate(undefined);
+                  // For repeating challenges, initialize dates if not set (used as duration template)
+                  if (!startDate) {
+                    setStartDate(new Date());
+                  }
+                  if (!endDate) {
+                    setEndDate(addDays(new Date(), 30));
+                  }
                   setNoEndDate(false);
                 } else {
-                  setStartDate(new Date());
-                  setEndDate(addDays(new Date(), 30));
+                  if (!startDate) {
+                    setStartDate(new Date());
+                  }
+                  if (!endDate) {
+                    setEndDate(addDays(new Date(), 30));
+                  }
                 }
               }}
             />
@@ -364,7 +376,12 @@ export default function EditChallengeForm() {
               {t("repeatingChallenge") || "Repeating Challenge (users start when they join)"}
             </Label>
           </div>
-          {!isRepeating && (
+          {isRepeating && (
+            <>
+              <Label>{t("challengeDuration") || "Challenge Duration (template for each user)"}</Label>
+            </>
+          )}
+          {(
             <>
               <Label>{t("challengeDuration")}</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

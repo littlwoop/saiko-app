@@ -91,6 +91,7 @@ export default function ChallengePage() {
     getParticipants,
     getCreatorAvatar,
     getUserChallengeStartDate,
+    getUserChallengeEndDate,
   } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -152,6 +153,7 @@ export default function ChallengePage() {
   const [joiningChallenge, setJoiningChallenge] = useState(false);
   const [completionDaysCompleted, setCompletionDaysCompleted] = useState<Set<string>>(new Set());
   const [userStartDate, setUserStartDate] = useState<string | null>(null);
+  const [userEndDate, setUserEndDate] = useState<string | null>(null);
 
   const hasJoined = user && challenge?.participants && challenge.participants.includes(user.id);
   const isCreator = user && challenge?.createdById === user.id;
@@ -159,14 +161,21 @@ export default function ChallengePage() {
   // Check if challenge is completed (not applicable for repeating challenges)
   const isCompleted = challenge?.isRepeating ? false : (challenge?.endDate ? new Date() > new Date(challenge.endDate) : false);
 
-  // Load user start date for repeating challenges
+  // Load user start date and end date for repeating challenges
   useEffect(() => {
     if (challenge?.isRepeating && user && hasJoined) {
-      getUserChallengeStartDate(challenge.id, user.id).then(setUserStartDate);
+      Promise.all([
+        getUserChallengeStartDate(challenge.id, user.id),
+        getUserChallengeEndDate(challenge.id, user.id)
+      ]).then(([startDate, endDate]) => {
+        setUserStartDate(startDate);
+        setUserEndDate(endDate);
+      });
     } else {
       setUserStartDate(null);
+      setUserEndDate(null);
     }
-  }, [challenge?.isRepeating, challenge?.id, user, hasJoined, getUserChallengeStartDate]);
+  }, [challenge?.isRepeating, challenge?.id, user, hasJoined, getUserChallengeStartDate, getUserChallengeEndDate]);
 
   const handleJoinChallenge = async () => {
     if (!challenge) return;
@@ -265,12 +274,16 @@ export default function ChallengePage() {
     try {
       // Get all entries for all objectives in this challenge
       // Normalize dates to local timezone first
-      // For repeating challenges, use user's start date
+      // For repeating challenges, use user's start date and end date
       const effectiveStartDate = challenge.isRepeating && userStartDate
         ? normalizeToLocalDate(new Date(userStartDate))
         : challenge.startDate ? normalizeToLocalDate(challenge.startDate) : null;
       const startDate = effectiveStartDate || normalizeToLocalDate(new Date()); // Fallback to today if no start date
-      const endDate = challenge.isRepeating ? null : (challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null);
+      const endDate = challenge.isRepeating && userEndDate
+        ? normalizeToLocalDate(new Date(userEndDate))
+        : challenge.isRepeating 
+          ? null 
+          : (challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null);
       
       // Get UTC date range for database query
       const { startUTC, endUTC } = endDate 
@@ -426,13 +439,19 @@ export default function ChallengePage() {
           : challenge.startDate ? new Date(challenge.startDate) : new Date();
         const startDateRaw = effectiveStartDate;
         const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
-        const endDateRaw = challenge.isRepeating ? null : (challenge.endDate ? new Date(challenge.endDate) : null);
+        const endDateRaw = challenge.isRepeating && userEndDate
+          ? new Date(userEndDate)
+          : challenge.isRepeating 
+            ? null 
+            : (challenge.endDate ? new Date(challenge.endDate) : null);
         const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
         // Calculate total days inclusive: floor the difference and add 1 for inclusive count
-        // For repeating challenges, use days since start
-        const totalDays = challenge.isRepeating 
-          ? Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-          : (endDate ? Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365);
+        // For repeating challenges, use user's end date if available, otherwise use days since start
+        const totalDays = challenge.isRepeating && endDate
+          ? Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+          : challenge.isRepeating
+            ? Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+            : (endDate ? Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 365);
         
         // Calculate total days completed across all objectives
         const totalDaysCompleted = progressToUse.reduce((sum, progressItem) => {
@@ -448,7 +467,11 @@ export default function ChallengePage() {
           ? new Date(userStartDate)
           : challenge.startDate ? new Date(challenge.startDate) : new Date();
         const startDate = effectiveStartDate;
-        const endDate = challenge.isRepeating ? null : (challenge.endDate ? new Date(challenge.endDate) : null);
+        const endDate = challenge.isRepeating && userEndDate
+          ? new Date(userEndDate)
+          : challenge.isRepeating 
+            ? null 
+            : (challenge.endDate ? new Date(challenge.endDate) : null);
         // For repeating challenges, calculate weeks since start
         const totalWeeks = challenge.isRepeating
           ? Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1)
@@ -661,11 +684,15 @@ export default function ChallengePage() {
   }
 
   // Normalize dates to local timezone start of day to avoid timezone issues
-  // For repeating challenges, use user's start date if available
+  // For repeating challenges, use user's start date and end date if available
   const displayStartDate = challenge.isRepeating && userStartDate
     ? normalizeToLocalDate(new Date(userStartDate))
     : challenge.startDate ? normalizeToLocalDate(challenge.startDate) : null;
-  const endDate = challenge.isRepeating ? null : (challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null);
+  const endDate = challenge.isRepeating && userEndDate 
+    ? normalizeToLocalDate(new Date(userEndDate))
+    : challenge.isRepeating 
+      ? null 
+      : (challenge.endDate ? normalizeToLocalDate(challenge.endDate) : null);
   const today = normalizeToLocalDate(new Date());
 
   const isActive = displayStartDate ? (today >= displayStartDate && (!endDate || today <= endDate)) : false;
@@ -774,7 +801,12 @@ export default function ChallengePage() {
                   {challenge.isRepeating ? (
                     hasJoined && userStartDate ? (
                       <>
-                        {t("started") || "Started"}: {format(new Date(userStartDate), t("dateFormatShort"), { locale })} - {t("ongoing")}
+                        {format(new Date(userStartDate), t("dateFormatShort"), { locale })}
+                        {userEndDate ? (
+                          <> - {format(new Date(userEndDate), t("dateFormatLong"), { locale })}</>
+                        ) : (
+                          <> - {t("ongoing")}</>
+                        )}
                       </>
                     ) : (
                       t("repeatingChallengeAvailable") || "Available - Start when you join"
@@ -1048,7 +1080,7 @@ export default function ChallengePage() {
                       }
                       onProgressUpdate={refreshProgress}
                       challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
-                      challengeEndDate={challenge.isRepeating ? undefined : challenge.endDate}
+                      challengeEndDate={challenge.isRepeating && userEndDate ? userEndDate : (challenge.isRepeating ? undefined : challenge.endDate)}
                       selectedUserId={selectedUserId}
                     />
                   ))}
@@ -1076,7 +1108,7 @@ export default function ChallengePage() {
                       }
                       onProgressUpdate={refreshProgress}
                       challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
-                      challengeEndDate={challenge.isRepeating ? undefined : challenge.endDate}
+                      challengeEndDate={challenge.isRepeating && userEndDate ? userEndDate : (challenge.isRepeating ? undefined : challenge.endDate)}
                       selectedUserId={selectedUserId}
                     />
                   ))}

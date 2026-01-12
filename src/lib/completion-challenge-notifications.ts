@@ -37,16 +37,20 @@ export async function checkIncompleteCompletionChallenges(
       return challenge.participants.includes(userId);
     });
 
-    // Get user's start date for repeating challenges
+    // Get user's start date and end date for repeating challenges
     const { data: userChallengeStarts } = await supabase
       .from('user_challenge_starts')
-      .select('challenge_id, start_date')
+      .select('challenge_id, start_date, end_date')
       .eq('user_id', userId);
 
     const userStartDates = new Map<number, string>();
+    const userEndDates = new Map<number, string>();
     if (userChallengeStarts) {
       userChallengeStarts.forEach((start) => {
         userStartDates.set(start.challenge_id, start.start_date);
+        if (start.end_date) {
+          userEndDates.set(start.challenge_id, start.end_date);
+        }
       });
     }
 
@@ -63,10 +67,12 @@ export async function checkIncompleteCompletionChallenges(
 
       if (!effectiveStartDate) continue;
 
-      // For repeating challenges, check only today
-      // For non-repeating challenges, check all days from start to today (or end date if earlier)
+      // For repeating challenges, use user's end date if available
+      // For non-repeating challenges, use challenge's end date
       const endDate = challenge.is_repeating 
-        ? null // Repeating challenges have no end date
+        ? (userEndDates.has(challenge.id) 
+            ? normalizeToLocalDate(new Date(userEndDates.get(challenge.id)!))
+            : null)
         : challenge.endDate 
           ? normalizeToLocalDate(new Date(challenge.endDate))
           : null;
