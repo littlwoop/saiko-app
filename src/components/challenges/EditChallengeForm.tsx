@@ -56,6 +56,7 @@ export default function EditChallengeForm() {
   const [noEndDate, setNoEndDate] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
   const [durationDays, setDurationDays] = useState<number>(30); // Duration in days for repeating challenges
+  const [isCollaborative, setIsCollaborative] = useState(false);
 
   const [objectives, setObjectives] = useState([
     {
@@ -116,6 +117,7 @@ export default function EditChallengeForm() {
           setCapedPoints(challenge.capedPoints || false);
           setChallengeType(challenge.challenge_type);
           setIsRepeating(challenge.isRepeating || false);
+          setIsCollaborative(challenge.isCollaborative || false);
           
           // Set dates or duration
           if (challenge.isRepeating) {
@@ -339,6 +341,7 @@ export default function EditChallengeForm() {
       capedPoints,
       objectives: objectivesWithValidIds,
       isRepeating,
+      isCollaborative,
     });
 
     navigate(`/challenges/${id}`);
@@ -387,10 +390,12 @@ export default function EditChallengeForm() {
             <Checkbox
               id="isRepeating"
               checked={isRepeating}
+              disabled={isCollaborative}
               onCheckedChange={(checked) => {
                 setIsRepeating(checked as boolean);
                 if (checked) {
                   setNoEndDate(false);
+                  setIsCollaborative(false);
                   // Initialize duration to 30 days if not set
                   if (!durationDays || durationDays <= 0) {
                     setDurationDays(30);
@@ -406,8 +411,24 @@ export default function EditChallengeForm() {
                 }
               }}
             />
-            <Label htmlFor="isRepeating" className="text-sm font-normal cursor-pointer">
+            <Label htmlFor="isRepeating" className={`text-sm font-normal ${isCollaborative ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
               {t("repeatingChallenge") || "Repeating Challenge (users start when they join)"}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isCollaborative"
+              checked={isCollaborative}
+              disabled={isRepeating}
+              onCheckedChange={(checked) => {
+                setIsCollaborative(checked === true);
+                if (checked) {
+                  setIsRepeating(false);
+                }
+              }}
+            />
+            <Label htmlFor="isCollaborative" className={`text-sm font-normal ${isRepeating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+              {t("collaborativeChallenge") || "Collaborative Challenge (all participants contribute to shared objectives)"}
             </Label>
           </div>
           {isRepeating ? (

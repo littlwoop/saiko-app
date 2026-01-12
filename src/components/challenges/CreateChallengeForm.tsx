@@ -56,6 +56,7 @@ export default function CreateChallengeForm() {
   const [noEndDate, setNoEndDate] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
   const [durationDays, setDurationDays] = useState<number>(30); // Duration in days for repeating challenges
+  const [isCollaborative, setIsCollaborative] = useState(false);
 
   const [objectives, setObjectives] = useState([
     {
@@ -275,6 +276,7 @@ export default function CreateChallengeForm() {
       capedPoints,
       objectives: objectivesWithValidIds,
       isRepeating,
+      isCollaborative,
     });
 
     navigate("/challenges");
@@ -311,6 +313,7 @@ export default function CreateChallengeForm() {
             <Checkbox
               id="isRepeating"
               checked={isRepeating}
+              disabled={isCollaborative}
               onCheckedChange={(checked) => {
                 setIsRepeating(checked as boolean);
                 if (checked) {
@@ -330,8 +333,24 @@ export default function CreateChallengeForm() {
                 }
               }}
             />
-            <Label htmlFor="isRepeating" className="text-sm font-normal cursor-pointer">
+            <Label htmlFor="isRepeating" className={`text-sm font-normal ${isCollaborative ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
               {t("repeatingChallenge") || "Repeating Challenge (users start when they join)"}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isCollaborative"
+              checked={isCollaborative}
+              disabled={isRepeating}
+              onCheckedChange={(checked) => {
+                setIsCollaborative(checked === true);
+                if (checked) {
+                  setIsRepeating(false);
+                }
+              }}
+            />
+            <Label htmlFor="isCollaborative" className={`text-sm font-normal ${isRepeating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+              {t("collaborativeChallenge") || "Collaborative Challenge (all participants contribute to shared objectives)"}
             </Label>
           </div>
           {isRepeating ? (

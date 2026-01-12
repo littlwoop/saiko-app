@@ -33,6 +33,7 @@ export interface Challenge {
   capedPoints?: boolean;
   strava?: boolean; // Flag to indicate if Strava integration is enabled
   isRepeating?: boolean; // Flag to indicate if challenge is repeating (no start/end dates)
+  isCollaborative?: boolean; // Flag to indicate if challenge is collaborative (shared objectives)
 }
 
 export interface UserProgress {

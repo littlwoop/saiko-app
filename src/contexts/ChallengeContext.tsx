@@ -133,6 +133,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         objectives,
         // Supabase automatically maps snake_case to camelCase, so check both
         isRepeating: challengeData.is_repeating !== undefined ? challengeData.is_repeating : (challengeData.isRepeating || false),
+        isCollaborative: challengeData.is_collaborative !== undefined ? challengeData.is_collaborative : (challengeData.isCollaborative || false),
         // Map database field names to TypeScript interface (check both formats for compatibility)
         startDate: challengeData.start_date || challengeData.startDate || "",
         endDate: challengeData.end_date || challengeData.endDate || undefined,
@@ -238,11 +239,22 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return [];
 
     try {
-      const { data: entriesData, error: entriesError } = await supabase
+      // Get challenge to check if it's collaborative
+      const challenge = await getChallenge(challengeId);
+      const isCollaborative = challenge?.isCollaborative || false;
+
+      // For collaborative challenges, fetch entries from all participants
+      // For non-collaborative, only fetch current user's entries
+      let query = supabase
         .from("entries")
         .select("*")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
+        .eq("challenge_id", challengeId);
+      
+      if (!isCollaborative) {
+        query = query.eq("user_id", user.id);
+      }
+      
+      const { data: entriesData, error: entriesError } = await query
         .order("created_at", { ascending: false })
         .returns<Entry[]>();
 
@@ -256,11 +268,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (entriesData) {
+        // Get challenge data to access objectives and their targetValues
+        const challengeData = challenge || await getChallenge(challengeId);
+        if (!challengeData) return [];
+
         // For weekly challenges, we need to count only completed weeks (where target is met)
         if (challengeType === "weekly") {
-          // Get challenge data to access objectives and their targetValues
-          const challenge = await getChallenge(challengeId);
-          if (!challenge) return [];
+          // For collaborative challenges, use a special userId to indicate collective progress
+          const collectiveUserId = isCollaborative ? "collective" : user.id;
 
           // Group entries by objective and week, then count only completed weeks
           const progressMap: Record<string, UserProgress> = {};
@@ -270,7 +285,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
             const key = `${entry.challenge_id}-${entry.objective_id}`;
             if (!progressMap[key]) {
               progressMap[key] = {
-                userId: entry.user_id,
+                userId: collectiveUserId,
                 challengeId: entry.challenge_id,
                 objectiveId: entry.objective_id,
                 currentValue: 0,
@@ -303,7 +318,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
             // Initialize progress entry if it doesn't exist
             if (!progressMap[key]) {
               progressMap[key] = {
-                userId: user.id,
+                userId: collectiveUserId,
                 challengeId: challengeId,
                 objectiveId: objective.id,
                 currentValue: 0,
@@ -327,18 +342,16 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
         // For completion challenges, count unique days per objective
         if (challengeType === "completion") {
-          // Get challenge data to access objectives
-          const challenge = await getChallenge(challengeId);
-          if (!challenge) return [];
-
           const progressMap: Record<string, UserProgress> = {};
           const dayProgressMap: Record<string, Set<string>> = {}; // objectiveId -> Set of day strings
+          // For collaborative challenges, use a special userId to indicate collective progress
+          const collectiveUserId = isCollaborative ? "collective" : user.id;
 
           entriesData.forEach((entry) => {
             const key = `${entry.challenge_id}-${entry.objective_id}`;
             if (!progressMap[key]) {
               progressMap[key] = {
-                userId: entry.user_id,
+                userId: collectiveUserId,
                 challengeId: entry.challenge_id,
                 objectiveId: entry.objective_id,
                 currentValue: 0,
@@ -358,11 +371,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           });
 
           // Initialize progress for all objectives and count unique days
-          challenge.objectives.forEach((objective) => {
+          challengeData.objectives.forEach((objective) => {
             const key = `${challengeId}-${objective.id}`;
             if (!progressMap[key]) {
               progressMap[key] = {
-                userId: user.id,
+                userId: collectiveUserId,
                 challengeId: challengeId,
                 objectiveId: objective.id,
                 currentValue: 0,
@@ -494,6 +507,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       objectives: challengeData.objectives,
       challenge_type: challengeData.challenge_type || "standard",
       isRepeating: challengeData.isRepeating || false,
+      isCollaborative: challengeData.isCollaborative || false,
       // For repeating challenges, ensure startDate and endDate are null
       startDate: challengeData.isRepeating ? undefined : challengeData.startDate,
       endDate: challengeData.isRepeating ? undefined : challengeData.endDate,
@@ -677,6 +691,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       objectives: objectivesWithValidIds,
       totalPoints,
       isRepeating: challengeData.isRepeating || false,
+      isCollaborative: challengeData.isCollaborative || false,
     };
 
     // Update challenge (keep objectives in JSON for backward compatibility during migration)
