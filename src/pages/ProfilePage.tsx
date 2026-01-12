@@ -33,6 +33,7 @@ import {
 import { usePWAInstall } from "@/contexts/PWAInstallContext";
 import { EnableNotificationsButton } from "@/components/notifications/EnableNotificationsButton";
 import { TestNotificationButton } from "@/components/notifications/TestNotificationButton";
+import { ScheduledNotificationsManager } from "@/components/notifications/ScheduledNotificationsManager";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -355,6 +356,9 @@ export default function ProfilePage() {
                         <p className="text-sm text-muted-foreground mt-2">
                           {t("enableNotificationsDescription") || "Enable push notifications to receive reminders about incomplete challenges"}
                         </p>
+                      </div>
+                      <div className="mb-4">
+                        <ScheduledNotificationsManager />
                       </div>
                       <form className="space-y-4">
                         <div className="space-y-2">

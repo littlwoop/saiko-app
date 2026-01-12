@@ -16,6 +16,158 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+  
+  // Handle scheduled notification updates
+  if (event.data && event.data.type === 'SCHEDULE_UPDATE') {
+    checkAndScheduleNotifications();
+  }
+  
+  // Handle new notification schedule
+  if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
+    scheduleNotificationInWorker(event.data.notification);
+  }
+  
+  // Handle scheduled notifications list from client
+  if (event.data && event.data.type === 'SCHEDULED_NOTIFICATIONS_LIST') {
+    const notifications = event.data.notifications || [];
+    
+    // Clear all existing timers
+    scheduledTimers.forEach(timer => clearTimeout(timer));
+    scheduledTimers.clear();
+    
+    // Schedule all enabled notifications
+    notifications
+      .filter(n => n.enabled)
+      .forEach(notification => {
+        scheduleNotificationInWorker(notification);
+      });
+  }
+});
+
+// Store for scheduled notification timers
+const scheduledTimers = new Map();
+
+/**
+ * Schedule a notification in the service worker
+ */
+function scheduleNotificationInWorker(notification) {
+  const now = Date.now();
+  const scheduledTime = notification.scheduledTime;
+  
+  // Clear existing timer for this notification if any
+  if (scheduledTimers.has(notification.id)) {
+    clearTimeout(scheduledTimers.get(notification.id));
+  }
+  
+  // If the time has passed and it's not repeating, don't schedule
+  if (scheduledTime <= now && !notification.repeat) {
+    return;
+  }
+  
+  // Calculate delay
+  let delay = scheduledTime - now;
+  
+  // If time has passed and it's repeating, calculate next occurrence
+  if (scheduledTime <= now && notification.repeat) {
+    const nextTime = calculateNextTime(scheduledTime, notification.repeat);
+    delay = nextTime - now;
+  }
+  
+  // Don't schedule if delay is negative or too large (max 24 hours for safety)
+  if (delay < 0 || delay > 24 * 60 * 60 * 1000) {
+    return;
+  }
+  
+  console.log(`[SW] Scheduling notification "${notification.title}" in ${Math.round(delay / 1000 / 60)} minutes`);
+  
+  const timerId = setTimeout(() => {
+    showScheduledNotification(notification);
+    scheduledTimers.delete(notification.id);
+    
+    // If repeating, schedule the next occurrence
+    if (notification.repeat) {
+      const nextNotification = {
+        ...notification,
+        scheduledTime: calculateNextTime(notification.scheduledTime, notification.repeat),
+      };
+      scheduleNotificationInWorker(nextNotification);
+    }
+  }, delay);
+  
+  scheduledTimers.set(notification.id, timerId);
+}
+
+/**
+ * Calculate next scheduled time based on repeat
+ */
+function calculateNextTime(originalTime, repeat) {
+  const scheduled = new Date(originalTime);
+  const now = new Date();
+  const next = new Date(scheduled);
+  
+  if (repeat === 'daily') {
+    next.setDate(next.getDate() + 1);
+    while (next.getTime() <= now.getTime()) {
+      next.setDate(next.getDate() + 1);
+    }
+  } else if (repeat === 'weekly') {
+    next.setDate(next.getDate() + 7);
+    while (next.getTime() <= now.getTime()) {
+      next.setDate(next.getDate() + 7);
+    }
+  }
+  
+  return next.getTime();
+}
+
+/**
+ * Show a scheduled notification
+ */
+async function showScheduledNotification(notification) {
+  console.log('[SW] Showing scheduled notification:', notification.title);
+  
+  try {
+    await self.registration.showNotification(notification.title, {
+      body: notification.body,
+      icon: notification.icon || '/icon-192.png',
+      badge: notification.badge || '/icon-192.png',
+      tag: notification.tag || 'scheduled-notification',
+      requireInteraction: false,
+      vibrate: [200, 100, 200],
+      timestamp: Date.now(),
+      data: {
+        type: 'scheduled',
+        id: notification.id,
+      },
+    });
+  } catch (error) {
+    console.error('[SW] Error showing scheduled notification:', error);
+  }
+}
+
+/**
+ * Check and schedule all notifications from IndexedDB
+ */
+async function checkAndScheduleNotifications() {
+  try {
+    // Request notifications from client
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({ type: 'GET_SCHEDULED_NOTIFICATIONS' });
+    });
+  } catch (error) {
+    console.error('[SW] Error checking scheduled notifications:', error);
+  }
+}
+
+// On service worker activation, check for scheduled notifications
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      checkAndScheduleNotifications()
+    ])
+  );
 });
 
 // Push event listener - handle push notifications
