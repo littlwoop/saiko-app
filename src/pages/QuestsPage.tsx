@@ -508,40 +508,44 @@ export default function QuestsPage() {
                             </p>
                           </div>
                         </div>
-                        {/* Completion image if available */}
-                        {activeQuestData.completionImageUrl && (
-                          <div className="mb-4 rounded-lg overflow-hidden border border-border/50 shadow-sm max-w-md mx-auto">
-                            <img 
-                              src={activeQuestData.completionImageUrl} 
-                              alt="Completion" 
-                              className="w-full h-auto object-cover"
-                            />
+                        {/* Completion content with image on right if available */}
+                        <div className={`grid gap-6 mb-4 ${activeQuestData.completionImageUrl ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                          <div className="space-y-4">
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <p className="text-foreground leading-relaxed whitespace-pre-line">
+                                {activeQuestData.completionText}
+                              </p>
+                            </div>
+                            {hasNextQuest && (
+                              <div className="pt-2">
+                                <Button
+                                  onClick={handleNextQuest}
+                                  disabled={saving}
+                                  className="w-full gap-2"
+                                  size="lg"
+                                >
+                                  {saving ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      Weiter zur nächsten Quest
+                                      <ArrowRight className="h-4 w-4" />
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <p className="text-foreground leading-relaxed whitespace-pre-line">
-                            {activeQuestData.completionText}
-                          </p>
+                          {activeQuestData.completionImageUrl && (
+                            <div className="flex items-center justify-center rounded-lg overflow-hidden border border-border/50 shadow-sm md:order-2">
+                              <img 
+                                src={activeQuestData.completionImageUrl} 
+                                alt="Completion" 
+                                className="w-full h-auto object-cover rounded-lg"
+                              />
+                            </div>
+                          )}
                         </div>
-                        {hasNextQuest && (
-                          <div className="pt-4">
-                            <Button
-                              onClick={handleNextQuest}
-                              disabled={saving}
-                              className="w-full gap-2"
-                              size="lg"
-                            >
-                              {saving ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  Weiter zur nächsten Quest
-                                  <ArrowRight className="h-4 w-4" />
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <>
