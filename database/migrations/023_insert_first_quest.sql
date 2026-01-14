@@ -1,5 +1,6 @@
 -- Insert the first quest: Chapter 1, Quest 1 - "Spuren im Fremden"
 -- This migration inserts the quest data that was previously hardcoded in QuestsPage
+-- Note: After migration 024 runs, this data will be in the renamed tables
 
 DO $$
 DECLARE
@@ -7,19 +8,24 @@ DECLARE
   step_uuid UUID;
 BEGIN
   -- Get the quest ID (or use existing if it already exists)
-  SELECT id INTO quest_uuid FROM quests WHERE chapter_number = 1 AND quest_number = 1;
+  -- Try new structure first (chapters), fall back to old (quests)
+  SELECT id INTO quest_uuid FROM chapters WHERE chapter_number = 1 AND quest_number = 1;
+  IF quest_uuid IS NULL THEN
+    SELECT id INTO quest_uuid FROM quests WHERE chapter_number = 1 AND quest_number = 1;
+  END IF;
   
   IF quest_uuid IS NULL THEN
-    -- If quest doesn't exist, insert it
-    INSERT INTO quests (
-      title,
-      description,
-      chapter_number,
-      quest_number,
-      image_url,
-      intro_text
-    ) VALUES (
-      'Quest 1 – Spuren im Fremden',
+    -- Try to insert into chapters table (new structure after 024)
+    BEGIN
+      INSERT INTO chapters (
+        title,
+        description,
+        chapter_number,
+        quest_number,
+        image_url,
+        intro_text
+      ) VALUES (
+        'Kapitel 1 – Spuren im Fremden',
       NULL,
       1,
       1,
@@ -105,20 +111,22 @@ Einen Platz, der sagt: Ich bin hier. Ich bleibe.'
     END IF;
   END IF;
 
-  -- Insert Step 2: Errichte einen provisorischen Shelter
-  INSERT INTO quest_steps (
-    id,
-    quest_id,
-    step_number,
-    title,
-    description,
-    completion_text,
-    completion_image_url
-  ) VALUES (
-    gen_random_uuid(),
-    quest_uuid,
-    2,
-    'Errichte einen provisorischen Shelter',
+  -- Insert Quest 2: Errichte einen provisorischen Shelter
+  -- Try new structure first (quests table), fall back to old (quest_steps)
+  BEGIN
+    INSERT INTO quests (
+      id,
+      chapter_id,
+      quest_number,
+      title,
+      description,
+      completion_text,
+      completion_image_url
+    ) VALUES (
+      gen_random_uuid(),
+      quest_uuid,
+      2,
+      'Errichte einen provisorischen Shelter',
     'Du sammelst Treibholz, dicke Äste, flache Steine. Alles fühlt sich roh an, unverarbeitet. Dieses Land schenkt nichts – es lässt sich nur nutzen, wenn du selbst Arbeit hineinlegst.
 
 Dein Körper ist das erste Werkzeug.
@@ -149,14 +157,68 @@ Zum ersten Mal seit deinem Erwachen bist du nicht mehr nur Gast.
 
 Quest 2 abgeschlossen.
 Du hast einen Platz in diesem Land.',
-    '/Quest/Shelter.png'
-  )
-  ON CONFLICT (quest_id, step_number) DO NOTHING
-  RETURNING id INTO step_uuid;
+      '/Quest/Shelter.png'
+    )
+    ON CONFLICT (chapter_id, quest_number) DO NOTHING
+    RETURNING id INTO step_uuid;
+    EXCEPTION WHEN undefined_table THEN
+      -- Fall back to old structure
+      INSERT INTO quest_steps (
+        id,
+        quest_id,
+        step_number,
+        title,
+        description,
+        completion_text,
+        completion_image_url
+      ) VALUES (
+        gen_random_uuid(),
+        quest_uuid,
+        2,
+        'Errichte einen provisorischen Shelter',
+        'Du sammelst Treibholz, dicke Äste, flache Steine. Alles fühlt sich roh an, unverarbeitet. Dieses Land schenkt nichts – es lässt sich nur nutzen, wenn du selbst Arbeit hineinlegst.
 
-  -- If step 2 was inserted, get its ID
+Dein Körper ist das erste Werkzeug.
+Um den Shelter errichten zu können, musst du deine Kraft einsetzen und unter Beweis stellen, dass du bereit bist, Verantwortung für diesen Ort zu übernehmen.
+
+Aufgabe – Körperarbeit
+Führe die folgenden Körpergewichtsübungen aus, um den Shelter fertigzustellen:
+
+🪵 Kniebeugen – X Wiederholungen
+(Fundament setzen, Stand finden)
+
+🌿 Liegestütze – X Wiederholungen
+(Stützen errichten, Gewicht tragen)
+
+🧗 Plank / Unterarmstütz – X Sekunden
+(Stabilität halten, Wind standhalten)
+
+🔥 Optional: Ausfallschritte oder Burpees – X Wiederholungen
+(letzte Kraft sammeln, Shelter abschließen)
+
+Jeder saubere Bewegungsablauf ist ein Balken.
+Jede Wiederholung macht den Shelter stabiler.',
+        'Als du fertig bist, trittst du einen Schritt zurück.
+Der Shelter ist einfach – aber er steht. Holz, Stoffreste, Laub. Nichts Überflüssiges. Genau richtig.
+
+Du setzt dich hinein. Der Wind ist gedämpft.
+Zum ersten Mal seit deinem Erwachen bist du nicht mehr nur Gast.
+
+Quest 2 abgeschlossen.
+Du hast einen Platz in diesem Land.',
+        '/Quest/Shelter.png'
+      )
+      ON CONFLICT (quest_id, step_number) DO NOTHING
+      RETURNING id INTO step_uuid;
+    END;
+
+  -- If quest 2 was inserted, get its ID
   IF step_uuid IS NULL THEN
-    SELECT id INTO step_uuid FROM quest_steps WHERE quest_id = quest_uuid AND step_number = 2;
+    BEGIN
+      SELECT id INTO step_uuid FROM quests WHERE chapter_id = quest_uuid AND quest_number = 2;
+      EXCEPTION WHEN undefined_table THEN
+        SELECT id INTO step_uuid FROM quest_steps WHERE quest_id = quest_uuid AND step_number = 2;
+    END;
   END IF;
 
   -- Insert objectives for Step 2 (only if they don't exist)

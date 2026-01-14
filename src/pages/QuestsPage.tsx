@@ -4,122 +4,122 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { questService } from "@/lib/quests";
-import { Quest, UserQuestProgress } from "@/types";
+import { Chapter, UserChapterProgress } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
 import QuestObjectiveItem from "@/components/quests/QuestObjectiveItem";
 
 export default function QuestsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [quest, setQuest] = useState<Quest | null>(null);
-  const [userProgress, setUserProgress] = useState<UserQuestProgress | null>(null);
-  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [userProgress, setUserProgress] = useState<UserChapterProgress | null>(null);
+  const [currentQuest, setCurrentQuest] = useState<number>(0);
   const [objectiveProgress, setObjectiveProgress] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [stepLoaded, setStepLoaded] = useState(false);
+  const [questLoaded, setQuestLoaded] = useState(false);
 
-  // Load quest data (Chapter 1, Quest 1)
+  // Load chapter data (Chapter 1)
   useEffect(() => {
-    const loadQuest = async () => {
+    const loadChapter = async () => {
       try {
         setLoading(true);
-        const questData = await questService.getQuestByChapterAndNumber(1, 1);
-        if (!questData) {
+        const chapterData = await questService.getChapterByNumber(1);
+        if (!chapterData) {
           toast({
             title: "Fehler",
-            description: "Quest konnte nicht geladen werden.",
+            description: "Kapitel konnte nicht geladen werden.",
             variant: "destructive",
           });
           return;
         }
-        setQuest(questData);
+        setChapter(chapterData);
 
         // Load user progress if logged in
         if (user) {
-          const progress = await questService.getUserQuestProgress(user.id, questData.id);
+          const progress = await questService.getUserChapterProgress(user.id, chapterData.id);
           if (progress) {
             setUserProgress(progress);
-            // Find current step index
-            const stepIndex = questData.steps.findIndex((s) => s.id === progress.currentStepId);
-            const activeStepIndex = stepIndex >= 0 ? stepIndex : 0;
-            setCurrentStep(activeStepIndex);
+            // Find current quest index
+            const questIndex = chapterData.quests.findIndex((q) => q.id === progress.currentQuestId);
+            const activeQuestIndex = questIndex >= 0 ? questIndex : 0;
+            setCurrentQuest(activeQuestIndex);
 
-            // Load progress for current step objectives
-            if (questData.steps.length > 0) {
-              const activeStep = questData.steps[activeStepIndex];
-              const stepProgress = await questService.getStepProgress(user.id, activeStep.id);
-              setObjectiveProgress(stepProgress);
+            // Load progress for current quest objectives
+            if (chapterData.quests.length > 0) {
+              const activeQuest = chapterData.quests[activeQuestIndex];
+              const questProgress = await questService.getQuestProgress(user.id, activeQuest.id);
+              setObjectiveProgress(questProgress);
             }
           } else {
             // No progress found - ensure we start from the beginning
             setUserProgress(null);
-            setCurrentStep(0);
+            setCurrentQuest(0);
             setObjectiveProgress({});
           }
         } else {
           // No user - start from beginning
-          setCurrentStep(0);
+          setCurrentQuest(0);
           setObjectiveProgress({});
         }
         
-        // Mark step as loaded BEFORE setting loading to false
-        setStepLoaded(true);
+        // Mark quest as loaded BEFORE setting loading to false
+        setQuestLoaded(true);
       } catch (error) {
-        console.error("Error loading quest:", error);
+        console.error("Error loading chapter:", error);
         toast({
           title: "Fehler",
-          description: "Fehler beim Laden der Quest.",
+          description: "Fehler beim Laden des Kapitels.",
           variant: "destructive",
         });
         // Even on error, mark as loaded to prevent infinite loading
-        setStepLoaded(true);
+        setQuestLoaded(true);
       } finally {
-        // Only set loading to false after step is determined
+        // Only set loading to false after quest is determined
         setLoading(false);
       }
     };
 
-    loadQuest();
+    loadChapter();
   }, [user, toast]);
 
-  // Scroll to top when step changes
+  // Scroll to top when quest changes
   useEffect(() => {
-    if (stepLoaded && !loading) {
+    if (questLoaded && !loading) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [currentStep, stepLoaded, loading]);
+  }, [currentQuest, questLoaded, loading]);
 
-  const questStarted = userProgress !== null;
-  const activeStepData = quest?.steps[currentStep];
-  const questCompleted = userProgress?.completedAt !== undefined;
+  const chapterStarted = userProgress !== null;
+  const activeQuestData = chapter?.quests[currentQuest];
+  const chapterCompleted = userProgress?.completedAt !== undefined;
   
-  // Check if current step is completed
-  // Only check if quest is started and we have progress data
-  const isCurrentStepCompleted = questStarted && activeStepData
-    ? activeStepData.objectives.every(
+  // Check if current quest is completed
+  // Only check if chapter is started and we have progress data
+  const isCurrentQuestCompleted = chapterStarted && activeQuestData
+    ? activeQuestData.objectives.every(
         (obj) => (objectiveProgress[obj.id] || 0) >= (obj.targetValue || 1)
       )
     : false;
   
-  const hasNextStep = quest && currentStep < quest.steps.length - 1;
-  const hasPreviousStep = currentStep > 0;
+  const hasNextQuest = chapter && currentQuest < chapter.quests.length - 1;
+  const hasPreviousQuest = currentQuest > 0;
 
-  const handleStartQuest = async () => {
-    if (!user || !quest || quest.steps.length === 0) return;
+  const handleStartChapter = async () => {
+    if (!user || !chapter || chapter.quests.length === 0) return;
 
     try {
       setSaving(true);
-      const firstStep = quest.steps[0];
-      const progress = await questService.startQuest(user.id, quest.id, firstStep.id);
+      const firstQuest = chapter.quests[0];
+      const progress = await questService.startChapter(user.id, chapter.id, firstQuest.id);
       setUserProgress(progress);
-      setCurrentStep(0);
+      setCurrentQuest(0);
       setObjectiveProgress({});
     } catch (error) {
-      console.error("Error starting quest:", error);
+      console.error("Error starting chapter:", error);
       toast({
         title: "Fehler",
-        description: "Fehler beim Starten der Quest.",
+        description: "Fehler beim Starten des Kapitels.",
         variant: "destructive",
       });
     } finally {
@@ -128,28 +128,28 @@ export default function QuestsPage() {
   };
 
   const refreshProgress = async () => {
-    if (!user || !quest || !activeStepData) return;
+    if (!user || !chapter || !activeQuestData) return;
 
     try {
-      const stepProgress = await questService.getStepProgress(user.id, activeStepData.id);
-      setObjectiveProgress(stepProgress);
+      const questProgress = await questService.getQuestProgress(user.id, activeQuestData.id);
+      setObjectiveProgress(questProgress);
     } catch (error) {
       console.error("Error refreshing progress:", error);
     }
   };
 
   const handleComplete = async () => {
-    if (!user || !quest || !activeStepData) return;
+    if (!user || !chapter || !activeQuestData) return;
 
     // Check if all objectives are completed
-    const allObjectivesComplete = activeStepData.objectives.every(
+    const allObjectivesComplete = activeQuestData.objectives.every(
       (obj) => (objectiveProgress[obj.id] || 0) >= (obj.targetValue || 1)
     );
 
     if (!allObjectivesComplete) {
       toast({
         title: "Aufgaben nicht erfüllt",
-        description: "Bitte vervollständige alle Aufgaben, bevor du den Schritt abschließt.",
+        description: "Bitte vervollständige alle Aufgaben, bevor du die Quest abschließt.",
         variant: "destructive",
       });
       return;
@@ -157,24 +157,24 @@ export default function QuestsPage() {
 
     try {
       setSaving(true);
-      // Mark step as completed but don't move to next step yet
-      // User will click button to move to next step
-      const nextStepIndex = currentStep + 1;
-      const nextStep = quest.steps[nextStepIndex];
+      // Mark quest as completed but don't move to next quest yet
+      // User will click button to move to next quest
+      const nextQuestIndex = currentQuest + 1;
+      const nextQuest = chapter.quests[nextQuestIndex];
 
-      await questService.completeStep(
+      await questService.completeQuest(
         user.id,
-        quest.id,
-        activeStepData.id,
-        nextStep?.id || null // Set to null if no next step (quest completed)
+        chapter.id,
+        activeQuestData.id,
+        nextQuest?.id || null // Set to null if no next quest (chapter completed)
       );
 
-      // If no next step, mark quest as completed
-      if (!nextStep) {
+      // If no next quest, mark chapter as completed
+      if (!nextQuest) {
         setUserProgress((prev) => prev ? { ...prev, completedAt: new Date().toISOString() } : null);
       }
     } catch (error) {
-      console.error("Error completing step:", error);
+      console.error("Error completing quest:", error);
       toast({
         title: "Fehler",
         description: "Fehler beim Abschließen der Quest.",
@@ -185,100 +185,107 @@ export default function QuestsPage() {
     }
   };
 
-  const handleNextStep = async () => {
-    if (!user || !quest || !hasNextStep) return;
+  const handleNextQuest = async () => {
+    if (!user || !chapter || !hasNextQuest) return;
 
     try {
       setSaving(true);
-      const nextStepIndex = currentStep + 1;
-      const nextStep = quest.steps[nextStepIndex];
+      setQuestLoaded(false);
+      const nextQuestIndex = currentQuest + 1;
+      const nextQuest = chapter.quests[nextQuestIndex];
       
-      // Update current step in database
+      // Update current quest in database
       if (userProgress) {
-        await questService.updateCurrentStep(user.id, quest.id, nextStep.id);
+        await questService.updateCurrentQuest(user.id, chapter.id, nextQuest.id);
       }
       
-      setCurrentStep(nextStepIndex);
-      const stepProgress = await questService.getStepProgress(user.id, nextStep.id);
-      setObjectiveProgress(stepProgress);
-      setUserProgress((prev) => prev ? { ...prev, currentStepId: nextStep.id } : null);
+      setCurrentQuest(nextQuestIndex);
+      const questProgress = await questService.getQuestProgress(user.id, nextQuest.id);
+      setObjectiveProgress(questProgress);
+      setUserProgress((prev) => prev ? { ...prev, currentQuestId: nextQuest.id } : null);
+      setQuestLoaded(true);
     } catch (error) {
-      console.error("Error moving to next step:", error);
+      console.error("Error moving to next quest:", error);
       toast({
         title: "Fehler",
-        description: "Fehler beim Wechseln zum nächsten Schritt.",
+        description: "Fehler beim Wechseln zur nächsten Quest.",
         variant: "destructive",
       });
+      setQuestLoaded(true);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleStepNavigation = async (stepIndex: number) => {
-    if (!user || !quest || stepIndex < 0 || stepIndex >= quest.steps.length) return;
-    if (stepIndex === currentStep) return;
+  const handleQuestNavigation = async (questIndex: number) => {
+    if (!user || !chapter || questIndex < 0 || questIndex >= chapter.quests.length) return;
+    if (questIndex === currentQuest) return;
 
     try {
       setSaving(true);
-      const targetStep = quest.steps[stepIndex];
+      setQuestLoaded(false);
+      const targetQuest = chapter.quests[questIndex];
       
-      // Update current step in database if quest is started
+      // Update current quest in database if chapter is started
       if (userProgress) {
-        await questService.updateCurrentStep(user.id, quest.id, targetStep.id);
+        await questService.updateCurrentQuest(user.id, chapter.id, targetQuest.id);
       }
       
-      setCurrentStep(stepIndex);
-      const stepProgress = await questService.getStepProgress(user.id, targetStep.id);
-      setObjectiveProgress(stepProgress);
+      setCurrentQuest(questIndex);
+      const questProgress = await questService.getQuestProgress(user.id, targetQuest.id);
+      setObjectiveProgress(questProgress);
       
       // Update local user progress state
       if (userProgress) {
-        setUserProgress((prev) => prev ? { ...prev, currentStepId: targetStep.id } : null);
+        setUserProgress((prev) => prev ? { ...prev, currentQuestId: targetQuest.id } : null);
       }
+      
+      setQuestLoaded(true);
     } catch (error) {
-      console.error("Error navigating to step:", error);
+      console.error("Error navigating to quest:", error);
       toast({
         title: "Fehler",
-        description: "Fehler beim Wechseln zum Schritt.",
+        description: "Fehler beim Wechseln zur Quest.",
         variant: "destructive",
       });
+      setQuestLoaded(true);
     } finally {
       setSaving(false);
     }
   };
 
   // TODO: Remove this function and button later
-  const handleResetQuest = async () => {
-    if (!user || !quest) return;
+  const handleResetChapter = async () => {
+    if (!user || !chapter) return;
 
-    if (!confirm("Möchtest du wirklich den gesamten Quest-Fortschritt zurücksetzen?")) {
+    if (!confirm("Möchtest du wirklich den gesamten Kapitel-Fortschritt zurücksetzen?")) {
       return;
     }
 
     try {
       setSaving(true);
-      await questService.resetQuestProgress(user.id, quest.id);
+      await questService.resetChapterProgress(user.id, chapter.id);
       
       // Clear all local state
       setUserProgress(null);
-      setCurrentStep(0);
+      setCurrentQuest(0);
       setObjectiveProgress({});
       
-      // Reload the quest to ensure fresh state
-      const questData = await questService.getQuestByChapterAndNumber(1, 1);
-      if (questData) {
-        setQuest(questData);
+      // Reload the chapter to ensure fresh state
+      const chapterData = await questService.getChapterByNumber(1);
+      if (chapterData) {
+        setChapter(chapterData);
       }
       
       toast({
         title: "Erfolg",
-        description: "Quest-Fortschritt wurde zurückgesetzt.",
+        description: "Kapitel-Fortschritt wurde zurückgesetzt.",
       });
     } catch (error) {
-      console.error("Error resetting quest progress:", error);
+      console.error("Error resetting chapter progress:", error);
       toast({
         title: "Fehler",
-        description: "Fehler beim Zurücksetzen des Quest-Fortschritts.",
+        description: "Fehler beim Zurücksetzen des Kapitel-Fortschritts.",
         variant: "destructive",
       });
     } finally {
@@ -286,10 +293,10 @@ export default function QuestsPage() {
     }
   };
 
-  if (loading || !stepLoaded || !quest) {
+  if (loading || !questLoaded || !chapter) {
     return (
       <div className="container py-8 max-w-3xl">
-        {/* Quest Header Skeleton */}
+        {/* Chapter Header Skeleton */}
         <div className="mb-8 pb-4 border-b border-border/50">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-1.5 rounded-md bg-muted animate-pulse">
@@ -305,15 +312,15 @@ export default function QuestsPage() {
         {/* Loading Content */}
         <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Quest wird geladen...</p>
+          <p className="text-sm text-muted-foreground">Kapitel wird geladen...</p>
         </div>
       </div>
     );
   }
 
-  const chapterLabel = quest.chapterNumber
-    ? `Kapitel ${quest.chapterNumber === 1 ? "I" : quest.chapterNumber === 2 ? "II" : quest.chapterNumber}, Aufgabe ${quest.questNumber || 1}`
-    : "Quest";
+  const chapterLabel = chapter.chapterNumber
+    ? `Kapitel ${chapter.chapterNumber === 1 ? "I" : chapter.chapterNumber === 2 ? "II" : chapter.chapterNumber}`
+    : "Kapitel";
 
   return (
     <div className="container py-8 max-w-3xl">
@@ -325,67 +332,75 @@ export default function QuestsPage() {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                {chapterLabel}
-              </div>
               <div className="text-sm font-medium text-foreground">
-                {quest.title}
+                {chapter.chapterNumber ? `Kapitel ${chapter.chapterNumber}` : 'Kapitel'} - {chapter.title}
               </div>
+              {chapterStarted && activeQuestData && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  Quest {activeQuestData.questNumber} - {activeQuestData.title}
+                </div>
+              )}
             </div>
           </div>
           {/* TODO: Remove this reset button later */}
-          {user && questStarted && (
+          {user && chapterStarted && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleResetQuest}
+              onClick={handleResetChapter}
               disabled={saving}
               className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-              title="Quest-Fortschritt zurücksetzen"
+              title="Kapitel-Fortschritt zurücksetzen"
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
           )}
         </div>
 
-        {/* Step Navigation */}
-        {questStarted && quest.steps.length > 1 && (
+        {/* Quest Navigation */}
+        {chapterStarted && chapter.quests.length > 1 && (
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleStepNavigation(currentStep - 1)}
-              disabled={!hasPreviousStep || saving}
+              onClick={() => handleQuestNavigation(currentQuest - 1)}
+              disabled={!hasPreviousQuest || saving}
               className="h-8 w-8 p-0"
             >
-              <ChevronLeft className="h-4 w-4" />
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
             </Button>
             
             <div className="flex items-center gap-2 flex-1 justify-center">
-              {quest.steps.map((step, index) => {
-                const isActive = index === currentStep;
-                // Only check completion for the current step (we have its progress loaded)
-                const stepCompleted = isActive && isCurrentStepCompleted;
+              {chapter.quests.map((quest, index) => {
+                const isActive = index === currentQuest;
+                // Only check completion for the current quest (we have its progress loaded)
+                const questCompleted = isActive && isCurrentQuestCompleted;
 
                 return (
                   <button
-                    key={step.id}
-                    onClick={() => handleStepNavigation(index)}
+                    key={quest.id}
+                    onClick={() => handleQuestNavigation(index)}
                     disabled={saving}
                     className={`
                       flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-md text-sm font-medium
                       transition-colors
                       ${isActive 
                         ? 'bg-primary text-primary-foreground' 
-                        : stepCompleted
+                        : questCompleted
                         ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/30'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }
                       ${saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                     `}
-                    title={step.title}
+                    title={quest.title}
                   >
-                    {stepCompleted ? (
+                    {saving && isActive ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : questCompleted ? (
                       <CheckCircle2 className="h-4 w-4" />
                     ) : (
                       index + 1
@@ -398,52 +413,56 @@ export default function QuestsPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleStepNavigation(currentStep + 1)}
-              disabled={!hasNextStep || saving}
+              onClick={() => handleQuestNavigation(currentQuest + 1)}
+              disabled={!hasNextQuest || saving}
               className="h-8 w-8 p-0"
             >
-              <ChevronRight className="h-4 w-4" />
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </Button>
           </div>
         )}
       </div>
 
-      {!questStarted && stepLoaded && !userProgress ? (
+      {!chapterStarted && questLoaded && !userProgress ? (
         <>
-          {/* Intro Image - only show when quest hasn't started and no progress exists */}
-          {quest.imageUrl && (
+          {/* Intro Image - only show when chapter hasn't started and no progress exists */}
+          {chapter.imageUrl && (
             <div className="mb-8 rounded-lg overflow-hidden border border-border/50 shadow-sm">
               <img 
-                src={quest.imageUrl} 
-                alt={quest.title} 
+                src={chapter.imageUrl} 
+                alt={chapter.title} 
                 className="w-full h-auto object-cover"
               />
             </div>
           )}
 
-          {/* Quest Content */}
-          {quest.introText && (
+          {/* Chapter Content */}
+          {chapter.introText && (
             <div className="prose prose-lg dark:prose-invert max-w-none">
               <div className="relative pl-4 border-l-2 border-muted/50 mb-6">
                 <p className="text-foreground leading-relaxed whitespace-pre-line">
-                  {quest.introText}
+                  {chapter.introText}
                 </p>
               </div>
             </div>
           )}
 
-          {quest.description && (
+          {chapter.description && (
             <div className="prose prose-lg dark:prose-invert max-w-none mb-8">
-              <p className="text-foreground leading-relaxed">{quest.description}</p>
+              <p className="text-foreground leading-relaxed">{chapter.description}</p>
             </div>
           )}
 
-          {/* Quest Start Button */}
+          {/* Chapter Start Button */}
           <div className="flex justify-center mt-8 pt-6 border-t border-border/50">
             <Button 
               size="lg" 
               className="gap-2" 
-              onClick={handleStartQuest}
+              onClick={handleStartChapter}
               disabled={!user || saving}
             >
               {saving ? (
@@ -457,16 +476,16 @@ export default function QuestsPage() {
         </>
       ) : (
         <>
-          {activeStepData && (
+          {activeQuestData && (
             <>
               {/* Quest Details and Image Side by Side */}
-              <div className={`grid gap-6 mb-6 md:items-stretch ${quest.imageUrl && currentStep === 0 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-                {/* Intro Image - First on mobile, second on desktop - Only show on step 1 */}
-                {quest.imageUrl && currentStep === 0 && (
+              <div className={`grid gap-6 mb-6 md:items-stretch ${chapter.imageUrl && currentQuest === 0 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                {/* Intro Image - First on mobile, second on desktop - Only show on quest 1 */}
+                {chapter.imageUrl && currentQuest === 0 && (
                   <div className="flex items-center justify-center rounded-lg overflow-hidden shadow-sm md:order-2">
                     <img 
-                      src={quest.imageUrl} 
-                      alt={quest.title} 
+                      src={chapter.imageUrl} 
+                      alt={chapter.title} 
                       className="w-full h-auto object-cover rounded-lg"
                     />
                   </div>
@@ -475,25 +494,25 @@ export default function QuestsPage() {
                 {/* Quest Card - Second on mobile, first on desktop */}
                 <Card className="flex flex-col border-0 md:order-1">
                   <CardHeader>
-                    <CardTitle>{activeStepData.title}</CardTitle>
+                    <CardTitle>{activeQuestData.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Show completion text if step is completed */}
-                    {isCurrentStepCompleted && activeStepData.completionText ? (
+                    {/* Show completion text if quest is completed */}
+                    {isCurrentQuestCompleted && activeQuestData.completionText ? (
                       <div className="space-y-2 pt-2 border-t border-border/50">
                         <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20 mb-4">
                           <CheckCircle2 className="h-5 w-5 text-green-500" />
                           <div>
                             <p className="font-semibold text-green-600 dark:text-green-400">
-                              Schritt abgeschlossen!
+                              Quest abgeschlossen!
                             </p>
                           </div>
                         </div>
                         {/* Completion image if available */}
-                        {activeStepData.completionImageUrl && (
-                          <div className="mb-4 rounded-lg overflow-hidden border border-border/50 shadow-sm">
+                        {activeQuestData.completionImageUrl && (
+                          <div className="mb-4 rounded-lg overflow-hidden border border-border/50 shadow-sm max-w-md mx-auto">
                             <img 
-                              src={activeStepData.completionImageUrl} 
+                              src={activeQuestData.completionImageUrl} 
                               alt="Completion" 
                               className="w-full h-auto object-cover"
                             />
@@ -501,13 +520,13 @@ export default function QuestsPage() {
                         )}
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <p className="text-foreground leading-relaxed whitespace-pre-line">
-                            {activeStepData.completionText}
+                            {activeQuestData.completionText}
                           </p>
                         </div>
-                        {hasNextStep && (
+                        {hasNextQuest && (
                           <div className="pt-4">
                             <Button
-                              onClick={handleNextStep}
+                              onClick={handleNextQuest}
                               disabled={saving}
                               className="w-full gap-2"
                               size="lg"
@@ -516,7 +535,7 @@ export default function QuestsPage() {
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <>
-                                  Weiter zum nächsten Schritt
+                                  Weiter zur nächsten Quest
                                   <ArrowRight className="h-4 w-4" />
                                 </>
                               )}
@@ -526,34 +545,34 @@ export default function QuestsPage() {
                       </div>
                     ) : (
                       <>
-                        {activeStepData.description && (
+                        {activeQuestData.description && (
                           <div className="space-y-2 pt-2 border-t border-border/50">
                             <p className="text-sm text-muted-foreground font-medium">Beschreibung:</p>
                             <div className="prose prose-sm dark:prose-invert max-w-none">
                               <p className="text-foreground leading-relaxed whitespace-pre-line">
-                                {activeStepData.description}
+                                {activeQuestData.description}
                               </p>
                             </div>
                           </div>
                         )}
 
-                        {/* Objectives - only show when step is NOT completed */}
-                        {activeStepData.objectives.length > 0 && !isCurrentStepCompleted && (
+                        {/* Objectives - only show when quest is NOT completed */}
+                        {activeQuestData.objectives.length > 0 && !isCurrentQuestCompleted && (
                           <div className="space-y-4 pt-2 border-t border-border/50">
                             <p className="text-sm text-muted-foreground font-medium">Aufgaben:</p>
                             <div className="space-y-3">
-                              {activeStepData.objectives.map((objective) => {
+                              {activeQuestData.objectives.map((objective) => {
                                 const currentValue = objectiveProgress[objective.id] || 0;
 
                                 return (
                                   <QuestObjectiveItem
                                     key={objective.id}
                                     objective={objective}
-                                    questId={quest.id}
-                                    questStepId={activeStepData.id}
+                                    questId={chapter.id}
+                                    questStepId={activeQuestData.id}
                                     currentValue={currentValue}
                                     onProgressUpdate={refreshProgress}
-                                    disabled={questCompleted}
+                                    disabled={chapterCompleted}
                                   />
                                 );
                               })}
@@ -561,8 +580,8 @@ export default function QuestsPage() {
                           </div>
                         )}
 
-                        {/* Show completion message and button when all objectives are done but step not completed */}
-                        {!isCurrentStepCompleted && activeStepData.objectives.length > 0 && activeStepData.objectives.every(
+                        {/* Show completion message and button when all objectives are done but quest not completed */}
+                        {!isCurrentQuestCompleted && activeQuestData.objectives.length > 0 && activeQuestData.objectives.every(
                           (obj) => (objectiveProgress[obj.id] || 0) >= (obj.targetValue || 1)
                         ) && (
                           <div className="pt-4 space-y-4 border-t border-border/50">
@@ -570,7 +589,7 @@ export default function QuestsPage() {
                               <CheckCircle2 className="h-5 w-5 text-green-500" />
                               <div>
                                 <p className="font-semibold text-green-600 dark:text-green-400">
-                                  Schritt abgeschlossen!
+                                  Quest abgeschlossen!
                                 </p>
                               </div>
                             </div>
@@ -585,24 +604,24 @@ export default function QuestsPage() {
                               ) : (
                                 <CheckCircle2 className="h-4 w-4" />
                               )}
-                              Schritt abschließen
+                              Quest abschließen
                             </Button>
                           </div>
                         )}
                       </>
                     )}
 
-                    {/* Show quest completed message if entire quest is done */}
-                    {questCompleted && !hasNextStep && (
+                    {/* Show chapter completed message if entire chapter is done */}
+                    {chapterCompleted && !hasNextQuest && (
                       <div className="pt-4 space-y-4 border-t border-border/50">
                         <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
                           <CheckCircle2 className="h-5 w-5 text-green-500" />
                           <div>
                             <p className="font-semibold text-green-600 dark:text-green-400">
-                              Quest abgeschlossen!
+                              Kapitel abgeschlossen!
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              Du hast die Quest erfolgreich abgeschlossen.
+                              Du hast das Kapitel erfolgreich abgeschlossen.
                             </p>
                           </div>
                         </div>

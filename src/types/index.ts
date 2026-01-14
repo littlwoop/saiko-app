@@ -172,7 +172,7 @@ export interface PersonalBest {
 // Quest types
 export interface QuestObjective {
   id: string;
-  questStepId: string;
+  questId: string;
   title: string;
   description?: string;
   targetValue?: number;
@@ -182,10 +182,10 @@ export interface QuestObjective {
   currentValue?: number; // Computed from progress entries
 }
 
-export interface QuestStep {
+export interface Quest {
   id: string;
-  questId: string;
-  stepNumber: number;
+  chapterId: string;
+  questNumber: number;
   title: string;
   description?: string;
   completionText?: string;
@@ -193,24 +193,24 @@ export interface QuestStep {
   objectives: QuestObjective[];
 }
 
-export interface Quest {
+export interface Chapter {
   id: string;
   title: string;
   description?: string;
   chapterNumber?: number;
-  questNumber?: number;
+  questNumber?: number; // This is the quest number within the chapter (legacy, can be removed)
   imageUrl?: string;
   introText?: string;
-  steps: QuestStep[];
+  quests: Quest[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface UserQuestProgress {
+export interface UserChapterProgress {
   id: string;
   userId: string;
-  questId: string;
-  currentStepId?: string;
+  chapterId: string;
+  currentQuestId?: string;
   startedAt: string;
   completedAt?: string;
   createdAt: string;

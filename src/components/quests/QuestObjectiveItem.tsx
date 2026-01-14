@@ -26,8 +26,8 @@ import { Loader2 } from "lucide-react";
 
 interface QuestObjectiveItemProps {
   objective: QuestObjective;
-  questId: string;
-  questStepId: string;
+  questId: string; // This is now chapterId
+  questStepId: string; // This is now questId
   currentValue: number;
   onProgressUpdate: () => void;
   disabled?: boolean;
@@ -35,8 +35,8 @@ interface QuestObjectiveItemProps {
 
 export default function QuestObjectiveItem({
   objective,
-  questId,
-  questStepId,
+  questId, // This is chapterId
+  questStepId, // This is questId
   currentValue,
   onProgressUpdate,
   disabled = false,
