@@ -94,11 +94,6 @@ export default function QuestObjectiveItem({
       setIsOpen(false);
       setValue("");
       onProgressUpdate();
-      
-      toast({
-        title: "Erfolg",
-        description: `${numericValue.toLocaleString()} ${unit} wurden hinzugefügt.`,
-      });
     } catch (error) {
       console.error("Error updating quest progress:", error);
       toast({

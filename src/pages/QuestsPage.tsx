@@ -83,6 +83,13 @@ export default function QuestsPage() {
     loadQuest();
   }, [user, toast]);
 
+  // Scroll to top when step changes
+  useEffect(() => {
+    if (stepLoaded && !loading) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentStep, stepLoaded, loading]);
+
   const questStarted = userProgress !== null;
   const activeStepData = quest?.steps[currentStep];
   const questCompleted = userProgress?.completedAt !== undefined;
