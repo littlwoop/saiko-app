@@ -168,3 +168,64 @@ export interface PersonalBest {
   createdAt: string;
   updatedAt: string;
 }
+
+// Quest types
+export interface QuestObjective {
+  id: string;
+  questStepId: string;
+  title: string;
+  description?: string;
+  targetValue?: number;
+  unit?: string;
+  pointsPerUnit?: number;
+  order: number;
+  currentValue?: number; // Computed from progress entries
+}
+
+export interface QuestStep {
+  id: string;
+  questId: string;
+  stepNumber: number;
+  title: string;
+  description?: string;
+  completionText?: string;
+  completionImageUrl?: string;
+  objectives: QuestObjective[];
+}
+
+export interface Quest {
+  id: string;
+  title: string;
+  description?: string;
+  chapterNumber?: number;
+  questNumber?: number;
+  imageUrl?: string;
+  introText?: string;
+  steps: QuestStep[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserQuestProgress {
+  id: string;
+  userId: string;
+  questId: string;
+  currentStepId?: string;
+  startedAt: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuestProgressEntry {
+  id: string;
+  userId: string;
+  questId: string;
+  questStepId: string;
+  questObjectiveId: string;
+  value: number;
+  notes?: string;
+  username?: string;
+  createdAt: string;
+  updatedAt: string;
+}
