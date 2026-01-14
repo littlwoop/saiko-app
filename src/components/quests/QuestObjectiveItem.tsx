@@ -47,18 +47,57 @@ export default function QuestObjectiveItem({
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Check if this is a binary objective
+  const isBinary = objective.isBinary ?? false;
+
   const targetValue = objective.targetValue || 1;
   const progressPercent = Math.min(100, (currentValue / targetValue) * 100);
-  const isCompleted = currentValue >= targetValue;
+  const isCompleted = isBinary 
+    ? currentValue >= 1 
+    : currentValue >= targetValue;
   const unit = objective.unit || "";
 
-  // Reset form when dialog opens/closes
+  // Reset form when dialog opens/closes (for incremental objectives)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isBinary) {
       setValue("");
     }
-  }, [isOpen]);
+  }, [isOpen, isBinary]);
 
+  // Binary toggle handler
+  const handleToggle = async () => {
+    if (!user) return;
+
+    // Toggle: if completed, set to 0 (incomplete), otherwise set to 1 (complete)
+    const newValue = isCompleted ? 0 : 1;
+
+    try {
+      setSaving(true);
+      const { questService } = await import("@/lib/quests");
+      await questService.updateObjectiveProgress(
+        user.id,
+        questId,
+        questStepId,
+        objective.id,
+        newValue,
+        undefined,
+        user.name
+      );
+      
+      onProgressUpdate();
+    } catch (error) {
+      console.error("Error updating quest progress:", error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Speichern des Fortschritts.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Incremental progress handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -108,8 +147,8 @@ export default function QuestObjectiveItem({
 
   return (
     <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+      <CardHeader className="p-3">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex-1">
             <CardTitle className="text-base font-semibold">
               {objective.title}
@@ -122,86 +161,115 @@ export default function QuestObjectiveItem({
           </div>
           {!disabled && (
             <>
-              {isCompleted ? (
-                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              ) : (
-                <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 flex-shrink-0"
-                      title="Fortschritt hinzufügen"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>Fortschritt hinzufügen</DialogTitle>
-                  <DialogDescription>
-                    Aktueller Fortschritt: {currentValue.toLocaleString()} / {targetValue.toLocaleString()} {unit}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="progress-value">
-                      Wie viel möchtest du hinzufügen?
-                    </Label>
-                    <Input
-                      id="progress-value"
-                      type="number"
-                      min="0"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      placeholder={`Wert in ${unit} eingeben`}
-                      disabled={saving}
-                    />
-                    {value && !isNaN(parseFloat(value)) && parseFloat(value) >= 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        Neuer Fortschritt: {Math.min(currentValue + parseFloat(value), targetValue).toLocaleString()} / {targetValue.toLocaleString()} {unit}
-                        {currentValue + parseFloat(value) > targetValue && (
-                          <span className="text-amber-600 dark:text-amber-400 ml-1">(wird auf Maximum begrenzt)</span>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={saving}>
+              {isBinary ? (
+                // Binary completion: "Complete" button or checkmark
+                isCompleted ? (
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                ) : (
+                  <Button 
+                    variant="default"
+                    size="sm" 
+                    className="flex-shrink-0"
+                    onClick={handleToggle}
+                    disabled={saving}
+                  >
                     {saving ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Speichern...
                       </>
                     ) : (
-                      "Fortschritt speichern"
+                      "Complete"
                     )}
                   </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                )
+              ) : (
+                // Incremental progress: dialog with progress bar
+                <>
+                  {isCompleted ? (
+                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 flex-shrink-0"
+                          title="Fortschritt hinzufügen"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <form onSubmit={handleSubmit}>
+                          <DialogHeader>
+                            <DialogTitle>Fortschritt hinzufügen</DialogTitle>
+                            <DialogDescription>
+                              Aktueller Fortschritt: {currentValue.toLocaleString()} / {targetValue.toLocaleString()} {unit}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="progress-value">
+                                Wie viel möchtest du hinzufügen?
+                              </Label>
+                              <Input
+                                id="progress-value"
+                                type="number"
+                                min="0"
+                                value={value}
+                                onChange={(e) => setValue(e.target.value)}
+                                placeholder={`Wert in ${unit} eingeben`}
+                                disabled={saving}
+                              />
+                              {value && !isNaN(parseFloat(value)) && parseFloat(value) >= 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                  Neuer Fortschritt: {Math.min(currentValue + parseFloat(value), targetValue).toLocaleString()} / {targetValue.toLocaleString()} {unit}
+                                  {currentValue + parseFloat(value) > targetValue && (
+                                    <span className="text-amber-600 dark:text-amber-400 ml-1">(wird auf Maximum begrenzt)</span>
+                                  )}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button type="submit" disabled={saving}>
+                              {saving ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Speichern...
+                                </>
+                              ) : (
+                                "Fortschritt speichern"
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </>
               )}
             </>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Footprints className="h-4 w-4" />
-              Fortschritt
-            </span>
-            <span className="font-medium">
-              {currentValue.toLocaleString()} / {targetValue.toLocaleString()} {unit}
-            </span>
+      {!isBinary && (
+        <CardContent className="space-y-3 px-3 pb-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Footprints className="h-4 w-4" />
+                Fortschritt
+              </span>
+              <span className="font-medium">
+                {currentValue.toLocaleString()} / {targetValue.toLocaleString()} {unit}
+              </span>
+            </div>
+            <Progress value={progressPercent} className="h-2" />
           </div>
-          <Progress value={progressPercent} className="h-2" />
-        </div>
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }

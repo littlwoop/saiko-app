@@ -61,6 +61,7 @@ export const questService = {
         unit: obj.unit || undefined,
         pointsPerUnit: obj.points_per_unit !== null ? Number(obj.points_per_unit) : undefined,
         order: obj.order,
+        isBinary: obj.is_binary || false,
       });
     });
 
@@ -73,6 +74,7 @@ export const questService = {
       description: quest.description || undefined,
       completionText: quest.completion_text || undefined,
       completionImageUrl: quest.completion_image_url || undefined,
+      imageUrl: quest.image_url || undefined,
       objectives: objectivesByQuest[quest.id] || [],
     }));
 

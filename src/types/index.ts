@@ -180,6 +180,7 @@ export interface QuestObjective {
   pointsPerUnit?: number;
   order: number;
   currentValue?: number; // Computed from progress entries
+  isBinary?: boolean;
 }
 
 export interface Quest {
@@ -190,6 +191,7 @@ export interface Quest {
   description?: string;
   completionText?: string;
   completionImageUrl?: string;
+  imageUrl?: string;
   objectives: QuestObjective[];
 }
 
