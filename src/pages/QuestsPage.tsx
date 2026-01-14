@@ -98,7 +98,8 @@ export default function QuestsPage() {
   // Only check if chapter is started and we have progress data
   // Binary objectives: value >= 1 means completed
   // Incremental objectives: value >= targetValue means completed
-  const isCurrentQuestCompleted = chapterStarted && activeQuestData
+  // Quests with no objectives are never automatically completed
+  const isCurrentQuestCompleted = chapterStarted && activeQuestData && activeQuestData.objectives.length > 0
     ? activeQuestData.objectives.every(
         (obj) => {
           const progress = objectiveProgress[obj.id] || 0;

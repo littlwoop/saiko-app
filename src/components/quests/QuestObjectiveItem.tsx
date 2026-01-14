@@ -179,7 +179,7 @@ export default function QuestObjectiveItem({
                         Speichern...
                       </>
                     ) : (
-                      "Complete"
+                      "Abgeschlossen!"
                     )}
                   </Button>
                 )
