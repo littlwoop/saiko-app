@@ -941,7 +941,7 @@ export default function ChallengePage() {
                     </Button>
                   )}
                   
-                  {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && (
+                  {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && challenge.isCollaborative && (
                     <Select
                       value={selectedUserId || ""}
                       onValueChange={(value) => setSelectedUserId(value)}
@@ -1012,7 +1012,7 @@ export default function ChallengePage() {
                     )}
                   </div>
                   
-                  {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && (
+                  {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && challenge.isCollaborative && (
                     <Select
                       value={selectedUserId || ""}
                       onValueChange={(value) => setSelectedUserId(value)}

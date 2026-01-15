@@ -12,7 +12,7 @@ import { useTranslation } from "@/lib/translations";
 import { getWeekStart, getWeekEnd, isFullWeeksRange } from "@/lib/week-utils";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CircleX, Trophy, Plus } from "lucide-react";
+import { CircleX, Trophy, Plus, Info } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -386,50 +386,71 @@ export default function EditChallengeForm() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="isRepeating"
-              checked={isRepeating}
-              disabled={isCollaborative}
-              onCheckedChange={(checked) => {
-                setIsRepeating(checked as boolean);
-                if (checked) {
-                  setNoEndDate(false);
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="challengeMode">{t("challengeMode")}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                  >
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="start">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <h4 className="font-semibold text-sm">
+                        {t("challengeModeInfo")}
+                      </h4>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <span className="font-semibold text-foreground">{t("individualChallenge")}:</span>
+                        <p className="text-muted-foreground mt-1">
+                          {t("individualChallengeDescription")}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-foreground">{t("collaborativeChallenge")}:</span>
+                        <p className="text-muted-foreground mt-1">
+                          {t("collaborativeChallengeDescription")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={!isCollaborative ? "default" : "outline"}
+                className={`flex-1 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isRepeating}
+                onClick={() => {
                   setIsCollaborative(false);
-                  // Initialize duration to 30 days if not set
-                  if (!durationDays || durationDays <= 0) {
-                    setDurationDays(30);
-                  }
-                } else {
-                  // When unchecking, initialize dates if not set
-                  if (!startDate) {
-                    setStartDate(new Date());
-                  }
-                  if (!endDate) {
-                    setEndDate(addDays(new Date(), 30));
-                  }
-                }
-              }}
-            />
-            <Label htmlFor="isRepeating" className={`text-sm font-normal ${isCollaborative ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-              {t("repeatingChallenge") || "Repeating Challenge (users start when they join)"}
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="isCollaborative"
-              checked={isCollaborative}
-              disabled={isRepeating}
-              onCheckedChange={(checked) => {
-                setIsCollaborative(checked === true);
-                if (checked) {
+                }}
+              >
+                {t("individualChallenge") || "Individual Challenge"}
+              </Button>
+              <Button
+                type="button"
+                variant={isCollaborative ? "default" : "outline"}
+                className={`flex-1 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isRepeating}
+                onClick={() => {
+                  setIsCollaborative(true);
                   setIsRepeating(false);
-                }
-              }}
-            />
-            <Label htmlFor="isCollaborative" className={`text-sm font-normal ${isRepeating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-              {t("collaborativeChallenge") || "Collaborative Challenge (all participants contribute to shared objectives)"}
-            </Label>
+                }}
+              >
+                {t("collaborativeChallenge") || "Collaborative Challenge"}
+              </Button>
+            </div>
           </div>
           {isRepeating ? (
             <div className="space-y-2">

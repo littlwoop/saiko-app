@@ -528,10 +528,27 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       objectives: objectivesWithValidIds,
     };
 
+    // Prepare data for database insert (map camelCase to snake_case)
+    const challengeDataForInsert: any = {
+      title: newChallengeWithValidIds.title,
+      description: newChallengeWithValidIds.description,
+      objectives: newChallengeWithValidIds.objectives,
+      participants: newChallengeWithValidIds.participants,
+      challenge_type: newChallengeWithValidIds.challenge_type || "standard",
+      is_collaborative: newChallengeWithValidIds.isCollaborative || false,
+      is_repeating: newChallengeWithValidIds.isRepeating || false,
+      caped_points: newChallengeWithValidIds.capedPoints || false,
+      created_by_id: newChallengeWithValidIds.createdById,
+      creator_name: newChallengeWithValidIds.creatorName,
+      start_date: newChallengeWithValidIds.startDate || null,
+      end_date: newChallengeWithValidIds.endDate || null,
+      total_points: newChallengeWithValidIds.totalPoints,
+    };
+
     // Insert challenge (keep objectives in JSON for backward compatibility during migration)
     const { data: insertedChallenge, error } = await supabase
       .from("challenges")
-      .insert([newChallengeWithValidIds])
+      .insert([challengeDataForInsert])
       .select()
       .single();
 
@@ -681,17 +698,18 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       return obj;
     });
 
-    const updateData = {
+    // Prepare update data with correct field names (snake_case for database)
+    const updateData: any = {
       title: challengeData.title,
       description: challengeData.description,
-      startDate: challengeData.isRepeating ? null : challengeData.startDate,
-      endDate: challengeData.isRepeating ? null : challengeData.endDate,
+      start_date: challengeData.isRepeating ? null : challengeData.startDate,
+      end_date: challengeData.isRepeating ? null : challengeData.endDate,
       challenge_type: challengeData.challenge_type || "standard",
-      capedPoints: challengeData.capedPoints,
+      caped_points: challengeData.capedPoints,
       objectives: objectivesWithValidIds,
-      totalPoints,
-      isRepeating: challengeData.isRepeating || false,
-      isCollaborative: challengeData.isCollaborative || false,
+      total_points: totalPoints,
+      is_repeating: challengeData.isRepeating || false,
+      is_collaborative: challengeData.isCollaborative || false,
     };
 
     // Update challenge (keep objectives in JSON for backward compatibility during migration)
