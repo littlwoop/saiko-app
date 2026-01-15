@@ -961,6 +961,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         if (deleteError) {
           return;
         }
+
+        // Delete corresponding activity feed entries
+        const { activityFeedService } = await import("@/lib/activity-feed");
+        activityFeedService.deleteActivitiesForObjective(
+          user.id,
+          challengeId,
+          objectiveId
+        ).catch(err => console.error("Failed to delete activity feed entries:", err));
       } else {
         // Validate and potentially generate UUID for objective_id
         // If the objective_id is not a valid UUID (e.g., legacy numeric IDs), we can't insert it

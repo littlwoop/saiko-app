@@ -131,6 +131,161 @@ export const activityFeedService = {
   },
 
   /**
+   * Delete activity feed entry for a deleted challenge entry
+   */
+  async deleteActivityForEntry(
+    userId: string,
+    challengeId: number,
+    objectiveId: string,
+    value: number,
+    notes?: string | null
+  ): Promise<void> {
+    try {
+      // First, find matching feed entries
+      const { data: feedEntries, error: fetchError } = await supabase
+        .from("activity_feed")
+        .select("id, metadata")
+        .eq("user_id", userId)
+        .eq("challenge_id", challengeId)
+        .eq("objective_id", objectiveId)
+        .eq("activity_type", "objective_progress")
+        .order("created_at", { ascending: false });
+
+      if (fetchError) {
+        console.error("Error fetching activity feed entries:", fetchError);
+        return;
+      }
+
+      if (!feedEntries || feedEntries.length === 0) {
+        return;
+      }
+
+      // Find the entry that matches the value and notes
+      const matchingEntry = feedEntries.find((entry: any) => {
+        const metadata = entry.metadata || {};
+        const metadataValue = metadata.value;
+        const metadataNotes = metadata.notes || null;
+        
+        // Compare value (handle numeric comparison)
+        const valueMatches = Number(metadataValue) === Number(value);
+        
+        // Compare notes (both null or both match)
+        const notesMatch = (metadataNotes === null && (notes === null || notes === undefined)) ||
+                          (metadataNotes === (notes || null));
+
+        return valueMatches && notesMatch;
+      });
+
+      if (matchingEntry) {
+        // Delete the matching feed entry
+        const { error: deleteError } = await supabase
+          .from("activity_feed")
+          .delete()
+          .eq("id", matchingEntry.id);
+
+        if (deleteError) {
+          console.error("Error deleting activity feed entry:", deleteError);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting activity feed entry:", error);
+      // Don't throw - feed entries are non-critical
+    }
+  },
+
+  /**
+   * Delete all activity feed entries for a challenge objective (when resetting progress)
+   */
+  async deleteActivitiesForObjective(
+    userId: string,
+    challengeId: number,
+    objectiveId: string
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("activity_feed")
+        .delete()
+        .eq("user_id", userId)
+        .eq("challenge_id", challengeId)
+        .eq("objective_id", objectiveId)
+        .eq("activity_type", "objective_progress");
+
+      if (error) {
+        console.error("Error deleting activity feed entries:", error);
+        // Don't throw - feed entries are non-critical
+      }
+    } catch (error) {
+      console.error("Error deleting activity feed entries:", error);
+      // Don't throw - feed entries are non-critical
+    }
+  },
+
+  /**
+   * Delete activity feed entry for a deleted quest progress entry
+   */
+  async deleteActivityForQuestEntry(
+    userId: string,
+    chapterId: string,
+    questId: string,
+    questObjectiveId: string,
+    value: number,
+    notes?: string | null
+  ): Promise<void> {
+    try {
+      // First, find matching feed entries
+      const { data: feedEntries, error: fetchError } = await supabase
+        .from("activity_feed")
+        .select("id, metadata")
+        .eq("user_id", userId)
+        .eq("chapter_id", chapterId)
+        .eq("quest_id", questId)
+        .eq("quest_objective_id", questObjectiveId)
+        .eq("activity_type", "objective_progress")
+        .order("created_at", { ascending: false });
+
+      if (fetchError) {
+        console.error("Error fetching activity feed entries:", fetchError);
+        return;
+      }
+
+      if (!feedEntries || feedEntries.length === 0) {
+        return;
+      }
+
+      // Find the entry that matches the value and notes
+      const matchingEntry = feedEntries.find((entry: any) => {
+        const metadata = entry.metadata || {};
+        const metadataValue = metadata.value;
+        const metadataNotes = metadata.notes || null;
+        
+        // Compare value (handle numeric comparison)
+        const valueMatches = Number(metadataValue) === Number(value);
+        
+        // Compare notes (both null or both match)
+        const notesMatch = (metadataNotes === null && (notes === null || notes === undefined)) ||
+                          (metadataNotes === (notes || null));
+
+        return valueMatches && notesMatch;
+      });
+
+      if (matchingEntry) {
+        // Delete the matching feed entry
+        const { error: deleteError } = await supabase
+          .from("activity_feed")
+          .delete()
+          .eq("id", matchingEntry.id);
+
+        if (deleteError) {
+          console.error("Error deleting activity feed entry:", deleteError);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting activity feed entry:", error);
+      // Don't throw - feed entries are non-critical
+    }
+  },
+
+  /**
    * Get activity feed for a specific user
    */
   async getUserActivityFeed(userId: string, limit: number = 50, offset: number = 0): Promise<ActivityFeedEntry[]> {

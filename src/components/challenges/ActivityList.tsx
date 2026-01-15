@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRound, Edit, Trash2 } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { activityFeedService } from "@/lib/activity-feed";
 import {
   Table,
   TableBody,
@@ -270,6 +271,15 @@ export default function ActivityList({
         });
         return;
       }
+
+      // Delete corresponding activity feed entry
+      await activityFeedService.deleteActivityForEntry(
+        user.id,
+        challengeId,
+        deletingActivity.objective_id,
+        deletingActivity.value,
+        deletingActivity.notes || null
+      );
 
       // Update local state
       setActivities(prev => prev.filter(activity => activity.id !== deletingActivity.id));

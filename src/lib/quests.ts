@@ -207,6 +207,16 @@ export const questService = {
     username?: string
   ): Promise<void> {
     if (value === 0) {
+      // Get the entry first to get its value and notes for feed deletion
+      const { data: existingEntry } = await supabase
+        .from("quest_progress_entries")
+        .select("value, notes")
+        .eq("user_id", userId)
+        .eq("chapter_id", chapterId)
+        .eq("quest_id", questId)
+        .eq("quest_objective_id", questObjectiveId)
+        .maybeSingle();
+
       // Delete entry if value is 0
       const { error } = await supabase
         .from("quest_progress_entries")
@@ -220,6 +230,20 @@ export const questService = {
         console.error("Error deleting quest progress entry:", error);
         throw error;
       }
+
+      // Delete corresponding activity feed entry if entry existed
+      if (existingEntry) {
+        const { activityFeedService } = await import("./activity-feed");
+        activityFeedService.deleteActivityForQuestEntry(
+          userId,
+          chapterId,
+          questId,
+          questObjectiveId,
+          existingEntry.value,
+          existingEntry.notes || null
+        ).catch(err => console.error("Failed to delete activity feed entry:", err));
+      }
+
       return;
     }
 
