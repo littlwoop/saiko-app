@@ -69,7 +69,7 @@ export default function EditChallengeForm() {
     },
   ]);
 
-  // Update objectives when challenge type changes to completion (weekly uses normal fields)
+  // Update objectives when challenge type changes
   useEffect(() => {
     if (challenge_type === "completion") {
       setObjectives(prevObjectives =>
@@ -80,7 +80,34 @@ export default function EditChallengeForm() {
           pointsPerUnit: obj.pointsPerUnit || 1,
         }))
       );
+    } else if (challenge_type === "bingo") {
+      // Ensure exactly 25 objectives for bingo (5x5 grid)
+      setObjectives(prevObjectives => {
+        const currentCount = prevObjectives.length;
+        if (currentCount === 25) {
+          return prevObjectives; // Already correct, no change needed
+        } else if (currentCount < 25) {
+          // Add empty objectives to reach 25
+          const newObjectives = [...prevObjectives];
+          for (let i = currentCount; i < 25; i++) {
+            newObjectives.push({
+              id: uuidv4(),
+              title: "",
+              description: "",
+              targetValue: 1,
+              unit: "",
+              pointsPerUnit: 1,
+            });
+          }
+          return newObjectives;
+        } else {
+          // Remove excess objectives, keep first 25
+          return prevObjectives.slice(0, 25);
+        }
+      });
     }
+    // Note: We don't reset objectives when switching away from bingo in edit mode
+    // because the user might have already entered data
   }, [challenge_type]);
 
   // Auto-adjust dates to week boundaries when weekly challenge is selected
@@ -618,18 +645,46 @@ export default function EditChallengeForm() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">{t("challengeObjectives")}</h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddObjective}
-          >
-            <Plus className="mr-2 h-4 w-4" /> {t("addObjective")}
-          </Button>
+          {challenge_type !== "bingo" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddObjective}
+            >
+              <Plus className="mr-2 h-4 w-4" /> {t("addObjective")}
+            </Button>
+          )}
         </div>
 
-        <div className="space-y-4">
-          {objectives.map((objective, index) => (
+        {challenge_type === "bingo" ? (
+          <div className="grid grid-cols-5 gap-1 p-0.5">
+            {objectives.map((objective, index) => (
+              <Card key={objective.id || index} className="p-2 relative aspect-square">
+                <div className="space-y-2 h-full flex flex-col">
+                  <Input
+                    placeholder={`${t("objectiveTitle")} ${index + 1}`}
+                    value={objective.title}
+                    onChange={(e) =>
+                      handleObjectiveChange(index, "title", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                  <Textarea
+                    placeholder={t("objectiveDescription")}
+                    value={objective.description || ""}
+                    onChange={(e) =>
+                      handleObjectiveChange(index, "description", e.target.value)
+                    }
+                    className="text-xs flex-1 min-h-[60px] resize-none"
+                  />
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {objectives.map((objective, index) => (
             <Card key={objective.id || index} className="p-4 relative">
               {objectives.length > 1 && (
                 <Button
@@ -742,7 +797,8 @@ export default function EditChallengeForm() {
               </div>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
       </div>
 
       <Button type="submit" className="w-full">

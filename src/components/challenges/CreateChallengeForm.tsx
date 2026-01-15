@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,8 +69,18 @@ export default function CreateChallengeForm() {
     },
   ]);
 
-  // Update objectives when challenge type changes to completion (weekly uses normal fields)
+  const prevChallengeTypeRef = useRef<ChallengeType | null>(null);
+
+  // Update objectives when challenge type changes
   useEffect(() => {
+    const prevType = prevChallengeTypeRef.current;
+    prevChallengeTypeRef.current = challenge_type;
+
+    // Skip on initial mount (when prevType is null and challenge_type is standard)
+    if (prevType === null && challenge_type === "standard") {
+      return;
+    }
+
     if (challenge_type === "completion") {
       setObjectives(prevObjectives =>
         prevObjectives.map(obj => ({
@@ -80,6 +90,46 @@ export default function CreateChallengeForm() {
           pointsPerUnit: obj.pointsPerUnit || 1,
         }))
       );
+    } else if (challenge_type === "bingo") {
+      // Ensure exactly 25 objectives for bingo (5x5 grid)
+      setObjectives(prevObjectives => {
+        const currentCount = prevObjectives.length;
+        if (currentCount === 25) {
+          return prevObjectives; // Already correct, no change needed
+        } else if (currentCount < 25) {
+          // Add empty objectives to reach 25
+          const newObjectives = [...prevObjectives];
+          for (let i = currentCount; i < 25; i++) {
+            newObjectives.push({
+              id: uuidv4(),
+              title: "",
+              description: "",
+              targetValue: 1,
+              unit: "",
+              pointsPerUnit: 1,
+            });
+          }
+          return newObjectives;
+        } else {
+          // Remove excess objectives, keep first 25
+          return prevObjectives.slice(0, 25);
+        }
+      });
+    } else if (prevType === "bingo" && challenge_type !== "bingo") {
+      // When switching away from bingo, if all 25 are empty, reset to 1
+      setObjectives(prevObjectives => {
+        if (prevObjectives.length === 25 && prevObjectives.every(obj => !obj.title && !obj.description)) {
+          return [{
+            id: uuidv4(),
+            title: "",
+            description: "",
+            targetValue: 0,
+            unit: "",
+            pointsPerUnit: 0,
+          }];
+        }
+        return prevObjectives;
+      });
     }
   }, [challenge_type]);
 
@@ -598,20 +648,48 @@ export default function CreateChallengeForm() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">{t("challengeObjectives")}</h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddObjective}
-            className={isMobile ? "px-2" : ""}
-          >
-            <Plus className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-            {!isMobile && t("addObjective")}
-          </Button>
+          {challenge_type !== "bingo" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddObjective}
+              className={isMobile ? "px-2" : ""}
+            >
+              <Plus className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+              {!isMobile && t("addObjective")}
+            </Button>
+          )}
         </div>
 
-        <div className="space-y-4">
-          {objectives.map((objective, index) => (
+        {challenge_type === "bingo" ? (
+          <div className="grid grid-cols-5 gap-1 p-0.5">
+            {objectives.map((objective, index) => (
+              <Card key={objective.id || index} className="p-2 relative aspect-square">
+                <div className="space-y-2 h-full flex flex-col">
+                  <Input
+                    placeholder={`${t("objectiveTitle")} ${index + 1}`}
+                    value={objective.title}
+                    onChange={(e) =>
+                      handleObjectiveChange(index, "title", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                  <Textarea
+                    placeholder={t("objectiveDescription")}
+                    value={objective.description || ""}
+                    onChange={(e) =>
+                      handleObjectiveChange(index, "description", e.target.value)
+                    }
+                    className="text-xs flex-1 min-h-[60px] resize-none"
+                  />
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {objectives.map((objective, index) => (
             <Card key={index} className="p-4 relative">
               {objectives.length > 1 && (
                 <Button
@@ -724,7 +802,8 @@ export default function CreateChallengeForm() {
               </div>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
       </div>
 
       <Button type="submit" className="w-full">
