@@ -1018,14 +1018,6 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           }).catch(err => console.error("Failed to create activity feed entry:", err));
         }
       }
-
-      toast({
-        title: value === 0 ? t("objectiveReset") : t("progressUpdated"),
-        description:
-          value === 0
-            ? t("objectiveResetDescription")
-            : t("progressUpdatedDescription"),
-      });
     } catch (error) {
       toast({
         title: "Error",
