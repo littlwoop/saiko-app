@@ -145,11 +145,43 @@ export default function QuestObjectiveItem({
     }
   };
 
+  // Complete objective fully handler
+  const handleCompleteFully = async () => {
+    if (!user) return;
+
+    try {
+      setSaving(true);
+      const { questService } = await import("@/lib/quests");
+      await questService.updateObjectiveProgress(
+        user.id,
+        questId,
+        questStepId,
+        objective.id,
+        targetValue,
+        undefined,
+        user.name
+      );
+      
+      setIsOpen(false);
+      setValue("");
+      onProgressUpdate();
+    } catch (error) {
+      console.error("Error updating quest progress:", error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Speichern des Fortschritts.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1">
+        <div className="space-y-3">
+          <div>
             <CardTitle className="text-base font-semibold">
               {objective.title}
             </CardTitle>
@@ -160,44 +192,42 @@ export default function QuestObjectiveItem({
             )}
           </div>
           {!disabled && (
-            <>
-              {isBinary ? (
-                // Binary completion: "Complete" button or checkmark
-                isCompleted ? (
-                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                ) : (
-                  <Button 
-                    variant="default"
-                    size="sm" 
-                    className="flex-shrink-0"
-                    onClick={handleToggle}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Speichern...
-                      </>
-                    ) : (
-                      "Abgeschlossen!"
-                    )}
-                  </Button>
-                )
+            <div className="flex items-center justify-end gap-2">
+              {isCompleted ? (
+                <div className="flex items-center gap-2 text-green-500">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="text-sm font-medium">Abgeschlossen</span>
+                </div>
               ) : (
-                // Incremental progress: dialog with progress bar
                 <>
-                  {isCompleted ? (
-                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  {isBinary ? (
+                    // Binary completion: "Abgeschlossen!" button
+                    <Button 
+                      variant="default"
+                      size="sm" 
+                      onClick={handleToggle}
+                      disabled={saving}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Speichern...
+                        </>
+                      ) : (
+                        "Abgeschlossen!"
+                      )}
+                    </Button>
                   ) : (
+                    // Incremental progress: dialog with progress bar
                     <Dialog open={isOpen} onOpenChange={setIsOpen}>
                       <DialogTrigger asChild>
                         <Button 
                           variant="default" 
                           size="sm" 
-                          className="h-8 w-8 p-0 flex-shrink-0"
                           title="Fortschritt hinzufügen"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="mr-2 h-4 w-4" />
+                          Fortschritt hinzufügen
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[425px]">
@@ -232,8 +262,26 @@ export default function QuestObjectiveItem({
                               )}
                             </div>
                           </div>
-                          <DialogFooter>
-                            <Button type="submit" disabled={saving}>
+                          <DialogFooter className="flex-col sm:flex-row gap-2">
+                            {currentValue < targetValue && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleCompleteFully}
+                                disabled={saving}
+                                className="w-full sm:w-auto"
+                              >
+                                {saving ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Speichern...
+                                  </>
+                                ) : (
+                                  "Vollständig abschließen"
+                                )}
+                              </Button>
+                            )}
+                            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
                               {saving ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -250,7 +298,7 @@ export default function QuestObjectiveItem({
                   )}
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
       </CardHeader>
