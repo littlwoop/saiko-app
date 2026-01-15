@@ -180,24 +180,21 @@ export default function QuestObjectiveItem({
   return (
     <Card className="w-full">
       <CardHeader className="p-3">
-        <div className="space-y-3">
-          <div>
+        <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+          <div className="space-y-1">
             <CardTitle className="text-base font-semibold">
               {objective.title}
             </CardTitle>
             {objective.description && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground">
                 {objective.description}
               </p>
             )}
           </div>
           {!disabled && (
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center gap-2">
               {isCompleted ? (
-                <div className="flex items-center gap-2 text-green-500">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="text-sm font-medium">Abgeschlossen</span>
-                </div>
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
               ) : (
                 <>
                   {isBinary ? (
@@ -205,6 +202,7 @@ export default function QuestObjectiveItem({
                     <Button 
                       variant="default"
                       size="sm" 
+                      className="flex-shrink-0"
                       onClick={handleToggle}
                       disabled={saving}
                     >
@@ -224,10 +222,10 @@ export default function QuestObjectiveItem({
                         <Button 
                           variant="default" 
                           size="sm" 
+                          className="h-8 w-8 p-0 flex-shrink-0"
                           title="Fortschritt hinzufügen"
                         >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Fortschritt hinzufügen
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[425px]">

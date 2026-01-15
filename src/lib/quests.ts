@@ -419,4 +419,24 @@ export const questService = {
 
     console.log("Chapter progress reset completed successfully");
   },
+
+  /**
+   * Reset quest progress for a single quest (delete all progress entries for that quest)
+   */
+  async resetQuestProgress(userId: string, chapterId: string, questId: string): Promise<void> {
+    // Delete all progress entries for this specific quest
+    const { error: entriesError } = await supabase
+      .from("quest_progress_entries")
+      .delete()
+      .eq("user_id", userId)
+      .eq("chapter_id", chapterId)
+      .eq("quest_id", questId);
+
+    if (entriesError) {
+      console.error("Error deleting quest progress entries:", entriesError);
+      throw new Error(`Failed to delete quest progress entries: ${entriesError.message}`);
+    }
+
+    console.log("Quest progress reset completed successfully");
+  },
 };

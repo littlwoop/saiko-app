@@ -272,6 +272,37 @@ export default function QuestsPage() {
   };
 
   // TODO: Remove this function and button later
+  const handleResetQuest = async () => {
+    if (!user || !chapter || !activeQuestData) return;
+
+    if (!confirm("Möchtest du wirklich den Fortschritt dieser Quest zurücksetzen? Alle Fortschritte werden gelöscht.")) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await questService.resetQuestProgress(user.id, chapter.id, activeQuestData.id);
+      
+      // Reload progress for current quest
+      const questProgress = await questService.getQuestProgress(user.id, activeQuestData.id);
+      setObjectiveProgress(questProgress);
+      
+      toast({
+        title: "Erfolg",
+        description: "Quest-Fortschritt wurde zurückgesetzt.",
+      });
+    } catch (error) {
+      console.error("Error resetting quest progress:", error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Zurücksetzen des Quest-Fortschritts.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleResetChapter = async () => {
     if (!user || !chapter) return;
 
@@ -312,7 +343,7 @@ export default function QuestsPage() {
 
   if (loading || !questLoaded || !chapter) {
     return (
-      <div className="container py-8 max-w-3xl">
+      <div className="container py-8 max-w-5xl">
         {/* Chapter Header Skeleton */}
         <div className="mb-8 pb-4 border-b border-border/50">
           <div className="flex items-center gap-3 mb-2">
@@ -340,7 +371,7 @@ export default function QuestsPage() {
     : "Kapitel";
 
   return (
-    <div className="container py-8 max-w-3xl">
+    <div className="container py-8 max-w-5xl">
       {/* Quest Header */}
       <div className="pb-4">
         <div className="flex items-center justify-between mb-4">
@@ -359,6 +390,18 @@ export default function QuestsPage() {
               )}
             </div>
           </div>
+          {user && chapterStarted && activeQuestData && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetQuest}
+              disabled={saving}
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+              title="Quest-Fortschritt zurücksetzen"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          )}
           {/* TODO: Remove this reset button later */}
           {user && chapterStarted && (
             <Button
