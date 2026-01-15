@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Trophy, Check, Minus } from "lucide-react";
+import { Trophy, Check, Minus, X, MessageCircle, Instagram } from "lucide-react";
 import { Challenge, UserChallenge, DailyChallenge, UserProgress } from "@/types";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -44,6 +44,27 @@ export default function Dashboard() {
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isFlyingOut, setIsFlyingOut] = useState(false);
+  const [showWelcomeInfo, setShowWelcomeInfo] = useState(false);
+
+  // Check if this is first login and show welcome info
+  useEffect(() => {
+    if (!user) return;
+    
+    const welcomeDismissedKey = `welcomeInfoDismissed_${user.id}`;
+    const isDismissed = localStorage.getItem(welcomeDismissedKey) === 'true';
+    
+    if (!isDismissed) {
+      // Check if user has any challenges - if not, it's likely first login
+      getUserChallenges().then(challenges => {
+        if (challenges.length === 0) {
+          setShowWelcomeInfo(true);
+        } else {
+          // Still show it once even if they have challenges (maybe they joined before this feature)
+          setShowWelcomeInfo(true);
+        }
+      });
+    }
+  }, [user, getUserChallenges]);
 
   useEffect(() => {
     const loadActiveChallenges = async () => {
@@ -378,6 +399,13 @@ export default function Dashboard() {
   };
 
 
+  const handleDismissWelcomeInfo = () => {
+    if (!user) return;
+    const welcomeDismissedKey = `welcomeInfoDismissed_${user.id}`;
+    localStorage.setItem(welcomeDismissedKey, 'true');
+    setShowWelcomeInfo(false);
+  };
+
   const handleCompleteChallenge = async () => {
     if (!todaysChallenge) return;
     
@@ -446,6 +474,44 @@ export default function Dashboard() {
         </h1>
       </div>
 
+      {/* Welcome Info Box - First Time Login */}
+      {showWelcomeInfo && (
+        <Alert className="mb-4 sm:mb-6 relative">
+          <button
+            onClick={handleDismissWelcomeInfo}
+            className="absolute right-2 top-2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Schließen</span>
+          </button>
+          <AlertTitle className="pr-6">Willkommen bei Saiko!</AlertTitle>
+          <AlertDescription className="pr-6">
+            <p className="mb-3">
+              Tritt unserer Community bei, um dich mit anderen Challengern zu vernetzen, deinen Fortschritt zu teilen und inspiriert zu werden!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <a
+                href="https://chat.whatsapp.com/L00uRWF2FhKF45358lit3i"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp Community beitreten
+              </a>
+              <a
+                href="https://www.instagram.com/saikochallenges/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-md transition-colors text-sm font-medium"
+              >
+                <Instagram className="h-4 w-4" />
+                Auf Instagram folgen
+              </a>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Streak History */}
       <div className="mb-4 sm:mb-6">
