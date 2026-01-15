@@ -52,17 +52,17 @@ export default function FeedPage() {
   const getActivityIcon = (activityType: ActivityFeedEntry['activityType']) => {
     switch (activityType) {
       case 'objective_progress':
-        return <TrendingUp className="h-5 w-5" />;
+        return <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />;
       case 'challenge_join':
-        return <Users className="h-5 w-5" />;
+        return <Users className="h-4 w-4 sm:h-5 sm:w-5" />;
       case 'challenge_complete':
-        return <Trophy className="h-5 w-5" />;
+        return <Trophy className="h-4 w-4 sm:h-5 sm:w-5" />;
       case 'quest_join':
-        return <BookOpen className="h-5 w-5" />;
+        return <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />;
       case 'quest_complete':
-        return <CheckCircle2 className="h-5 w-5" />;
+        return <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />;
       default:
-        return <Target className="h-5 w-5" />;
+        return <Target className="h-4 w-4 sm:h-5 sm:w-5" />;
     }
   };
 
@@ -122,9 +122,9 @@ export default function FeedPage() {
 
   if (loading && feedEntries.length === 0) {
     return (
-      <div className="container py-8 max-w-4xl">
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="container py-4 sm:py-8 max-w-4xl">
+      <div className="flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] space-y-4">
+        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
         <p className="text-sm text-muted-foreground">{t("feedLoading")}</p>
       </div>
       </div>
@@ -132,33 +132,33 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="container py-8 max-w-4xl">
-      <div className="mb-6">
+    <div className="container py-4 sm:py-8 max-w-4xl">
+      <div className="mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight mb-2">{t("feedTitle")}</h1>
       </div>
 
       {feedEntries.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
+          <CardContent className="py-8 sm:py-12 text-center">
             <p className="text-muted-foreground">{t("feedEmpty")}</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2 sm:space-y-4">
           {feedEntries.map((entry) => {
             const link = getActivityLink(entry);
             const content = (
               <Card className="hover:bg-muted/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-start gap-2 sm:gap-4">
+                    <div className="p-1.5 sm:p-2 rounded-full bg-primary/10 text-primary flex-shrink-0">
                       {getActivityIcon(entry.activityType)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">
+                      <p className="text-sm text-foreground leading-snug">
                         {getActivityMessage(entry)}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">
                         {formatDistanceToNow(new Date(entry.createdAt), {
                           addSuffix: true,
                           locale: dateLocale,
@@ -180,11 +180,13 @@ export default function FeedPage() {
           })}
 
           {hasMore && (
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center pt-2 sm:pt-4">
               <Button
                 variant="outline"
                 onClick={loadMore}
                 disabled={loading}
+                size="sm"
+                className="text-xs sm:text-sm"
               >
                 {loading ? (
                   <>
