@@ -381,7 +381,8 @@ export const translations = {
     dailyProgress: "Täglicher Fortschritt",
     weeklyProgress: "Wöchentlicher Fortschritt",
     notCompleted: "Nicht abgeschlossen",
-    completedToday: "Heute abgeschlossen",
+    completedToday: "Heute erledigt",
+    notCompletedToday: "Heute offen",
     
     // Past Completion Dialog
     addPastCompletion: "Vergangenen Tag abschließen",
@@ -911,6 +912,7 @@ export const translations = {
     weeklyProgress: "Weekly Progress",
     notCompleted: "Not completed",
     completedToday: "Completed today",
+    notCompletedToday: "Not completed today",
     
     // Past Completion Dialog
     addPastCompletion: "Add Past Completion",

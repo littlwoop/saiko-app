@@ -16,7 +16,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
 import { dailyChallengesService } from "@/lib/daily-challenges";
 import { getNumberOfWeeks } from "@/lib/week-utils";
-import { getLocalDateString, normalizeToLocalDate, formatLocalDate } from "@/lib/date-utils";
+import { getLocalDateString, normalizeToLocalDate, formatLocalDate, localDateToUTCStart, localDateToUTCEnd } from "@/lib/date-utils";
+import { supabase } from "@/lib/supabase";
 
 interface DashboardChallengeData {
   challenge: Challenge;
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isFlyingOut, setIsFlyingOut] = useState(false);
   const [showWelcomeInfo, setShowWelcomeInfo] = useState(false);
+  const [completionStatus, setCompletionStatus] = useState<Map<number, boolean>>(new Map());
 
   // Check if this is first login and show welcome info
   useEffect(() => {
@@ -65,6 +67,54 @@ export default function Dashboard() {
       });
     }
   }, [user, getUserChallenges]);
+
+  // Check completion status for completion challenges
+  useEffect(() => {
+    const checkCompletionStatus = async () => {
+      if (!user || activeChallenges.length === 0) return;
+
+      const completionChallenges = activeChallenges.filter(
+        item => item.challenge.challenge_type === "completion" && !isFutureChallenge(item.challenge.startDate)
+      );
+
+      if (completionChallenges.length === 0) return;
+
+      const today = getLocalDateString();
+      const startUTC = localDateToUTCStart(today);
+      const endUTC = localDateToUTCEnd(today);
+
+      const statusMap = new Map<number, boolean>();
+
+      await Promise.all(
+        completionChallenges.map(async (item) => {
+          try {
+            const { data: entries, error } = await supabase
+              .from('entries')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('challenge_id', item.challenge.id)
+              .gte('created_at', startUTC)
+              .lte('created_at', endUTC)
+              .limit(1);
+
+            if (error) {
+              console.error('Error checking completion status:', error);
+              statusMap.set(item.challenge.id, false);
+            } else {
+              statusMap.set(item.challenge.id, (entries?.length || 0) > 0);
+            }
+          } catch (error) {
+            console.error('Error checking completion status:', error);
+            statusMap.set(item.challenge.id, false);
+          }
+        })
+      );
+
+      setCompletionStatus(statusMap);
+    };
+
+    checkCompletionStatus();
+  }, [activeChallenges, user]);
 
   useEffect(() => {
     const loadActiveChallenges = async () => {
@@ -612,9 +662,22 @@ export default function Dashboard() {
             const daysRemaining = item.challenge.endDate ? getDaysRemaining(item.challenge.endDate) : 999;
             const daysUntilStart = getDaysUntilStart(item.challenge.startDate);
             
+            const isCompletionChallenge = item.challenge.challenge_type === "completion";
+            const isTodayCompleted = completionStatus.get(item.challenge.id) || false;
+            const canShowCompletionStatus = isCompletionChallenge && !isFuture;
+            
             return (
               <Link to={`/challenges/${item.challenge.id}`} key={item.challenge.id}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Card className={`hover:shadow-lg transition-shadow cursor-pointer relative ${
+                  canShowCompletionStatus && isTodayCompleted 
+                    ? 'bg-green-50/50' 
+                    : ''
+                }`}>
+                  {canShowCompletionStatus && (
+                    <div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${
+                      isTodayCompleted ? 'bg-green-500' : 'bg-red-300'
+                    }`} />
+                  )}
                   <CardHeader className="pb-2 sm:pb-3">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                       <CardTitle className="text-base sm:text-lg leading-tight line-clamp-2">
