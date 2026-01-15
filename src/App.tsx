@@ -23,6 +23,7 @@ import LeaderboardPage from "@/pages/LeaderboardPage";
 import QuestsPage from "@/pages/QuestsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import Dashboard from "@/pages/Dashboard";
+import FeedPage from "@/pages/FeedPage";
 import StravaCallback from "@/pages/StravaCallback";
 import NotFound from "@/pages/NotFound";
 
@@ -51,6 +52,7 @@ const App = () => (
                   <Route path="challenges/:id" element={<ChallengePage />} />
                   <Route path="leaderboard" element={<LeaderboardPage />} />
                   <Route path="quests" element={<QuestsPage />} />
+                  <Route path="feed" element={<FeedPage />} />
 
                   {/* Protected routes */}
                   <Route

@@ -861,6 +861,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // Create activity feed entry for challenge join
+      const { activityFeedService } = await import("@/lib/activity-feed");
+      activityFeedService.createActivity(user.id, 'challenge_join', {
+        challengeId,
+      }).catch(err => console.error("Failed to create activity feed entry:", err));
+
       toast({
         title: "Success!",
         description: "You've joined the challenge successfully",
@@ -992,6 +998,16 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
         if (insertError) {
           return;
+        }
+
+        // Create activity feed entry for objective progress
+        if (value > 0) {
+          const { activityFeedService } = await import("@/lib/activity-feed");
+          activityFeedService.createActivity(user.id, 'objective_progress', {
+            challengeId,
+            objectiveId,
+            metadata: { value, notes: notes?.trim() || null },
+          }).catch(err => console.error("Failed to create activity feed entry:", err));
         }
       }
 
@@ -1370,6 +1386,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         valueAchieved,
         notes
       );
+
+      // Create activity feed entry for challenge completion
+      const { activityFeedService } = await import("@/lib/activity-feed");
+      activityFeedService.createActivity(user.id, 'challenge_complete', {
+        metadata: { dailyChallengeId, valueAchieved, notes: notes?.trim() || null, isDaily: true },
+      }).catch(err => console.error("Failed to create activity feed entry:", err));
 
       toast({
         title: "Challenge Completed! 🎉",

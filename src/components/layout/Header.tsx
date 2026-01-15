@@ -19,6 +19,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerHeader,
+  DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
 
@@ -96,6 +97,17 @@ export default function Header() {
       >
         {t("leaderboard")}
       </Link>
+      <Link
+        to="/feed"
+        onClick={onLinkClick}
+        className={`text-sm font-medium transition-colors hover:text-primary select-none ${
+          location.pathname === "/feed"
+            ? "text-primary"
+            : "text-foreground"
+        }`}
+      >
+        Feed
+      </Link>
     </>
   );
 
@@ -146,6 +158,7 @@ export default function Header() {
             </DrawerTrigger>
             <DrawerContent>
               <DrawerHeader className="text-left">
+                <DrawerTitle className="sr-only">Navigation Menu</DrawerTitle>
                 <div className="flex flex-col gap-4">
                   <NavLinks onLinkClick={() => setIsMobileMenuOpen(false)} />
                   {user ? (

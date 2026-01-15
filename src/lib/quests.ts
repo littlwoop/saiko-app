@@ -175,6 +175,13 @@ export const questService = {
       throw error;
     }
 
+    // Create activity feed entry for quest join
+    const { activityFeedService } = await import("./activity-feed");
+    activityFeedService.createActivity(userId, 'quest_join', {
+      chapterId,
+      questId: firstQuestId,
+    }).catch(err => console.error("Failed to create activity feed entry:", err));
+
     return {
       id: data.id,
       userId: data.user_id,
@@ -236,6 +243,17 @@ export const questService = {
     if (error) {
       console.error("Error upserting quest progress entry:", error);
       throw error;
+    }
+
+    // Create activity feed entry for quest objective progress
+    if (value > 0) {
+      const { activityFeedService } = await import("./activity-feed");
+      activityFeedService.createActivity(userId, 'objective_progress', {
+        chapterId,
+        questId,
+        questObjectiveId,
+        metadata: { value, notes: notes?.trim() || null },
+      }).catch(err => console.error("Failed to create activity feed entry:", err));
     }
   },
 
@@ -327,6 +345,14 @@ export const questService = {
       console.error("Error completing quest:", error);
       throw error;
     }
+
+    // Create activity feed entry for quest completion
+    const { activityFeedService } = await import("./activity-feed");
+    activityFeedService.createActivity(userId, 'quest_complete', {
+      chapterId,
+      questId: currentQuestId,
+      metadata: { nextQuestId: nextQuestId || null },
+    }).catch(err => console.error("Failed to create activity feed entry:", err));
   },
 
   /**
