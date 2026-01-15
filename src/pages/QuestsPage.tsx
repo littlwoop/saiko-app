@@ -15,6 +15,7 @@ export default function QuestsPage() {
   const [userProgress, setUserProgress] = useState<UserChapterProgress | null>(null);
   const [currentQuest, setCurrentQuest] = useState<number>(0);
   const [objectiveProgress, setObjectiveProgress] = useState<Record<string, number>>({});
+  const [allQuestProgress, setAllQuestProgress] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [questLoaded, setQuestLoaded] = useState(false);
@@ -50,6 +51,14 @@ export default function QuestsPage() {
               const activeQuest = chapterData.quests[activeQuestIndex];
               const questProgress = await questService.getQuestProgress(user.id, activeQuest.id);
               setObjectiveProgress(questProgress);
+              
+              // Load progress for all quests to determine accessibility
+              const allProgress: Record<string, Record<string, number>> = {};
+              for (const quest of chapterData.quests) {
+                const progress = await questService.getQuestProgress(user.id, quest.id);
+                allProgress[quest.id] = progress;
+              }
+              setAllQuestProgress(allProgress);
             }
           } else {
             // No progress found - ensure we start from the beginning
@@ -111,8 +120,45 @@ export default function QuestsPage() {
       )
     : false;
   
+  // Scroll to top when quest completion is revealed
+  useEffect(() => {
+    if (isCurrentQuestCompleted && questLoaded && !loading) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [isCurrentQuestCompleted, questLoaded, loading]);
+  
   const hasNextQuest = chapter && currentQuest < chapter.quests.length - 1;
   const hasPreviousQuest = currentQuest > 0;
+
+  // Check if a quest is completed based on all objectives
+  const isQuestCompleted = (questIndex: number): boolean => {
+    if (!chapter || questIndex < 0 || questIndex >= chapter.quests.length) return false;
+    const quest = chapter.quests[questIndex];
+    if (quest.objectives.length === 0) return false;
+    
+    const questProgress = allQuestProgress[quest.id] || {};
+    return quest.objectives.every((obj) => {
+      const progress = questProgress[obj.id] || 0;
+      if (obj.isBinary) {
+        return progress >= 1;
+      }
+      return progress >= (obj.targetValue || 1);
+    });
+  };
+
+  // Check if a quest is accessible (all previous quests are completed)
+  const isQuestAccessible = (questIndex: number): boolean => {
+    if (questIndex === 0) return true; // First quest is always accessible
+    if (!chapter) return false;
+    
+    // Check if all previous quests are completed
+    for (let i = 0; i < questIndex; i++) {
+      if (!isQuestCompleted(i)) {
+        return false;
+      }
+    }
+    return true;
+  };
 
   const handleStartChapter = async () => {
     if (!user || !chapter || chapter.quests.length === 0) return;
@@ -142,6 +188,12 @@ export default function QuestsPage() {
     try {
       const questProgress = await questService.getQuestProgress(user.id, activeQuestData.id);
       setObjectiveProgress(questProgress);
+      
+      // Update all quest progress for navigation
+      setAllQuestProgress((prev) => ({
+        ...prev,
+        [activeQuestData.id]: questProgress,
+      }));
     } catch (error) {
       console.error("Error refreshing progress:", error);
     }
@@ -237,6 +289,16 @@ export default function QuestsPage() {
   const handleQuestNavigation = async (questIndex: number) => {
     if (!user || !chapter || questIndex < 0 || questIndex >= chapter.quests.length) return;
     if (questIndex === currentQuest) return;
+    
+    // Prevent navigation to inaccessible quests
+    if (!isQuestAccessible(questIndex)) {
+      toast({
+        title: "Quest nicht verfügbar",
+        description: "Du musst die vorherigen Quests abschließen, um diese Quest zu öffnen.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setSaving(true);
@@ -374,58 +436,60 @@ export default function QuestsPage() {
     <div className="container py-8 max-w-5xl">
       {/* Quest Header */}
       <div className="pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-md bg-muted">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="p-1.5 rounded-md bg-muted flex-shrink-0">
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div>
-              <div className="text-sm font-medium text-foreground">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-foreground break-words">
                 {chapter.chapterNumber ? `Kapitel ${chapter.chapterNumber}` : 'Kapitel'} - {chapter.title}
               </div>
               {chapterStarted && activeQuestData && (
-                <div className="text-sm text-muted-foreground mt-1">
+                <div className="text-sm text-muted-foreground mt-1 break-words">
                   Quest {activeQuestData.questNumber} - {activeQuestData.title}
                 </div>
               )}
             </div>
           </div>
-          {user && chapterStarted && activeQuestData && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetQuest}
-              disabled={saving}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-              title="Quest-Fortschritt zurücksetzen"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          )}
-          {/* TODO: Remove this reset button later */}
           {user && chapterStarted && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetChapter}
-              disabled={saving}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-              title="Kapitel-Fortschritt zurücksetzen"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+              {activeQuestData && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetQuest}
+                  disabled={saving}
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                  title="Quest-Fortschritt zurücksetzen"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+              {/* TODO: Remove this reset button later */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetChapter}
+                disabled={saving}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                title="Kapitel-Fortschritt zurücksetzen"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
 
         {/* Quest Navigation */}
         {chapterStarted && chapter.quests.length > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-hidden">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleQuestNavigation(currentQuest - 1)}
               disabled={!hasPreviousQuest || saving}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 flex-shrink-0"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -434,29 +498,31 @@ export default function QuestsPage() {
               )}
             </Button>
             
-            <div className="flex items-center gap-2 flex-1 justify-center">
+            <div className="flex items-center gap-2 flex-1 justify-center overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {chapter.quests.map((quest, index) => {
                 const isActive = index === currentQuest;
-                // Only check completion for the current quest (we have its progress loaded)
-                const questCompleted = isActive && isCurrentQuestCompleted;
+                const questCompleted = isQuestCompleted(index);
+                const questAccessible = isQuestAccessible(index);
 
                 return (
                   <button
                     key={quest.id}
                     onClick={() => handleQuestNavigation(index)}
-                    disabled={saving}
+                    disabled={saving || !questAccessible}
                     className={`
-                      flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-md text-sm font-medium
+                      flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-md text-sm font-medium flex-shrink-0
                       transition-colors
                       ${isActive 
                         ? 'bg-primary text-primary-foreground' 
                         : questCompleted
                         ? 'bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/30'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        : questAccessible
+                        ? 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        : 'bg-muted/50 text-muted-foreground/50 opacity-50 cursor-not-allowed'
                       }
-                      ${saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      ${saving ? 'opacity-50 cursor-not-allowed' : questAccessible ? 'cursor-pointer' : 'cursor-not-allowed'}
                     `}
-                    title={quest.title}
+                    title={questAccessible ? quest.title : `${quest.title} (Nicht verfügbar - schließe zuerst die vorherigen Quests ab)`}
                   >
                     {saving && isActive ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -475,7 +541,7 @@ export default function QuestsPage() {
               size="sm"
               onClick={() => handleQuestNavigation(currentQuest + 1)}
               disabled={!hasNextQuest || saving}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 flex-shrink-0"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -542,33 +608,71 @@ export default function QuestsPage() {
               <div className={`grid gap-6 mb-6 md:items-stretch ${(chapter.imageUrl && currentQuest === 0) || activeQuestData?.imageUrl ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                 {/* Quest Image - Show chapter image for quest 1, or quest image if available */}
                 {(chapter.imageUrl && currentQuest === 0) || activeQuestData?.imageUrl ? (
-                  <div className="flex items-center justify-center rounded-lg overflow-hidden md:order-2">
-                    <img 
-                      src={activeQuestData?.imageUrl || chapter.imageUrl} 
-                      alt={activeQuestData?.title || chapter.title} 
-                      className="w-full h-auto object-cover rounded-lg"
-                    />
+                  <div className="order-1 md:order-2">
+                    <div className="flex items-center justify-center rounded-lg overflow-hidden">
+                      <img 
+                        src={activeQuestData?.imageUrl || chapter.imageUrl} 
+                        alt={activeQuestData?.title || chapter.title} 
+                        className="w-full h-auto object-cover rounded-lg"
+                      />
+                    </div>
+                    {/* Show completion message below image if quest is completed */}
+                    {isCurrentQuestCompleted && (
+                      <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20 mt-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-green-600 dark:text-green-400">
+                            Quest abgeschlossen!
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
                  {/* Quest Card - Second on mobile, first on desktop */}
-                 <Card className="flex flex-col border-0 md:order-1">
-                   <CardContent className="space-y-4 pt-6">
-                    {/* Show completion message if quest is completed */}
+                 <Card className="flex flex-col border-0 order-2 md:order-1">
+                   <CardContent className="space-y-4 p-3 md:p-6 pt-3 md:pt-6">
+                    {/* Show completion content if quest is completed */}
                     {isCurrentQuestCompleted ? (
                       <div className="space-y-2 pt-2">
-                        <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20 mb-4">
-                          <CheckCircle2 className="h-5 w-5 text-green-500" />
-                          <div>
-                            <p className="font-semibold text-green-600 dark:text-green-400">
-                              Quest abgeschlossen!
-                            </p>
+                        {/* Show completion message if no quest image */}
+                        {!activeQuestData?.imageUrl && !(chapter.imageUrl && currentQuest === 0) && !activeQuestData.completionImageUrl && (
+                          <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20 mb-2">
+                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                            <div>
+                              <p className="font-semibold text-green-600 dark:text-green-400">
+                                Quest abgeschlossen!
+                              </p>
+                            </div>
                           </div>
-                        </div>
+                        )}
                         {/* Completion content with image on right if available */}
                         {activeQuestData.completionText && (
-                          <div className={`grid gap-6 mb-4 ${activeQuestData.completionImageUrl ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-                            <div className="space-y-4">
+                          <div className={`grid gap-3 mb-4 ${activeQuestData.completionImageUrl ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                            {activeQuestData.completionImageUrl && (
+                              <div className="order-1 md:order-2">
+                                <div className="flex items-center justify-center rounded-lg overflow-hidden">
+                                  <img 
+                                    src={activeQuestData.completionImageUrl} 
+                                    alt="Completion" 
+                                    className="w-full h-auto object-cover rounded-lg"
+                                  />
+                                </div>
+                                {/* Show completion message below completion image if no quest image */}
+                                {!activeQuestData?.imageUrl && !(chapter.imageUrl && currentQuest === 0) && (
+                                  <div className="flex items-center gap-2 p-4 rounded-lg bg-green-500/10 border border-green-500/20 mt-2">
+                                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                                    <div>
+                                      <p className="font-semibold text-green-600 dark:text-green-400">
+                                        Quest abgeschlossen!
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            <div className="space-y-4 order-2 md:order-1">
                               <div className="prose prose-sm dark:prose-invert max-w-none">
                                 <p className="text-foreground leading-relaxed whitespace-pre-line">
                                   {activeQuestData.completionText}
@@ -593,16 +697,22 @@ export default function QuestsPage() {
                                   </Button>
                                 </div>
                               )}
+                              {!hasNextQuest && activeQuestData.questNumber === 10 && (
+                                <div className="pt-4 mt-4 border-t border-border/50">
+                                  <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                    <BookOpen className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                      <p className="font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                                        Kapitel abgeschlossen!
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        Neue Kapitel werden in Zukunft hinzugefügt. Bleib dran – du wirst etwas Wichtiges entdecken...
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {activeQuestData.completionImageUrl && (
-                              <div className="flex items-center justify-center rounded-lg overflow-hidden md:order-2">
-                                <img 
-                                  src={activeQuestData.completionImageUrl} 
-                                  alt="Completion" 
-                                  className="w-full h-auto object-cover rounded-lg"
-                                />
-                              </div>
-                            )}
                           </div>
                         )}
                         {/* Show next quest button even if no completion text */}
@@ -640,7 +750,7 @@ export default function QuestsPage() {
 
                         {/* Objectives - only show when quest is NOT completed */}
                         {activeQuestData.objectives.length > 0 && !isCurrentQuestCompleted && (
-                          <div className="space-y-4 pt-2 border-t border-border/50">
+                          <div className="space-y-4 pt-2">
                             <p className="text-sm text-muted-foreground font-medium">Aufgaben:</p>
                             <div className="space-y-3">
                               {activeQuestData.objectives.map((objective) => {
