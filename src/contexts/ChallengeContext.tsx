@@ -925,6 +925,36 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         throw updateError;
       }
 
+      // Delete all entries (progress) for this user in this challenge
+      const { error: entriesError } = await supabase
+        .from("entries")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId);
+
+      if (entriesError) {
+        console.error("Error deleting entries:", entriesError);
+        // Don't throw - continue with cleanup
+      }
+
+      // Delete user challenge start/end dates for repeating challenges
+      // (end_date is stored in the same user_challenge_starts table)
+      const { error: startDateError } = await supabase
+        .from("user_challenge_starts")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId);
+
+      if (startDateError) {
+        console.error("Error deleting user challenge start/end dates:", startDateError);
+        // Don't throw - continue with cleanup
+      }
+
+      // Delete all activity feed entries for this user in this challenge
+      const { activityFeedService } = await import("@/lib/activity-feed");
+      activityFeedService.deleteActivitiesForChallenge(user.id, challengeId)
+        .catch(err => console.error("Failed to delete activity feed entries:", err));
+
       toast({
         title: "Success!",
         description: "You've left the challenge successfully",

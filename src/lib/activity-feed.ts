@@ -286,6 +286,30 @@ export const activityFeedService = {
   },
 
   /**
+   * Delete all activity feed entries for a user in a specific challenge (when leaving a challenge)
+   */
+  async deleteActivitiesForChallenge(
+    userId: string,
+    challengeId: number
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from("activity_feed")
+        .delete()
+        .eq("user_id", userId)
+        .eq("challenge_id", challengeId);
+
+      if (error) {
+        console.error("Error deleting activity feed entries for challenge:", error);
+        // Don't throw - feed entries are non-critical
+      }
+    } catch (error) {
+      console.error("Error deleting activity feed entries for challenge:", error);
+      // Don't throw - feed entries are non-critical
+    }
+  },
+
+  /**
    * Get activity feed for a specific user
    */
   async getUserActivityFeed(userId: string, limit: number = 50, offset: number = 0): Promise<ActivityFeedEntry[]> {

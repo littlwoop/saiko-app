@@ -1181,6 +1181,7 @@ export default function ChallengePage() {
 
             <TabsContent value="leaderboard" className="mt-6">
               <LeaderboardTable
+                key={`leaderboard-${challenge.id}-${participants.length}`}
                 challengeId={challenge.id}
                 capedPoints={challenge.capedPoints}
                 onUserClick={(userId) => {
