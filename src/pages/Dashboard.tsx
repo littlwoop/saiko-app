@@ -448,8 +448,8 @@ export default function Dashboard() {
 
 
       {/* Streak History */}
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900">
             {t("dailyProgress")}
           </h2>
@@ -457,25 +457,22 @@ export default function Dashboard() {
             {calculateStreak()} {calculateStreak() === 1 ? t("streakDay") : t("streakDays")} {t("streak")}
           </Badge>
         </div>
-        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+        <div className="grid grid-cols-7 gap-1">
           {getStreakData().map((day, index) => (
             <div
               key={index}
-              className={`flex flex-col items-center p-1.5 sm:p-2 lg:p-3 rounded-lg border ${
+              className={`flex flex-col items-center p-1 sm:p-1.5 rounded-md ${
                 day.hasActivity 
-                  ? 'bg-green-50 border-green-200 text-green-700' 
-                  : 'bg-gray-50 border-gray-200 text-gray-500'
-              } ${day.isToday ? 'ring-2 ring-primary ring-offset-1 sm:ring-offset-2' : ''}`}
+                  ? 'bg-green-400' 
+                  : 'bg-gray-200'
+              } ${day.isToday ? 'ring-2 ring-primary ring-offset-1' : ''}`}
             >
-              <span className="text-xs font-medium mb-1 hidden sm:block">{day.dayName}</span>
-              <span className="text-xs font-medium mb-1 sm:hidden">{day.dayName.charAt(0)}</span>
-              <div className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 flex items-center justify-center">
-                {day.hasActivity ? (
-                  <Check className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-green-600" />
-                ) : (
-                  <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-gray-400" />
-                )}
-              </div>
+              <span className={`text-[10px] sm:text-xs font-medium mb-0.5 hidden sm:block ${
+                day.hasActivity ? 'text-white' : 'text-gray-600'
+              }`}>{day.dayName}</span>
+              <span className={`text-[10px] sm:text-xs font-medium mb-0.5 sm:hidden ${
+                day.hasActivity ? 'text-white' : 'text-gray-600'
+              }`}>{day.dayName.charAt(0)}</span>
             </div>
           ))}
         </div>
