@@ -128,9 +128,13 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // Ensure participants is always an array
+      const participants = Array.isArray(challengeData.participants) ? challengeData.participants : [];
+      
       const result = {
         ...challengeData,
         objectives,
+        participants,
         // Supabase automatically maps snake_case to camelCase, so check both
         isRepeating: challengeData.is_repeating !== undefined ? challengeData.is_repeating : (challengeData.isRepeating || false),
         isCollaborative: challengeData.is_collaborative !== undefined ? challengeData.is_collaborative : (challengeData.isCollaborative || false),
@@ -155,10 +159,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return [];
 
     try {
+      // Fetch all challenges and filter for those where user is a participant
+      // This is necessary because Supabase's .contains() doesn't work for checking
+      // if a JSONB array contains a specific value
       const { data: challengesData, error: challengesError } = await supabase
         .from("challenges")
-        .select("*")
-        .contains("participants", JSON.stringify([user.id]));
+        .select("*");
 
       if (challengesError) {
         toast({
@@ -169,8 +175,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return [];
       }
 
+      // Filter challenges where user is in participants array
+      const userChallengesData = (challengesData || []).filter((challenge) => {
+        const participants = Array.isArray(challenge.participants) ? challenge.participants : [];
+        return participants.includes(user.id);
+      });
+
       // Fetch objectives for all challenges
-      const challengeIds = (challengesData || []).map((c) => c.id);
+      const challengeIds = userChallengesData.map((c) => c.id);
       const { data: allObjectivesData } = await supabase
         .from("objectives")
         .select("*")
@@ -198,7 +210,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       
       // Calculate actual progress for each challenge
       const userChallengesWithProgress = await Promise.all(
-        (challengesData || []).map(async (challenge) => {
+        userChallengesData.map(async (challenge) => {
           // Use objectives from table, fallback to JSON field
           const objectives = objectivesByChallenge[challenge.id] || 
                             (Array.isArray(challenge.objectives) ? challenge.objectives : []);

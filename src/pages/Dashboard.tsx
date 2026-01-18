@@ -26,7 +26,7 @@ interface DashboardChallengeData {
 }
 
 export default function Dashboard() {
-  const { getUserChallenges, getChallenge, getUserActivityDates, completeDailyChallenge, getChallengeProgress } = useChallenges();
+  const { getUserChallenges, getChallenge, getUserActivityDates, completeDailyChallenge, getChallengeProgress, getUserChallengeStartDate, getUserChallengeEndDate } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
@@ -123,6 +123,7 @@ export default function Dashboard() {
       try {
         setIsLoading(true);
         const userChallenges = await getUserChallenges();
+        console.log("Dashboard: getUserChallenges returned", userChallenges.length, "challenges");
         
         // Get full challenge details for each user challenge
         const challengesWithDetails = await Promise.all(
@@ -130,10 +131,21 @@ export default function Dashboard() {
             const challenge = await getChallenge(userChallenge.challengeId);
             if (challenge) {
               const userProgress = await getChallengeProgress(challenge.id, challenge.challenge_type);
+              
+              // For repeating challenges, get user-specific start and end dates
+              let userStartDate: string | null = null;
+              let userEndDate: string | null = null;
+              if (challenge.isRepeating) {
+                userStartDate = await getUserChallengeStartDate(challenge.id, user.id);
+                userEndDate = await getUserChallengeEndDate(challenge.id, user.id);
+              }
+              
               return {
                 challenge,
                 userChallenge,
                 userProgress,
+                userStartDate,
+                userEndDate,
               };
             }
             return null;
@@ -144,22 +156,53 @@ export default function Dashboard() {
         // and future challenges (not started yet but user has joined)
         const now = new Date();
         const challenges = challengesWithDetails
-          .filter((item): item is DashboardChallengeData => 
+          .filter((item): item is DashboardChallengeData & { userStartDate?: string | null; userEndDate?: string | null } => 
             item !== null && 
             item.challenge && 
-            // Show if: active (started but not ended) OR future (not started yet)
-            (
-              (new Date(item.challenge.startDate) <= now && 
-               (!item.challenge.endDate || new Date(item.challenge.endDate) > now))
-              ||
-              new Date(item.challenge.startDate) > now
-            )
+            (() => {
+              // For repeating challenges, use user-specific dates
+              if (item.challenge.isRepeating) {
+                const startDate = item.userStartDate ? new Date(item.userStartDate) : null;
+                const endDate = item.userEndDate ? new Date(item.userEndDate) : null;
+                
+                // Show if user has started (has a start date) and hasn't ended yet
+                if (startDate) {
+                  return startDate <= now && (!endDate || endDate > now);
+                }
+                // If no start date yet, don't show (user hasn't actually started)
+                return false;
+              }
+              
+              // For non-repeating challenges, use challenge dates
+              const startDate = item.challenge.startDate ? new Date(item.challenge.startDate) : null;
+              const endDate = item.challenge.endDate ? new Date(item.challenge.endDate) : null;
+              
+              // If no start date, still show the challenge (user has joined, so it's relevant)
+              if (!startDate) return true;
+              
+              // Show if: active (started but not ended) OR future (not started yet)
+              return (startDate <= now && (!endDate || endDate > now)) || startDate > now;
+            })()
           )
           .sort((a, b) => {
-            const aStartDate = new Date(a.challenge.startDate);
-            const bStartDate = new Date(b.challenge.startDate);
-            const aEndDate = a.challenge.endDate ? new Date(a.challenge.endDate) : null;
-            const bEndDate = b.challenge.endDate ? new Date(b.challenge.endDate) : null;
+            // Get effective start/end dates (user-specific for repeating, challenge for non-repeating)
+            const aStartDate = a.challenge.isRepeating && (a as any).userStartDate
+              ? new Date((a as any).userStartDate)
+              : a.challenge.startDate ? new Date(a.challenge.startDate) : null;
+            const bStartDate = b.challenge.isRepeating && (b as any).userStartDate
+              ? new Date((b as any).userStartDate)
+              : b.challenge.startDate ? new Date(b.challenge.startDate) : null;
+            const aEndDate = a.challenge.isRepeating && (a as any).userEndDate
+              ? new Date((a as any).userEndDate)
+              : a.challenge.endDate ? new Date(a.challenge.endDate) : null;
+            const bEndDate = b.challenge.isRepeating && (b as any).userEndDate
+              ? new Date((b as any).userEndDate)
+              : b.challenge.endDate ? new Date(b.challenge.endDate) : null;
+            
+            // Handle null dates
+            if (!aStartDate && !bStartDate) return 0;
+            if (!aStartDate) return 1;
+            if (!bStartDate) return -1;
             
             // Determine status: active (started, not ended) or future (not started)
             const aIsActive = aStartDate <= now && (!aEndDate || aEndDate > now);
@@ -186,6 +229,7 @@ export default function Dashboard() {
             return 0;
           });
 
+        console.log("Dashboard: Filtered to", challenges.length, "active challenges");
         setActiveChallenges(challenges);
       } catch (error) {
         console.error("Error loading active challenges:", error);

@@ -81,9 +81,12 @@ export default function ChallengesPage() {
       const challengesWithObjectives = challengesData.map((challenge) => {
         const objectives = objectivesByChallenge[challenge.id] || 
                           (Array.isArray(challenge.objectives) ? challenge.objectives : []);
+        // Ensure participants is always an array
+        const participants = Array.isArray(challenge.participants) ? challenge.participants : [];
         return {
           ...challenge,
           objectives,
+          participants,
         };
       });
 
@@ -124,12 +127,12 @@ export default function ChallengesPage() {
 
   // Get user's joined challenges
   const userJoinedChallenges = user
-    ? filteredChallenges.filter((challenge) => challenge.participants && challenge.participants.includes(user.id))
+    ? filteredChallenges.filter((challenge) => Array.isArray(challenge.participants) && challenge.participants.includes(user.id))
     : [];
 
   // Get other available challenges
   const availableChallenges = user
-    ? filteredChallenges.filter((challenge) => !challenge.participants || !challenge.participants.includes(user.id))
+    ? filteredChallenges.filter((challenge) => !Array.isArray(challenge.participants) || !challenge.participants.includes(user.id))
     : filteredChallenges;
 
   const sortedAllChallenges = useMemo(() => {
@@ -201,7 +204,7 @@ export default function ChallengesPage() {
       return [];
     }
     const joined = filteredChallenges.filter((challenge) =>
-      challenge.participants && challenge.participants.includes(user.id)
+      Array.isArray(challenge.participants) && challenge.participants.includes(user.id)
     );
     const today = new Date();
     
