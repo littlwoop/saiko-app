@@ -28,7 +28,7 @@ export const translations = {
     heroSubtitle:
       "Setze Ziele, verfolge Fortschritte und wetteifere mit Freunden in anpassbaren Herausforderungen, die dich motivieren.",
     getStarted: "Loslegen",
-    createChallenge: "Herausforderung erstellen",
+    createChallenge: "Erstellen",
     browseChallenges: "Herausforderungen durchsuchen",
     goToDashboard: "Zum Dashboard",
     welcomeBack: "Willkommen zurück, {name}! 👋",
@@ -210,12 +210,13 @@ export const translations = {
     // Challenge Status
     active: "Aktiv",
     upcoming: "Kommend",
+    available: "Verfügbar",
     completed: "Abgeschlossen",
 
     // Challenges Page
     searchChallenges: "Herausforderungen suchen...",
     allChallenges: "Alle",
-    myJoinedChallenges: "Beigetretenen",
+    myJoinedChallenges: "Beigetreten",
     createdByMe: "Von mir erstellt",
     noChallengesFound: "Keine Herausforderungen gefunden",
     noChallengesFoundDescription:
@@ -758,6 +759,7 @@ export const translations = {
     // Challenge Status
     active: "Active",
     upcoming: "Upcoming",
+    available: "Available",
     completed: "Completed",
 
     // Challenges Page

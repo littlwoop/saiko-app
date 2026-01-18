@@ -7,7 +7,7 @@ import ChallengeCard from '@/components/challenges/ChallengeCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Challenge, UserChallenge } from '@/types';
 import { supabase } from '@/lib/supabase';
 
@@ -21,8 +21,30 @@ export default function ChallengesPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [userChallenges, setUserChallenges] = useState<UserChallenge[]>([]);
   const [showCompleted, setShowCompleted] = useState(false);
-
-  const activeTab = user ? 'all' : 'browse';
+  
+  // Get initial view from localStorage or use default
+  const getInitialView = () => {
+    if (typeof window !== 'undefined') {
+      const savedView = localStorage.getItem('challengesPageSelectedView');
+      if (savedView && (savedView === 'available' || savedView === 'all' || savedView === 'upcoming' || savedView === 'joined')) {
+        // Only use saved view if it's valid for current user state
+        if (savedView === 'available' || savedView === 'joined') {
+          return user ? savedView : 'all';
+        }
+        return savedView;
+      }
+    }
+    return user ? 'available' : 'all';
+  };
+  
+  const [selectedView, setSelectedView] = useState<string>(getInitialView());
+  
+  // Save selected view to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('challengesPageSelectedView', selectedView);
+    }
+  }, [selectedView]);
 
   const loadChallenges = async () => {
     try {
@@ -130,10 +152,65 @@ export default function ChallengesPage() {
     ? filteredChallenges.filter((challenge) => Array.isArray(challenge.participants) && challenge.participants.includes(user.id))
     : [];
 
-  // Get other available challenges
+  // Get other available challenges (challenges user hasn't joined)
   const availableChallenges = user
     ? filteredChallenges.filter((challenge) => !Array.isArray(challenge.participants) || !challenge.participants.includes(user.id))
     : filteredChallenges;
+
+  // Sort available challenges (excluding completed ones)
+  const sortedAvailableChallenges = useMemo(() => {
+    const today = new Date();
+    
+    // Filter out completed challenges
+    const activeAndFutureChallenges = availableChallenges.filter((challenge) => {
+      // For repeating challenges, they're always available (not completed)
+      if (challenge.isRepeating) {
+        return true;
+      }
+      
+      const endDate = challenge.endDate ? new Date(challenge.endDate) : null;
+      // Show if no end date (ongoing) or end date is in the future
+      return !endDate || today <= endDate;
+    });
+    
+    const sorted = [...activeAndFutureChallenges].sort((a, b) => {
+      // First, determine the status of each challenge
+      const aStartDate = a.startDate ? new Date(a.startDate) : null;
+      const aEndDate = a.endDate ? new Date(a.endDate) : null;
+      const bStartDate = b.startDate ? new Date(b.startDate) : null;
+      const bEndDate = b.endDate ? new Date(b.endDate) : null;
+      
+      const aIsActive = aStartDate ? (today >= aStartDate && (!aEndDate || today <= aEndDate)) : false;
+      const aIsFuture = aStartDate ? today < aStartDate : false;
+      
+      const bIsActive = bStartDate ? (today >= bStartDate && (!bEndDate || today <= bEndDate)) : false;
+      const bIsFuture = bStartDate ? today < bStartDate : false;
+      
+      // Priority order: Active > Upcoming
+      const getStatusPriority = (isActive: boolean, isFuture: boolean) => {
+        if (isActive) return 2;
+        if (isFuture) return 1;
+        return 0;
+      };
+      
+      const aPriority = getStatusPriority(aIsActive, aIsFuture);
+      const bPriority = getStatusPriority(bIsActive, bIsFuture);
+      
+      // If status is different, sort by status priority
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority;
+      }
+      
+      // If status is the same, sort by start date (soonest first)
+      if (aStartDate && bStartDate) {
+        return aStartDate.getTime() - bStartDate.getTime();
+      }
+      if (aStartDate) return -1;
+      if (bStartDate) return 1;
+      return 0;
+    });
+    return sorted;
+  }, [availableChallenges]);
 
   const sortedAllChallenges = useMemo(() => {
     if (!user) {
@@ -266,18 +343,31 @@ export default function ChallengesPage() {
 
   return (
     <div className="container py-10">
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h1 className="text-3xl font-bold tracking-tight">{t('challenges')}</h1>
-            {user && (
-              <Button asChild className="w-full sm:w-auto">
-                <Link to="/challenges/create">
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t('createChallenge')}
-                </Link>
-              </Button>
-            )}
+            <div className="flex flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <Select value={selectedView} onValueChange={setSelectedView}>
+                <SelectTrigger className="flex-1 sm:w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {user && <SelectItem value="available">{t('available')}</SelectItem>}
+                  <SelectItem value="all">{t('allChallenges')}</SelectItem>
+                  <SelectItem value="upcoming">{t('upcoming')}</SelectItem>
+                  {user && <SelectItem value="joined">{t('myJoinedChallenges')}</SelectItem>}
+                </SelectContent>
+              </Select>
+              {user && (
+                <Button asChild className="flex-1 sm:flex-initial">
+                  <Link to="/challenges/create">
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t('createChallenge')}
+                  </Link>
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* <div className="flex items-center gap-4">
@@ -293,14 +383,42 @@ export default function ChallengesPage() {
           </div> */}
         </div>
 
-        <Tabs defaultValue={activeTab}>
-          <TabsList className="grid w-full grid-cols-3 md:w-auto md:grid-cols-3">
-            <TabsTrigger value="all">{t('allChallenges')}</TabsTrigger>
-            <TabsTrigger value="upcoming">{t('upcoming')}</TabsTrigger>
-            {user && <TabsTrigger value="joined">{t('myJoinedChallenges')}</TabsTrigger>}
-          </TabsList>
+        <div className="flex flex-col gap-4">
 
-          <TabsContent value="all" className="mt-6">
+          {user && selectedView === 'available' && (
+            <div className="mt-6">
+              {sortedAvailableChallenges.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {sortedAvailableChallenges.map((challenge) => {
+                    const userChallenge = userChallenges.find(
+                      (uc) => uc.userId === user.id && uc.challengeId === challenge.id
+                    );
+
+                    return (
+                      <ChallengeCard
+                        key={challenge.id}
+                        challenge={challenge}
+                        userScore={userChallenge?.totalScore || 0}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-10 text-center">
+                  <h3 className="text-lg font-medium">{t('noChallengesFound')}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {t('noChallengesFoundDescription')}
+                  </p>
+                  <Button asChild className="mt-4">
+                    <Link to="/challenges/create">{t('createChallenge')}</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedView === 'all' && (
+            <div className="mt-6">
             {sortedAllChallenges.length > 0 ? (
               <div className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -346,9 +464,11 @@ export default function ChallengesPage() {
                 </Button>
               </div>
             )}
-          </TabsContent>
+          </div>
+          )}
 
-          <TabsContent value="upcoming" className="mt-6">
+          {selectedView === 'upcoming' && (
+            <div className="mt-6">
             {(() => {
               const today = new Date();
               today.setHours(0, 0, 0, 0); // Normalize to start of day
@@ -409,10 +529,11 @@ export default function ChallengesPage() {
                 </div>
               );
             })()}
-          </TabsContent>
+          </div>
+          )}
 
-          {user && (
-            <TabsContent value="joined" className="mt-6">
+          {user && selectedView === 'joined' && (
+            <div className="mt-6">
               {sortedJoinedChallenges.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {sortedJoinedChallenges.map((challenge) => {
@@ -446,9 +567,9 @@ export default function ChallengesPage() {
                   </div>
                 </div>
               )}
-            </TabsContent>
+            </div>
           )}
-        </Tabs>
+        </div>
       </div>
     </div>
   );
