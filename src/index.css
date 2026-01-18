@@ -121,4 +121,24 @@
     user-select: none;
     -webkit-user-select: none;
   }
+
+  /* Logo styling to remove black background in dark mode */
+  img[src="/favicon.png"] {
+    background: transparent;
+    mix-blend-mode: normal;
+  }
+
+  .dark img[src="/favicon.png"] {
+    background: transparent;
+    mix-blend-mode: normal;
+    filter: brightness(1.1);
+  }
+
+  /* Alternative: Use object-fit and ensure transparency */
+  img[src="/favicon.png"],
+  img[alt="Saiko"] {
+    background-color: transparent !important;
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+  }
 }

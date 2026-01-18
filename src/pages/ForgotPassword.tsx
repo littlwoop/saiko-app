@@ -66,7 +66,7 @@ export default function ForgotPassword() {
     <div className="container max-w-md py-12">
       <div className="mb-8 flex justify-center">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/favicon.png" alt="Saiko" className="h-6 w-6" />
+          <img src="/favicon.png" alt="Saiko" className="h-6 w-6 bg-transparent" style={{ mixBlendMode: 'normal' }} />
           <span className="text-2xl font-bold gradient-text">Saiko</span>
         </Link>
       </div>
