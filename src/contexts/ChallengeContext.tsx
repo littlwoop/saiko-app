@@ -1392,17 +1392,19 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_challenge_starts")
-        .select("start_date")
+        .select("start_date, end_date")
         .eq("challenge_id", challengeId)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        console.error("Error fetching user challenge start date:", error);
         return null;
       }
 
-      return data.start_date;
+      return data?.start_date || null;
     } catch (error) {
+      console.error("Exception fetching user challenge start date:", error);
       return null;
     }
   };
@@ -1415,17 +1417,19 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_challenge_starts")
-        .select("end_date")
+        .select("start_date, end_date")
         .eq("challenge_id", challengeId)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        console.error("Error fetching user challenge end date:", error);
         return null;
       }
 
-      return data.end_date;
+      return data?.end_date || null;
     } catch (error) {
+      console.error("Exception fetching user challenge end date:", error);
       return null;
     }
   };

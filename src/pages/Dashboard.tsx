@@ -132,12 +132,16 @@ export default function Dashboard() {
             if (challenge) {
               const userProgress = await getChallengeProgress(challenge.id, challenge.challenge_type);
               
-              // For repeating challenges, get user-specific start and end dates
+              // For repeating challenges or individual challenges, get user-specific start and end dates
               let userStartDate: string | null = null;
               let userEndDate: string | null = null;
-              if (challenge.isRepeating) {
+              // Try to fetch user dates (works for repeating challenges, and for individual challenges that have user-specific dates)
+              try {
                 userStartDate = await getUserChallengeStartDate(challenge.id, user.id);
                 userEndDate = await getUserChallengeEndDate(challenge.id, user.id);
+              } catch (error) {
+                // If fetching fails, continue without user dates
+                console.warn("Failed to fetch user challenge dates:", error);
               }
               
               return {
