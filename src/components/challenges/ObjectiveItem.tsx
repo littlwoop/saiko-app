@@ -1383,8 +1383,8 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card
-          className={`select-none mb-3 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
-          onClick={!readOnly && challengeActive ? (e) => {
+          className={`select-none mb-3 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive && challenge_type !== "standard" ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
+          onClick={!readOnly && challengeActive && challenge_type !== "standard" ? (e) => {
             // Quick add on single click, dialog on double click
             if (e.detail === 1) {
               handleQuickAdd();
@@ -1392,9 +1392,9 @@ export default function ObjectiveItem({
               setIsOpen(true);
             }
           } : undefined}
-          onTouchStart={!readOnly && challengeActive ? handleLongPress : undefined}
-          onTouchEnd={!readOnly && challengeActive ? handleTouchEnd : undefined}
-          onTouchCancel={!readOnly && challengeActive ? handleTouchEnd : undefined}
+          onTouchStart={!readOnly && challengeActive && challenge_type !== "standard" ? handleLongPress : undefined}
+          onTouchEnd={!readOnly && challengeActive && challenge_type !== "standard" ? handleTouchEnd : undefined}
+          onTouchCancel={!readOnly && challengeActive && challenge_type !== "standard" ? handleTouchEnd : undefined}
         >
           <CardHeader className="pb-1.5 pt-3 px-3">
             <div className="flex justify-between items-center gap-2">
