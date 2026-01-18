@@ -291,8 +291,9 @@ export default function ChallengesPage() {
         </div>
 
         <Tabs defaultValue={activeTab}>
-          <TabsList className="grid w-full grid-cols-2 md:w-auto md:grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3 md:w-auto md:grid-cols-3">
             <TabsTrigger value="all">{t('allChallenges')}</TabsTrigger>
+            <TabsTrigger value="upcoming">{t('upcoming')}</TabsTrigger>
             {user && <TabsTrigger value="joined">{t('myJoinedChallenges')}</TabsTrigger>}
           </TabsList>
 
@@ -342,6 +343,69 @@ export default function ChallengesPage() {
                 </Button>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="upcoming" className="mt-6">
+            {(() => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0); // Normalize to start of day
+              
+              const upcomingChallenges = filteredChallenges
+                .filter((challenge) => {
+                  // For repeating challenges, they're always available but show them if they haven't started
+                  // For non-repeating challenges, check if start date is in the future
+                  if (challenge.isRepeating) {
+                    // Repeating challenges are always "upcoming" if not joined yet
+                    // or if they don't have a fixed start date
+                    return true;
+                  }
+                  
+                  if (!challenge.startDate) {
+                    return false; // No start date means not upcoming
+                  }
+                  
+                  const startDate = new Date(challenge.startDate);
+                  startDate.setHours(0, 0, 0, 0); // Normalize to start of day
+                  
+                  return today < startDate;
+                })
+                .sort((a, b) => {
+                  // Sort by start date (soonest first)
+                  const aStartDate = a.startDate ? new Date(a.startDate).getTime() : Infinity;
+                  const bStartDate = b.startDate ? new Date(b.startDate).getTime() : Infinity;
+                  
+                  // Repeating challenges without start dates go to the end
+                  if (a.isRepeating && !a.startDate) return 1;
+                  if (b.isRepeating && !b.startDate) return -1;
+                  
+                  return aStartDate - bStartDate;
+                });
+
+              return upcomingChallenges.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {upcomingChallenges.map((challenge) => {
+                    const userChallenge = userChallenges.find(
+                      (uc) => user && uc.userId === user.id && uc.challengeId === challenge.id
+                    );
+
+                    return (
+                      <ChallengeCard
+                        key={challenge.id}
+                        challenge={challenge}
+                        userScore={userChallenge?.totalScore || 0}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-10 text-center">
+                  <h3 className="text-lg font-medium">{t('noUpcomingChallenges') || 'No Upcoming Challenges'}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {t('noUpcomingChallengesDescription') || 'There are no upcoming challenges at the moment.'}
+                  </p>
+                </div>
+              );
+            })()}
           </TabsContent>
 
           {user && (

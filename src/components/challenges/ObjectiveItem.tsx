@@ -39,6 +39,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { getWeekIdentifier, getWeekStart, getWeekEnd } from "@/lib/week-utils";
 import { getLocalDateString, localDateToUTCStart, localDateToUTCEnd, utcTimestampToLocalDateString } from "@/lib/date-utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DailyProgressGridProps {
   startDate?: string;
@@ -207,6 +208,7 @@ export default function ObjectiveItem({
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const currentValue = progress?.currentValue || 0;
   
@@ -874,16 +876,21 @@ export default function ObjectiveItem({
             onClick={(e) => {
               // Only open dialog on left-click, not right-click
               if (e.button === 0 && !readOnly && challengeActive) {
-                // Quick add on single click, dialog on double click
-                if (e.detail === 1) {
-                  handleQuickAdd();
-                } else if (e.detail === 2) {
+                // On mobile, open dialog on single click. On desktop, quick add on single click, dialog on double click
+                if (isMobile) {
                   setIsOpen(true);
+                } else {
+                  if (e.detail === 1) {
+                    handleQuickAdd();
+                  } else if (e.detail === 2) {
+                    setIsOpen(true);
+                  }
                 }
               }
             }}
             onTouchStart={(e) => {
-              if (isTouchDevice && !readOnly && challengeActive) {
+              // On mobile, don't use long press for context menu - use click to open dialog instead
+              if (!isMobile && isTouchDevice && !readOnly && challengeActive) {
                 longPressTimer.current = setTimeout(() => {
                   const contextMenuEvent = new MouseEvent("contextmenu", {
                     bubbles: true,
@@ -938,7 +945,7 @@ export default function ObjectiveItem({
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>{t("completeObjective")}</DialogTitle>
+                <DialogTitle>{objective.title}</DialogTitle>
                 <DialogDescription>
                   {t("confirmCompleteObjective").replace(
                     "{objective}",
@@ -951,22 +958,6 @@ export default function ObjectiveItem({
                   )}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="completions-to-add">
-                    {t("addCompletions")}:
-                  </Label>
-                  <Input
-                    id="completions-to-add"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={completionsToAdd}
-                    onChange={(e) => setCompletionsToAdd(e.target.value)}
-                    className="w-20"
-                  />
-                </div>
-              </div>
               <DialogFooter>
                 <Button
                   onClick={async () => {
@@ -980,19 +971,15 @@ export default function ObjectiveItem({
                         return;
                       }
                       
-                      const completions = parseInt(completionsToAdd);
-                      if (completions > 0) {
-                        await updateProgress(challengeId, objective.id, completions);
-                        if (onProgressUpdate) {
-                          onProgressUpdate();
-                        }
-                        setIsOpen(false);
-                        setCompletionsToAdd("1"); // Reset to default
+                      await updateProgress(challengeId, objective.id, 1);
+                      if (onProgressUpdate) {
+                        onProgressUpdate();
                       }
+                      setIsOpen(false);
                     }
                   }}
                 >
-                  {t("addCompletions")}
+                  {t("complete")}
                 </Button>
               </DialogFooter>
             </DialogContent>
