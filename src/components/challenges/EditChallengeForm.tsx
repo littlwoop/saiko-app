@@ -294,10 +294,10 @@ export default function EditChallengeForm() {
       }
     }
 
-    // Different validation for checklist/collection challenges and completion challenges
+    // Different validation for checklist/collection challenges and completion/weekly/bingo challenges
     const hasEmptyObjective = challenge_type === "checklist"
       ? objectives.some(obj => !obj.title)
-      : challenge_type === "completion"
+      : (challenge_type === "completion" || challenge_type === "weekly" || challenge_type === "bingo")
       ? objectives.some(obj => !obj.title)
       : objectives.some(
           (obj) =>
@@ -328,10 +328,10 @@ export default function EditChallengeForm() {
         validId = uuidv4();
       }
       
-      // For completion challenges, set defaults to 1
-      const targetValue = challenge_type === "completion" ? 1 : (Number(obj.targetValue) || undefined);
-      const unit = challenge_type === "completion" ? "1" : obj.unit;
-      const pointsPerUnit = challenge_type === "completion" ? 1 : (Number(obj.pointsPerUnit) || undefined);
+      // For completion and bingo challenges, set defaults to 1
+      const targetValue = (challenge_type === "completion" || challenge_type === "bingo") ? 1 : (Number(obj.targetValue) || undefined);
+      const unit = (challenge_type === "completion" || challenge_type === "bingo") ? "1" : obj.unit;
+      const pointsPerUnit = (challenge_type === "completion" || challenge_type === "bingo") ? 1 : (Number(obj.pointsPerUnit) || undefined);
       
       return {
         ...obj,
