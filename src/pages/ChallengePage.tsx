@@ -462,6 +462,7 @@ export default function ChallengePage() {
         const endDate = endDateRaw ? new Date(endDateRaw.getFullYear(), endDateRaw.getMonth(), endDateRaw.getDate()) : null;
         // Calculate total days inclusive: floor the difference and add 1 for inclusive count
         // For repeating challenges, use user's end date if available, otherwise use days since start
+        const today = normalizeToLocalDate(new Date());
         const totalDays = challenge.isRepeating && endDate
           ? Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
           : challenge.isRepeating
