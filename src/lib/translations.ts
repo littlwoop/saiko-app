@@ -271,17 +271,17 @@ export const translations = {
 
     // Objective Item
     addProgress: "Fortschritt hinzufügen",
-    enterProgressFor: "Geben Sie Ihren Fortschritt ein für",
+    enterProgressFor: "Gib deinen Fortschritt ein für",
     enterUnit: "{unit} eingeben",
     notes: "Notizen",
     value: "Wert",
     optional: "optional",
-    addNotesAboutProgress: "Fügen Sie Notizen zu Ihrem Fortschritt hinzu...",
+    addNotesAboutProgress: "Füge Notizen zu deinem Fortschritt hinzu...",
     saveProgress: "Fortschritt speichern",
     resetObjective: "Ziel zurücksetzen",
     completeObjective: "Ziel abschließen",
     confirmCompleteObjective:
-      "Sind Sie sicher, dass Sie '{objective}' abschließen möchten?",
+      "Bist du sicher, dass du '{objective}' abschließen möchtest?",
     completeButton: "Abschließen",
     currentCompletions: "Aktuelle Abschlüsse",
     addCompletions: "Abschlüsse hinzufügen",
@@ -289,7 +289,7 @@ export const translations = {
     // Signup Form
     createAccount: "Konto erstellen",
     enterInformation:
-      "Geben Sie Ihre Informationen ein, um ein Konto zu erstellen",
+      "Gib deine Informationen ein, um ein Konto zu erstellen",
     enterFullName: "Max Mustermann",
     password: "Passwort",
     enterPassword: "••••••••",
@@ -297,22 +297,22 @@ export const translations = {
     enterConfirmPassword: "••••••••",
     creatingAccount: "Konto wird erstellt...",
     accountCreated: "Konto erstellt!",
-    accountCreatedDescription: "Sie können sich jetzt in Ihr Konto einloggen.",
+    accountCreatedDescription: "Du kannst dich jetzt in dein Konto einloggen.",
     registrationFailed: "Registrierung fehlgeschlagen",
     emailInUse: "Diese E-Mail-Adresse wird bereits verwendet.",
-    alreadyHaveAccount: "Sie haben bereits ein Konto?",
+    alreadyHaveAccount: "Du hast bereits ein Konto?",
     passwordsDoNotMatch: "Passwörter stimmen nicht überein",
     passwordTooShort: "Passwort muss mindestens 6 Zeichen lang sein",
     checkEmail: "E-Mail überprüfen",
     checkEmailDescription:
-      "Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu bestätigen",
+      "Bitte überprüfe deine E-Mail, um dein Konto zu bestätigen",
     emailConfirmationSent:
-      "Eine Bestätigungs-E-Mail wurde an Ihre Adresse gesendet",
+      "Eine Bestätigungs-E-Mail wurde an deine Adresse gesendet",
     resendEmail: "E-Mail erneut senden",
     emailSent: "E-Mail gesendet",
     emailSentDescription: "Die Bestätigungs-E-Mail wurde erneut gesendet",
     resendFailed:
-      "E-Mail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut",
+      "E-Mail konnte nicht gesendet werden. Bitte versuche es später erneut",
     confirmEmail: "E-Mail bestätigen",
     enterConfirmEmail: "E-Mail-Adresse erneut eingeben",
     emailsDoNotMatch: "E-Mail-Adressen stimmen nicht überein",
@@ -320,47 +320,47 @@ export const translations = {
     // Login Form
     loginTitle: "Anmelden",
     loginDescription:
-      "Geben Sie Ihre E-Mail und Ihr Passwort ein, um auf Ihr Konto zuzugreifen",
-    enterEmailAndPassword: "Bitte geben Sie E-Mail und Passwort ein",
+      "Gib deine E-Mail und dein Passwort ein, um auf dein Konto zuzugreifen",
+    enterEmailAndPassword: "Bitte gib E-Mail und Passwort ein",
     forgotPassword: "Passwort vergessen?",
     loggingIn: "Wird angemeldet...",
     loginSuccess: "Erfolg!",
-    loginSuccessDescription: "Sie wurden erfolgreich angemeldet.",
+    loginSuccessDescription: "Du wurdest erfolgreich angemeldet.",
     loginFailed: "Anmeldung fehlgeschlagen",
     invalidCredentials:
-      "Ungültige E-Mail oder Passwort. Bitte versuchen Sie es erneut oder registrieren Sie sich, wenn Sie kein Konto haben.",
+      "Ungültige E-Mail oder Passwort. Bitte versuche es erneut oder registriere dich, wenn du kein Konto hast.",
     noAccount: "Noch kein Konto?",
     demoNote:
-      "Zu Demonstrationszwecken können Sie Ihre registrierte E-Mail mit einem beliebigen Passwort verwenden",
+      "Zu Demonstrationszwecken kannst du deine registrierte E-Mail mit einem beliebigen Passwort verwenden",
 
     // Forgot Password
     forgotPasswordTitle: "Passwort vergessen",
     forgotPasswordDescription:
-      "Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts",
+      "Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen deines Passworts",
     sendResetLink: "Link senden",
     sending: "Wird gesendet...",
     resetPasswordEmailSent:
-      "Der Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet",
+      "Der Link zum Zurücksetzen des Passworts wurde an deine E-Mail gesendet",
     resetPasswordFailed:
-      "Link konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+      "Link konnte nicht gesendet werden. Bitte versuche es erneut.",
     rememberPassword: "Passwort wieder eingefallen?",
 
     // Reset Password
     resetPassword: "Passwort zurücksetzen",
-    resetPasswordDescription: "Geben Sie Ihr neues Passwort unten ein",
+    resetPasswordDescription: "Gib dein neues Passwort unten ein",
     resetting: "Wird zurückgesetzt...",
-    passwordResetSuccess: "Ihr Passwort wurde erfolgreich zurückgesetzt",
+    passwordResetSuccess: "Dein Passwort wurde erfolgreich zurückgesetzt",
     passwordResetFailed:
-      "Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.",
+      "Passwort konnte nicht zurückgesetzt werden. Bitte versuche es erneut.",
     enterPasswordAndConfirm:
-      "Bitte geben Sie Ihr Passwort ein und bestätigen Sie es",
+      "Bitte gib dein Passwort ein und bestätige es",
 
     // Avatar Upload
     fileTooLarge: "Datei ist zu groß. Maximale Größe ist 5MB.",
-    invalidFileType: "Ungültiger Dateityp. Bitte wählen Sie ein Bild aus.",
+    invalidFileType: "Ungültiger Dateityp. Bitte wähle ein Bild aus.",
     avatarUpdated: "Profilbild wurde erfolgreich aktualisiert.",
     avatarUpdateFailed:
-      "Profilbild konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "Profilbild konnte nicht aktualisiert werden. Bitte versuche es erneut.",
     cropImage: "Bild zuschneiden",
 
     // Progress Updates
@@ -374,14 +374,14 @@ export const translations = {
     editActivity: "Aktivität bearbeiten",
     editActivityFor: "Aktivität bearbeiten für",
     deleteActivity: "Aktivität löschen",
-    deleteActivityConfirmation: "Sind Sie sicher, dass Sie diese Aktivität löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
-    pleaseEnterValidValue: "Bitte geben Sie einen gültigen Wert ein",
-    failedToUpdateActivity: "Aktivität konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+    deleteActivityConfirmation: "Bist du sicher, dass du diese Aktivität löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+    pleaseEnterValidValue: "Bitte gib einen gültigen Wert ein",
+    failedToUpdateActivity: "Aktivität konnte nicht aktualisiert werden. Bitte versuche es erneut.",
     activityUpdated: "Aktivität aktualisiert",
-    activityUpdatedDescription: "Ihre Aktivität wurde erfolgreich aktualisiert.",
-    failedToDeleteActivity: "Aktivität konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    activityUpdatedDescription: "Deine Aktivität wurde erfolgreich aktualisiert.",
+    failedToDeleteActivity: "Aktivität konnte nicht gelöscht werden. Bitte versuche es erneut.",
     activityDeleted: "Aktivität gelöscht",
-    activityDeletedDescription: "Ihre Aktivität wurde erfolgreich gelöscht.",
+    activityDeletedDescription: "Deine Aktivität wurde erfolgreich gelöscht.",
 
     // Daily Progress Grid
     dailyProgress: "Täglicher Fortschritt",
