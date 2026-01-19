@@ -149,6 +149,7 @@ export default function ChallengePage() {
     undefined,
   );
   const [isImportingStrava, setIsImportingStrava] = useState(false);
+  const [expandedObjectiveId, setExpandedObjectiveId] = useState<string | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [joiningChallenge, setJoiningChallenge] = useState(false);
   const [completionDaysCompleted, setCompletionDaysCompleted] = useState<Set<string>>(new Set());
@@ -1074,33 +1075,78 @@ export default function ChallengePage() {
               )}
 
               {(challenge?.challenge_type === "bingo" || (challenge?.objectives?.length === 25)) ? (
-                <div className="grid grid-cols-5 gap-1 p-0.5">
-                  {challenge.objectives.map((objective) => (
-                    <ObjectiveItem
-                      key={objective.id}
-                      objective={objective}
-                      challengeId={challenge.id}
-                      progress={
-                        selectedUserId
-                          ? participantProgress.find(
-                              (p) => p.objectiveId === objective.id,
-                            )
-                          : userProgress.find(
-                              (p) => p.objectiveId === objective.id,
-                            )
-                      }
-                      challengeType={challenge.challengeType}
-                      capedPoints={challenge.capedPoints}
-                      readOnly={
-                        selectedUserId !== null && selectedUserId !== user?.id
-                      }
-                      onProgressUpdate={refreshProgress}
-                      challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
-                      challengeEndDate={challenge.isRepeating && userEndDate ? userEndDate : (challenge.isRepeating ? undefined : challenge.endDate)}
-                      selectedUserId={selectedUserId}
-                    />
-                  ))}
-                </div>
+                <>
+                  {/* Expanded card in its own row */}
+                  {expandedObjectiveId && (() => {
+                    const expandedObjective = challenge.objectives.find(obj => obj.id === expandedObjectiveId);
+                    if (!expandedObjective) return null;
+                    return (
+                      <div className="mb-2">
+                        <ObjectiveItem
+                          key={expandedObjective.id}
+                          objective={expandedObjective}
+                          challengeId={challenge.id}
+                          progress={
+                            selectedUserId
+                              ? participantProgress.find(
+                                  (p) => p.objectiveId === expandedObjective.id,
+                                )
+                              : userProgress.find(
+                                  (p) => p.objectiveId === expandedObjective.id,
+                                )
+                          }
+                          challengeType={challenge.challengeType}
+                          capedPoints={challenge.capedPoints}
+                          readOnly={
+                            selectedUserId !== null && selectedUserId !== user?.id
+                          }
+                          onProgressUpdate={refreshProgress}
+                          challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
+                          challengeEndDate={challenge.isRepeating && userEndDate ? userEndDate : (challenge.isRepeating ? undefined : challenge.endDate)}
+                          selectedUserId={selectedUserId}
+                          isExpanded={true}
+                          onExpandChange={(expanded) => {
+                            setExpandedObjectiveId(expanded ? expandedObjective.id : null);
+                          }}
+                        />
+                      </div>
+                    );
+                  })()}
+                  {/* Grid with remaining cards */}
+                  <div className="grid grid-cols-5 gap-1 p-0.5">
+                    {challenge.objectives
+                      .filter(objective => objective.id !== expandedObjectiveId)
+                      .map((objective) => (
+                        <ObjectiveItem
+                          key={objective.id}
+                          objective={objective}
+                          challengeId={challenge.id}
+                          progress={
+                            selectedUserId
+                              ? participantProgress.find(
+                                  (p) => p.objectiveId === objective.id,
+                                )
+                              : userProgress.find(
+                                  (p) => p.objectiveId === objective.id,
+                                )
+                          }
+                          challengeType={challenge.challengeType}
+                          capedPoints={challenge.capedPoints}
+                          readOnly={
+                            selectedUserId !== null && selectedUserId !== user?.id
+                          }
+                          onProgressUpdate={refreshProgress}
+                          challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
+                          challengeEndDate={challenge.isRepeating && userEndDate ? userEndDate : (challenge.isRepeating ? undefined : challenge.endDate)}
+                          selectedUserId={selectedUserId}
+                          isExpanded={false}
+                          onExpandChange={(expanded) => {
+                            setExpandedObjectiveId(expanded ? objective.id : null);
+                          }}
+                        />
+                      ))}
+                  </div>
+                </>
               ) : (
                 <div className="space-y-4">
                   {challenge.objectives.map((objective) => (

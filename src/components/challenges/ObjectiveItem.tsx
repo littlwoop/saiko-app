@@ -175,6 +175,8 @@ interface ObjectiveItemProps {
   challengeStartDate?: string;
   challengeEndDate?: string;
   selectedUserId?: string | null;
+  isExpanded?: boolean;
+  onExpandChange?: (expanded: boolean) => void;
 }
 
 export default function ObjectiveItem({
@@ -188,10 +190,21 @@ export default function ObjectiveItem({
   challengeStartDate,
   challengeEndDate,
   selectedUserId,
+  isExpanded: externalIsExpanded,
+  onExpandChange,
 }: ObjectiveItemProps) {
   const [value, setValue] = useState(progress?.currentValue?.toString() || "0");
   const [notes, setNotes] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  // Use external state if provided (for bingo cards), otherwise use internal state
+  const isOpen = externalIsExpanded !== undefined ? externalIsExpanded : internalIsOpen;
+  const setIsOpen = (expanded: boolean) => {
+    if (onExpandChange) {
+      onExpandChange(expanded);
+    } else {
+      setInternalIsOpen(expanded);
+    }
+  };
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -872,67 +885,128 @@ export default function ObjectiveItem({
       <ContextMenu>
         <ContextMenuTrigger>
           <Card
-            className={`relative select-none mb-3 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
-            onClick={(e) => {
-              // Only open dialog on left-click, not right-click
-              if (e.button === 0 && !readOnly && challengeActive) {
-                // On mobile, open dialog on single click. On desktop, quick add on single click, dialog on double click
-                if (isMobile) {
-                  setIsOpen(true);
-                } else {
-                  if (e.detail === 1) {
-                    handleQuickAdd();
-                  } else if (e.detail === 2) {
-                    setIsOpen(true);
+            className={`relative select-none mb-3 transition-all duration-200 ${
+              isCompleted ? "border-challenge-teal bg-green-50/30" : ""
+            } ${!readOnly && challengeActive ? "cursor-pointer hover:shadow-md" : ""} ${
+              !challengeActive ? "opacity-60 cursor-not-allowed" : ""
+            } ${isMobile && isOpen ? "shadow-lg w-full" : ""}`}
+              onClick={(e) => {
+                // Only handle click on left-click, not right-click
+                if (e.button === 0 && !readOnly && challengeActive) {
+                  if (isMobile) {
+                    // On mobile, toggle expansion inline
+                    setIsOpen(!isOpen);
+                  } else {
+                    // On desktop, quick add on single click, dialog on double click
+                    if (e.detail === 1) {
+                      handleQuickAdd();
+                    } else if (e.detail === 2) {
+                      setIsOpen(true);
+                    }
                   }
                 }
-              }
-            }}
-            onTouchStart={(e) => {
-              // On mobile, don't use long press for context menu - use click to open dialog instead
-              if (!isMobile && isTouchDevice && !readOnly && challengeActive) {
-                longPressTimer.current = setTimeout(() => {
-                  const contextMenuEvent = new MouseEvent("contextmenu", {
-                    bubbles: true,
-                    cancelable: true,
-                    clientX: e.touches[0].clientX,
-                    clientY: e.touches[0].clientY,
-                  });
-                  e.currentTarget.dispatchEvent(contextMenuEvent);
-                }, 500);
-              }
-            }}
-            onTouchEnd={(e) => {
-              if (longPressTimer.current) {
-                clearTimeout(longPressTimer.current);
-                longPressTimer.current = undefined;
-              }
-            }}
-            onTouchCancel={(e) => {
-              if (longPressTimer.current) {
-                clearTimeout(longPressTimer.current);
-                longPressTimer.current = undefined;
-              }
-            }}
-          >
-            <CardHeader className="flex flex-col items-center justify-center p-2 py-3 text-center">
-              <CardTitle className="text-xs leading-tight line-clamp-2 overflow-hidden text-ellipsis w-full">
-                {objective.title}
-              </CardTitle>
-            </CardHeader>
-            {completionCount > 0 && (
-              <div className="absolute top-1 right-1">
-                {completionCount === 1 ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <div className="bg-green-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {completionCount}
+              }}
+              onTouchStart={(e) => {
+                // On mobile, don't use long press for context menu - use click to expand instead
+                if (!isMobile && isTouchDevice && !readOnly && challengeActive) {
+                  longPressTimer.current = setTimeout(() => {
+                    const contextMenuEvent = new MouseEvent("contextmenu", {
+                      bubbles: true,
+                      cancelable: true,
+                      clientX: e.touches[0].clientX,
+                      clientY: e.touches[0].clientY,
+                    });
+                    e.currentTarget.dispatchEvent(contextMenuEvent);
+                  }, 500);
+                }
+              }}
+              onTouchEnd={(e) => {
+                if (longPressTimer.current) {
+                  clearTimeout(longPressTimer.current);
+                  longPressTimer.current = undefined;
+                }
+              }}
+              onTouchCancel={(e) => {
+                if (longPressTimer.current) {
+                  clearTimeout(longPressTimer.current);
+                  longPressTimer.current = undefined;
+                }
+              }}
+            >
+              <CardHeader className="flex flex-col items-center justify-center p-2 py-3 text-center">
+                <CardTitle className={`text-xs sm:text-sm leading-tight ${isMobile && isOpen ? 'line-clamp-1' : 'line-clamp-2'} overflow-hidden text-ellipsis w-full font-medium`}>
+                  {objective.title}
+                </CardTitle>
+              </CardHeader>
+              {completionCount > 0 && (
+                <div className="absolute top-1 right-1">
+                  {completionCount === 1 ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <div className="bg-green-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {completionCount}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Expanded content for mobile */}
+              {isMobile && isOpen && !readOnly && (
+                <CardContent className="pt-2 pb-3 px-3 border-t">
+                  <div className="space-y-3">
+                    {objective.description && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        {objective.description}
+                      </p>
+                    )}
+                    {completionCount > 0 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        {t("currentCompletions")}: {completionCount}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs sm:text-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsOpen(false);
+                        }}
+                      >
+                        {t("cancel") || "Dismiss"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1 text-xs sm:text-sm"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (user) {
+                            if (!challengeActive) {
+                              toast({
+                                title: t("challengeInactive"),
+                                description: t("challengeInactiveDescription"),
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            await updateProgress(challengeId, objective.id, 1);
+                            if (onProgressUpdate) {
+                              onProgressUpdate();
+                            }
+                            setIsOpen(false);
+                          }
+                        }}
+                      >
+                        {t("complete")}
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </Card>
-        </ContextMenuTrigger>
+                </CardContent>
+              )}
+            </Card>
+          </ContextMenuTrigger>
         {!readOnly && (
           <ContextMenuContent>
             <ContextMenuItem onClick={handleReset}>
@@ -941,7 +1015,7 @@ export default function ObjectiveItem({
             </ContextMenuItem>
           </ContextMenuContent>
         )}
-        {!readOnly && (
+        {!readOnly && !isMobile && (
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
