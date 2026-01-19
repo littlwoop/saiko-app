@@ -287,8 +287,8 @@ export const WeeklyProgressGrid = ({
                 )}
               </>
             )}
-            {/* Show all entries as green, non-clickable squares */}
-            {currentWeekEntries
+            {/* Show all entries as green, non-clickable squares - hide during search */}
+            {!searchQuery.trim() && currentWeekEntries
               ?.filter(entry => entry.notes && entry.notes.trim() !== "")
               .map((entry, index) => (
                 <div
