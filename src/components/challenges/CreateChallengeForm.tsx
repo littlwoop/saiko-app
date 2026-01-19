@@ -56,7 +56,7 @@ export default function CreateChallengeForm() {
   const [noEndDate, setNoEndDate] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
   const [durationDays, setDurationDays] = useState<number>(30); // Duration in days for repeating challenges
-  const [isCollaborative, setIsCollaborative] = useState(false);
+  const [isCollaborative, setIsCollaborative] = useState(true);
 
   const [objectives, setObjectives] = useState([
     {
@@ -333,8 +333,8 @@ export default function CreateChallengeForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-8 px-2 sm:px-0">
+      <div className="space-y-3 sm:space-y-4">
         <div className="space-y-2">
           <Label htmlFor="title">{t("challengeTitle")}</Label>
           <Input
@@ -373,7 +373,7 @@ export default function CreateChallengeForm() {
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80" align="start">
+                <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 max-w-sm" align="start">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -399,29 +399,29 @@ export default function CreateChallengeForm() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={!isCollaborative ? "default" : "outline"}
-                className={`flex-1 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={isRepeating}
-                onClick={() => {
-                  setIsCollaborative(false);
-                }}
-              >
-                {t("individualChallenge") || "Individual Challenge"}
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant={isCollaborative ? "default" : "outline"}
-                className={`flex-1 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`flex-1 text-xs sm:text-sm px-2 sm:px-4 py-2 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 disabled={isRepeating}
                 onClick={() => {
                   setIsCollaborative(true);
                   setIsRepeating(false);
                 }}
               >
-                {t("collaborativeChallenge") || "Collaborative Challenge"}
+                <span className="truncate">{t("collaborativeChallenge") || "Collaborative Challenge"}</span>
+              </Button>
+              <Button
+                type="button"
+                variant={!isCollaborative ? "default" : "outline"}
+                className={`flex-1 text-xs sm:text-sm px-2 sm:px-4 py-2 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isRepeating}
+                onClick={() => {
+                  setIsCollaborative(false);
+                }}
+              >
+                <span className="truncate">{t("individualChallenge") || "Individual Challenge"}</span>
               </Button>
             </div>
           </div>
@@ -463,7 +463,7 @@ export default function CreateChallengeForm() {
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0" align="start" side={isMobile ? "bottom" : "start"}>
                       <Calendar
                         initialFocus
                         mode="single"
@@ -509,7 +509,7 @@ export default function CreateChallengeForm() {
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0" align="start" side={isMobile ? "bottom" : "start"}>
                       <Calendar
                         initialFocus
                         mode="single"
@@ -574,7 +574,7 @@ export default function CreateChallengeForm() {
                   <Info className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80" align="start">
+              <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 max-w-sm" align="start">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -645,9 +645,9 @@ export default function CreateChallengeForm() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">{t("challengeObjectives")}</h3>
+          <h3 className="text-base sm:text-lg font-medium">{t("challengeObjectives")}</h3>
           {challenge_type !== "bingo" && (
             <Button
               type="button"
@@ -663,17 +663,17 @@ export default function CreateChallengeForm() {
         </div>
 
         {challenge_type === "bingo" ? (
-          <div className="grid grid-cols-5 gap-1 p-0.5">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-0.5">
             {objectives.map((objective, index) => (
-              <Card key={objective.id || index} className="p-2 relative aspect-square">
-                <div className="space-y-2 h-full flex flex-col">
+              <Card key={objective.id || index} className="p-1.5 sm:p-2 relative aspect-square">
+                <div className="space-y-1 sm:space-y-2 h-full flex flex-col">
                   <Input
                     placeholder={`${t("objectiveTitle")} ${index + 1}`}
                     value={objective.title}
                     onChange={(e) =>
                       handleObjectiveChange(index, "title", e.target.value)
                     }
-                    className="text-xs h-8"
+                    className="text-[10px] sm:text-xs h-6 sm:h-8"
                   />
                   <Textarea
                     placeholder={t("objectiveDescription")}
@@ -681,7 +681,7 @@ export default function CreateChallengeForm() {
                     onChange={(e) =>
                       handleObjectiveChange(index, "description", e.target.value)
                     }
-                    className="text-xs flex-1 min-h-[60px] resize-none"
+                    className="text-[10px] sm:text-xs flex-1 min-h-[40px] sm:min-h-[60px] resize-none"
                   />
                 </div>
               </Card>

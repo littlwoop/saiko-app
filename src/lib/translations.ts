@@ -69,7 +69,7 @@ export const translations = {
       "Sammle Punkte für jeden Meilenstein und konkurriere auf der Bestenliste",
 
     // Challenge Form
-    createNewChallenge: "Neue Herausforderung erstellen",
+    createNewChallenge: "Herausforderung erstellen",
     challengeTitle: "Titel der Herausforderung",
     challengeTitlePlaceholder: "z.B., 30-Tage Fitness Challenge",
     description: "Beschreibung",

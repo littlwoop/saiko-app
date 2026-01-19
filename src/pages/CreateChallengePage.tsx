@@ -7,9 +7,9 @@ export default function CreateChallengePage() {
   const { t } = useTranslation(language);
 
   return (
-    <div className="container py-8">
+    <div className="container py-4 sm:py-8 px-2 sm:px-4">
       <div className="mx-auto max-w-4xl">
-        <h1 className="mb-6 text-3xl font-bold">{t("createNewChallenge")}</h1>
+        <h1 className="mb-4 sm:mb-6 text-2xl sm:text-3xl font-bold">{t("createNewChallenge")}</h1>
         <CreateChallengeForm />
       </div>
     </div>
