@@ -267,7 +267,7 @@ export default function ChallengePage() {
       if (!challenge || !user) return;
 
       try {
-        const progressData = await getChallengeProgress(challenge.id, challenge.challenge_type);
+        const progressData = await getChallengeProgress(challenge.id, challenge.challengeType);
         setUserProgress(progressData);
         setPreviousProgress(progressData); // Initialize previous progress
       } catch (error) {
@@ -280,7 +280,7 @@ export default function ChallengePage() {
 
   // Load completion days for completion challenges
   const loadCompletionDays = useCallback(async () => {
-    if (!challenge || challenge.challenge_type !== "completion" || !challenge.objectives) return;
+    if (!challenge || challenge.challengeType !== "completion" || !challenge.objectives) return;
     if (!user && !selectedUserId) return;
 
     const userIdToQuery = selectedUserId || user?.id;
@@ -363,10 +363,10 @@ export default function ChallengePage() {
     if (!challenge || !user) return;
 
     try {
-      const progressData = await getChallengeProgress(challenge.id, challenge.challenge_type);
+      const progressData = await getChallengeProgress(challenge.id, challenge.challengeType);
       setUserProgress(progressData);
       // Refresh completion days for completion challenges
-      if (challenge.challenge_type === "completion") {
+      if (challenge.challengeType === "completion") {
         await loadCompletionDays();
       }
     } catch (error) {
@@ -441,13 +441,13 @@ export default function ChallengePage() {
         challenge.objectives,
         progressToUse,
         challenge.capedPoints,
-        challenge.challenge_type
+        challenge.challengeType
       );
 
       setTotalPoints(totalPoints);
       
       // For completion challenges, calculate progress based on days completed vs total days
-      if (challenge.challenge_type === "completion") {
+      if (challenge.challengeType === "completion") {
         // For repeating challenges, use user's start date
         const effectiveStartDate = challenge.isRepeating && userStartDate
           ? new Date(userStartDate)
@@ -476,7 +476,7 @@ export default function ChallengePage() {
         
         setProgress((totalDaysCompleted / totalDays) * 100);
         setDisplayValue({ current: totalDaysCompleted, total: totalDays });
-      } else if (challenge.challenge_type === "weekly") {
+      } else if (challenge.challengeType === "weekly") {
         // For weekly challenges, calculate progress based on weeks completed vs total weeks
         // For repeating challenges, use user's start date
         const effectiveStartDate = challenge.isRepeating && userStartDate
@@ -500,7 +500,7 @@ export default function ChallengePage() {
         
         setProgress((totalWeeksCompleted / totalWeeks) * 100);
         setDisplayValue({ current: totalWeeksCompleted, total: totalWeeks });
-      } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
+      } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
         // For collection/checklist challenges, progress is number of completed objectives
         const completedObjectives = progressToUse.filter(p => p.currentValue >= 1).length;
         const totalObjectives = challenge.objectives.length;
@@ -942,7 +942,7 @@ export default function ChallengePage() {
                     </Button>
                   )}
                   
-                  {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && challenge.isCollaborative && (
+                  {(challenge.challengeType === "bingo" || challenge?.objectives?.length === 25) && challenge.isCollaborative && (
                     <Select
                       value={selectedUserId || ""}
                       onValueChange={(value) => setSelectedUserId(value)}
@@ -1013,7 +1013,7 @@ export default function ChallengePage() {
                     )}
                   </div>
                   
-                  {(challenge.challenge_type === "bingo" || challenge?.objectives?.length === 25) && challenge.isCollaborative && (
+                  {(challenge.challengeType === "bingo" || challenge?.objectives?.length === 25) && challenge.isCollaborative && (
                     <Select
                       value={selectedUserId || ""}
                       onValueChange={(value) => setSelectedUserId(value)}
@@ -1089,7 +1089,7 @@ export default function ChallengePage() {
                               (p) => p.objectiveId === objective.id,
                             )
                       }
-                      challenge_type={challenge.challenge_type}
+                      challengeType={challenge.challengeType}
                       capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id
@@ -1117,7 +1117,7 @@ export default function ChallengePage() {
                               (p) => p.objectiveId === objective.id,
                             )
                       }
-                      challenge_type={challenge.challenge_type}
+                      challengeType={challenge.challengeType}
                       capedPoints={challenge.capedPoints}
                       readOnly={
                         selectedUserId !== null && selectedUserId !== user?.id
@@ -1129,7 +1129,7 @@ export default function ChallengePage() {
                     />
                   ))}
                   {/* Show single grid for completion challenges */}
-                  {challenge.challenge_type === "completion" && challenge.endDate && (
+                  {challenge.challengeType === "completion" && challenge.endDate && (
                     <div className="mt-6 rounded-lg border p-4">
                       <div className="text-sm font-medium mb-3">{t("dailyProgress")}</div>
                       <div className="mt-1.5">

@@ -168,7 +168,7 @@ interface ObjectiveItemProps {
   objective: Objective;
   challengeId: number;
   progress?: UserProgress;
-  challenge_type: ChallengeType;
+  challengeType: ChallengeType;
   readOnly?: boolean;
   capedPoints?: boolean;
   onProgressUpdate?: () => void;
@@ -181,7 +181,7 @@ export default function ObjectiveItem({
   objective,
   challengeId,
   progress,
-  challenge_type,
+  challengeType,
   readOnly,
   capedPoints = false,
   onProgressUpdate,
@@ -238,7 +238,7 @@ export default function ObjectiveItem({
   let progressPercent = Math.min(100, (currentValue / objective.targetValue) * 100);
   let isCompleted = currentValue >= objective.targetValue;
   
-  if (challenge_type === "completion" && challengeStartDate) {
+  if (challengeType === "completion" && challengeStartDate) {
     if (challengeEndDate) {
       // Normalize dates to local timezone start of day
       const startDateRaw = new Date(challengeStartDate);
@@ -255,28 +255,28 @@ export default function ObjectiveItem({
       progressPercent = Math.min(100, (currentValue / totalDays) * 100);
       isCompleted = false; // Never fully complete for ongoing challenges
     }
-  } else if (challenge_type === "checklist" || challenge_type === "collection") {
+  } else if (challengeType === "checklist" || challengeType === "collection") {
     // For checklist challenges, completed when currentValue >= 1
     isCompleted = currentValue >= 1;
     progressPercent = isCompleted ? 100 : 0;
   }
   
-  const completionCount = challenge_type === "bingo" ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
+  const completionCount = challengeType === "bingo" ? Math.floor(currentValue / objective.targetValue) : (isCompleted ? 1 : 0);
 
   const pointsEarned = calculatePoints(objective, currentValue, capedPoints);
   const targetPoints = objective.targetValue * objective.pointsPerUnit;
 
   // Check for today's entry on component mount and when user changes
   useEffect(() => {
-    if (challenge_type === "completion" && userIdToQuery) {
+    if (challengeType === "completion" && userIdToQuery) {
       hasEntryForToday().then(setHasEntryToday);
       getDailyEntries().then((entries) => setDailyEntries(entries));
-    } else if (challenge_type === "weekly" && userIdToQuery) {
+    } else if (challengeType === "weekly" && userIdToQuery) {
       hasEntryForThisWeek().then(setHasEntryThisWeek);
       getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
       getCurrentWeekProgress().then(setCurrentWeekProgress);
     }
-  }, [challenge_type, userIdToQuery, challengeId, objective.id, challengeStartDate, challengeEndDate]);
+  }, [challengeType, userIdToQuery, challengeId, objective.id, challengeStartDate, challengeEndDate]);
 
   const handleLongPress = () => {
     if (isTouchDevice && !readOnly) {
@@ -623,7 +623,7 @@ export default function ObjectiveItem({
       return;
     }
 
-    if (challenge_type === "weekly") {
+    if (challengeType === "weekly") {
       // For weekly challenges, check if week is completed
       const weekId = getWeekIdentifier(selectedDate);
       const targetValue = objective.targetValue || 1;
@@ -718,7 +718,7 @@ export default function ObjectiveItem({
       }
     }
 
-    if (challenge_type === "weekly") {
+    if (challengeType === "weekly") {
       // For weekly challenges, add completion for the selected week
       const weekId = getWeekIdentifier(selectedDate);
       const targetValue = objective.targetValue || 1;
@@ -785,17 +785,17 @@ export default function ObjectiveItem({
 
   const handleQuickAdd = async () => {
     // For checklist/collection challenges, allow toggle even with hasEntryToday check
-    if ((challenge_type === "checklist" || challenge_type === "collection") && readOnly) return;
-    if (challenge_type === "completion" && (!user || readOnly || hasEntryToday)) return;
+    if ((challengeType === "checklist" || challengeType === "collection") && readOnly) return;
+    if (challengeType === "completion" && (!user || readOnly || hasEntryToday)) return;
     // For weekly challenges with targetValue === 1, check if week is completed
     // For weekly challenges with targetValue > 1, allow clicking until target is reached
-    if (challenge_type === "weekly" && (!user || readOnly)) {
+    if (challengeType === "weekly" && (!user || readOnly)) {
       const targetValue = objective.targetValue || 1;
       if (targetValue === 1 && hasEntryThisWeek) return;
       if (targetValue > 1 && currentWeekProgress >= targetValue) return;
     }
-    if (challenge_type !== "checklist" && challenge_type !== "collection" && challenge_type !== "completion" && challenge_type !== "weekly" && (!user || readOnly)) return;
-    if ((challenge_type === "checklist" || challenge_type === "collection") && !user) return;
+    if (challengeType !== "checklist" && challengeType !== "collection" && challengeType !== "completion" && challengeType !== "weekly" && (!user || readOnly)) return;
+    if ((challengeType === "checklist" || challengeType === "collection") && !user) return;
     
     if (!challengeActive) {
       toast({
@@ -807,9 +807,9 @@ export default function ObjectiveItem({
     }
     
     // For bingo challenges, add 1 completion
-    if (challenge_type === "bingo") {
+    if (challengeType === "bingo") {
       await updateProgress(challengeId, objective.id, 1);
-    } else if (challenge_type === "completion") {
+    } else if (challengeType === "completion") {
       // For completion challenges, add 1 day of progress
       // Always use value 1 since each entry represents 1 day (progress is counted by entry count)
       await updateProgress(challengeId, objective.id, 1);
@@ -821,7 +821,7 @@ export default function ObjectiveItem({
       
       // Also refresh from database to ensure consistency
       getDailyEntries().then((entries) => setDailyEntries(entries));
-    } else if (challenge_type === "weekly") {
+    } else if (challengeType === "weekly") {
       // For weekly challenges, add 1 unit of progress
       const targetValue = objective.targetValue || 1;
       
@@ -852,7 +852,7 @@ export default function ObjectiveItem({
           getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
         }
       }
-    } else if (challenge_type === "checklist" || challenge_type === "collection") {
+    } else if (challengeType === "checklist" || challengeType === "collection") {
       // For checklist challenges, toggle completion (0 or 1)
       const newValue = currentValue >= 1 ? 0 : 1;
       await updateProgress(challengeId, objective.id, newValue);
@@ -867,7 +867,7 @@ export default function ObjectiveItem({
     }
   };
 
-  if (challenge_type === "bingo") {
+  if (challengeType === "bingo") {
     return (
       <ContextMenu>
         <ContextMenuTrigger>
@@ -989,7 +989,7 @@ export default function ObjectiveItem({
     );
   }
 
-  if (challenge_type === "collection") {
+  if (challengeType === "collection") {
     return (
       <>
         <Card 
@@ -1040,7 +1040,7 @@ export default function ObjectiveItem({
                     challengeId, 
                     objectiveId: objective.id, 
                     objective,
-                    challenge_type 
+                    challengeType 
                   });
                   
                   if (!challengeActive) {
@@ -1096,7 +1096,7 @@ export default function ObjectiveItem({
     );
   }
 
-  if (challenge_type === "completion") {
+  if (challengeType === "completion") {
     const today = new Date();
     const formattedDate = today.toLocaleDateString(language === "de" ? "de-DE" : "en-US", {
       day: "numeric",
@@ -1219,7 +1219,7 @@ export default function ObjectiveItem({
           </div>
         )}
         {/* Hide grid for completion challenges - shown at challenge level instead */}
-        {challenge_type !== "completion" && challenge_type !== "weekly" && (
+        {challengeType !== "completion" && challengeType !== "weekly" && (
           <DailyProgressGrid 
             startDate={challengeStartDate}
             endDate={challengeEndDate}
@@ -1228,7 +1228,7 @@ export default function ObjectiveItem({
           />
         )}
         {/* Show weekly grid for weekly challenges */}
-        {challenge_type === "weekly" && (
+        {challengeType === "weekly" && (
           <WeeklyProgressGrid 
             startDate={challengeStartDate}
             endDate={challengeEndDate}
@@ -1240,7 +1240,7 @@ export default function ObjectiveItem({
     );
   }
 
-  if (challenge_type === "weekly") {
+  if (challengeType === "weekly") {
     const today = new Date();
     const weekStart = getWeekStart(today);
     const weekEnd = getWeekEnd(today);
@@ -1383,8 +1383,8 @@ export default function ObjectiveItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <Card
-          className={`select-none mb-3 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive && challenge_type !== "standard" ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
-          onClick={!readOnly && challengeActive && challenge_type !== "standard" ? (e) => {
+          className={`select-none mb-3 ${isCompleted ? "border-challenge-teal bg-green-50/30" : ""} ${!readOnly && challengeActive && challengeType !== "standard" ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${!challengeActive ? "opacity-60 cursor-not-allowed" : ""}`}
+          onClick={!readOnly && challengeActive && challengeType !== "standard" ? (e) => {
             // Quick add on single click, dialog on double click
             if (e.detail === 1) {
               handleQuickAdd();
@@ -1392,9 +1392,9 @@ export default function ObjectiveItem({
               setIsOpen(true);
             }
           } : undefined}
-          onTouchStart={!readOnly && challengeActive && challenge_type !== "standard" ? handleLongPress : undefined}
-          onTouchEnd={!readOnly && challengeActive && challenge_type !== "standard" ? handleTouchEnd : undefined}
-          onTouchCancel={!readOnly && challengeActive && challenge_type !== "standard" ? handleTouchEnd : undefined}
+          onTouchStart={!readOnly && challengeActive && challengeType !== "standard" ? handleLongPress : undefined}
+          onTouchEnd={!readOnly && challengeActive && challengeType !== "standard" ? handleTouchEnd : undefined}
+          onTouchCancel={!readOnly && challengeActive && challengeType !== "standard" ? handleTouchEnd : undefined}
         >
           <CardHeader className="pb-1.5 pt-3 px-3">
             <div className="flex justify-between items-center gap-2">

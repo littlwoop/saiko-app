@@ -19,8 +19,8 @@ export async function checkIncompleteCompletionChallenges(
     // Get all active completion challenges the user is part of
     const { data: challengesData, error: challengesError } = await supabase
       .from('challenges')
-      .select('id, title, challenge_type, startDate, endDate, is_repeating, participants')
-      .eq('challenge_type', 'completion');
+      .select('id, title, challengeType, startDate, endDate, isRepeating, participants')
+      .eq('challengeType', 'completion');
 
     if (challengesError) {
       console.error('Error fetching completion challenges:', challengesError);
@@ -61,7 +61,7 @@ export async function checkIncompleteCompletionChallenges(
     // Check each challenge
     for (const challenge of userChallenges) {
       // Determine the effective start date
-      const effectiveStartDate = challenge.is_repeating && userStartDates.has(challenge.id)
+      const effectiveStartDate = challenge.isRepeating && userStartDates.has(challenge.id)
         ? normalizeToLocalDate(new Date(userStartDates.get(challenge.id)!))
         : challenge.startDate ? normalizeToLocalDate(new Date(challenge.startDate)) : null;
 
@@ -69,7 +69,7 @@ export async function checkIncompleteCompletionChallenges(
 
       // For repeating challenges, use user's end date if available
       // For non-repeating challenges, use challenge's end date
-      const endDate = challenge.is_repeating 
+      const endDate = challenge.isRepeating 
         ? (userEndDates.has(challenge.id) 
             ? normalizeToLocalDate(new Date(userEndDates.get(challenge.id)!))
             : null)

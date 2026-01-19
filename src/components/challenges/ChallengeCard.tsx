@@ -102,15 +102,15 @@ export default function ChallengeCard({
       if (hasJoined) {
         setLoading(true);
         try {
-          const progressData = await getChallengeProgress(challenge.id, challenge.challenge_type);
+          const progressData = await getChallengeProgress(challenge.id, challenge.challengeType);
           const totalPoints = calculateTotalPoints(
             challenge.objectives || [],
             progressData,
             challenge.capedPoints,
-            challenge.challenge_type
+            challenge.challengeType
           );
           // For completion challenges, calculate progress based on days completed vs total days
-          if (challenge.challenge_type === "completion") {
+          if (challenge.challengeType === "completion") {
             // Normalize dates to local timezone start of day
             const startDateRaw = new Date(challenge.startDate);
             const startDate = new Date(startDateRaw.getFullYear(), startDateRaw.getMonth(), startDateRaw.getDate());
@@ -126,7 +126,7 @@ export default function ChallengeCard({
             
             setProgress((totalDaysCompleted / totalDays) * 100);
             setDisplayValue({ current: totalDaysCompleted, total: totalDays });
-          } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
+          } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
             // For collection/checklist challenges, progress is number of completed objectives
             const completedObjectives = progressData.filter(p => p.currentValue >= 1).length;
             const totalObjectives = challenge.objectives?.length || 0;
@@ -160,7 +160,7 @@ export default function ChallengeCard({
       e.stopPropagation();
     }
     // Check if it's a repeating challenge - if so, show confirmation dialog
-    const isRepeating = challenge.isRepeating || (challenge as any).is_repeating;
+    const isRepeating = challenge.isRepeating || false;
     if (isRepeating) {
       setShowJoinConfirmDialog(true);
       return;
@@ -200,7 +200,7 @@ export default function ChallengeCard({
             {challenge.title}
           </CardTitle>
           <div className="flex flex-col gap-1 items-end flex-shrink-0">
-            {(challenge.isRepeating || (challenge as any).is_repeating) && (
+            {challenge.isRepeating && (
               <Badge
                 variant="outline"
                 className="bg-purple-50 text-purple-700 border-purple-200 text-xs"
@@ -275,7 +275,7 @@ export default function ChallengeCard({
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {challenge.challenge_type === "completion" ? t("yourProgress") : t("yourPoints")}
+                  {challenge.challengeType === "completion" ? t("yourProgress") : t("yourPoints")}
                 </span>
                 <span className="font-medium">
                   {displayValue.current} / {displayValue.total}

@@ -74,7 +74,7 @@ export default function Dashboard() {
       if (!user || activeChallenges.length === 0) return;
 
       const completionChallenges = activeChallenges.filter(
-        item => item.challenge.challenge_type === "completion" && !isFutureChallenge(item.challenge.startDate)
+        item => item.challenge.challengeType === "completion" && !isFutureChallenge(item.challenge.startDate)
       );
 
       if (completionChallenges.length === 0) return;
@@ -130,7 +130,7 @@ export default function Dashboard() {
           userChallenges.map(async (userChallenge) => {
             const challenge = await getChallenge(userChallenge.challengeId);
             if (challenge) {
-              const userProgress = await getChallengeProgress(challenge.id, challenge.challenge_type);
+              const userProgress = await getChallengeProgress(challenge.id, challenge.challengeType);
               
               // For repeating challenges or individual challenges, get user-specific start and end dates
               let userStartDate: string | null = null;
@@ -291,7 +291,7 @@ export default function Dashboard() {
     const { challenge, userProgress, userChallenge } = item;
     
     // For completion challenges, calculate progress based on days completed vs total days
-    if (challenge.challenge_type === "completion") {
+    if (challenge.challengeType === "completion") {
       if (!challenge.endDate) return 0; // Ongoing completion challenge, can't calculate progress
       
       // Normalize dates to local timezone start of day
@@ -303,7 +303,7 @@ export default function Dashboard() {
       // For completion challenges, totalScore represents days completed
       const daysCompleted = userChallenge.totalScore;
       return Math.min((daysCompleted / totalDays) * 100, 100);
-    } else if (challenge.challenge_type === "weekly") {
+    } else if (challenge.challengeType === "weekly") {
       if (!challenge.endDate) return 0; // Ongoing weekly challenge, can't calculate progress
       
       const startDate = new Date(challenge.startDate);
@@ -313,7 +313,7 @@ export default function Dashboard() {
       // For weekly challenges, totalScore represents weeks completed
       const weeksCompleted = userChallenge.totalScore;
       return Math.min((weeksCompleted / totalWeeks) * 100, 100);
-    } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
+    } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
       // For collection/checklist challenges, progress is based on number of completed objectives
       const completedObjectives = challenge.objectives.filter(obj => {
         const progressItem = userProgress.find(p => p.objectiveId === obj.id);
@@ -336,7 +336,7 @@ export default function Dashboard() {
   const getDisplayValue = (item: DashboardChallengeData) => {
     const { challenge, userProgress, userChallenge } = item;
     
-    if (challenge.challenge_type === "completion") {
+    if (challenge.challengeType === "completion") {
       if (!challenge.endDate) return `${userChallenge.totalScore}/∞`;
       
       // Normalize dates to local timezone start of day
@@ -346,7 +346,7 @@ export default function Dashboard() {
       const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       const daysCompleted = userChallenge.totalScore;
       return `${daysCompleted}/${totalDays}`;
-    } else if (challenge.challenge_type === "weekly") {
+    } else if (challenge.challengeType === "weekly") {
       if (!challenge.endDate) return `${userChallenge.totalScore}/∞`;
       
       const startDate = new Date(challenge.startDate);
@@ -354,7 +354,7 @@ export default function Dashboard() {
       const totalWeeks = getNumberOfWeeks(startDate, endDate);
       const weeksCompleted = userChallenge.totalScore;
       return `${weeksCompleted}/${totalWeeks}`;
-    } else if (challenge.challenge_type === "collection" || challenge.challenge_type === "checklist") {
+    } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
       const completedObjectives = challenge.objectives.filter(obj => {
         const progressItem = userProgress.find(p => p.objectiveId === obj.id);
         return progressItem && progressItem.currentValue >= 1;
@@ -710,7 +710,7 @@ export default function Dashboard() {
             const daysRemaining = item.challenge.endDate ? getDaysRemaining(item.challenge.endDate) : 999;
             const daysUntilStart = getDaysUntilStart(item.challenge.startDate);
             
-            const isCompletionChallenge = item.challenge.challenge_type === "completion";
+            const isCompletionChallenge = item.challenge.challengeType === "completion";
             const isTodayCompleted = completionStatus.get(item.challenge.id) || false;
             const canShowCompletionStatus = isCompletionChallenge && !isFuture;
             
@@ -768,7 +768,7 @@ export default function Dashboard() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs sm:text-sm">
                           <span className="text-muted-foreground">
-                            {(item.challenge.challenge_type === "completion" || item.challenge.challenge_type === "weekly") ? t("progress") : t("points")}
+                            {(item.challenge.challengeType === "completion" || item.challenge.challengeType === "weekly") ? t("progress") : t("points")}
                           </span>
                           <span className="font-medium">{getDisplayValue(item)}</span>
                         </div>

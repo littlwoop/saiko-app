@@ -53,7 +53,7 @@ export default function ChallengesPage() {
       let query = supabase
         .from('challenges')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('createdAt', { ascending: false });
 
       // Apply search filter if there's a search query
       if (searchQuery) {

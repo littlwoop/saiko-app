@@ -142,7 +142,7 @@ export default function EditChallengeForm() {
           setTitle(challenge.title);
           setDescription(challenge.description);
           setCapedPoints(challenge.capedPoints || false);
-          setChallengeType(challenge.challenge_type);
+          setChallengeType(challenge.challengeType);
           setIsRepeating(challenge.isRepeating || false);
           setIsCollaborative(challenge.isCollaborative || false);
           
@@ -171,7 +171,7 @@ export default function EditChallengeForm() {
 
           // Set objectives
           if (challenge.objectives && challenge.objectives.length > 0) {
-            const isCompletion = challenge.challenge_type === "completion";
+            const isCompletion = challenge.challengeType === "completion";
             setObjectives(challenge.objectives.map(obj => ({
               id: obj.id,
               title: obj.title,
@@ -364,7 +364,7 @@ export default function EditChallengeForm() {
       description,
       startDate: finalStartDate,
       endDate: finalEndDate,
-      challenge_type: databaseChallengeType as ChallengeType,
+      challengeType: databaseChallengeType as ChallengeType,
       capedPoints,
       objectives: objectivesWithValidIds,
       isRepeating,

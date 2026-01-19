@@ -124,7 +124,7 @@ export default function ActivityList({
             {},
           );
           setObjectives(objectivesMap);
-          setChallengeType(challenge.challenge_type);
+          setChallengeType(challenge.challengeType);
         }
 
         // Fetch activities

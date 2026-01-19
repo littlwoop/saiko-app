@@ -29,7 +29,7 @@ export interface Challenge {
   objectives: Objective[];
   participants: string[];
   totalPoints: number;
-  challenge_type: ChallengeType;
+  challengeType: ChallengeType;
   capedPoints?: boolean;
   strava?: boolean; // Flag to indicate if Strava integration is enabled
   isRepeating?: boolean; // Flag to indicate if challenge is repeating (no start/end dates)

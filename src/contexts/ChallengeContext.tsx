@@ -135,12 +135,11 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         ...challengeData,
         objectives,
         participants,
-        // Supabase automatically maps snake_case to camelCase, so check both
-        isRepeating: challengeData.is_repeating !== undefined ? challengeData.is_repeating : (challengeData.isRepeating || false),
-        isCollaborative: challengeData.is_collaborative !== undefined ? challengeData.is_collaborative : (challengeData.isCollaborative || false),
-        // Map database field names to TypeScript interface (check both formats for compatibility)
-        startDate: challengeData.start_date || challengeData.startDate || "",
-        endDate: challengeData.end_date || challengeData.endDate || undefined,
+        // All fields are now camelCase
+        isRepeating: challengeData.isRepeating || false,
+        isCollaborative: challengeData.isCollaborative || false,
+        startDate: challengeData.startDate || "",
+        endDate: challengeData.endDate || undefined,
       };
 
       return result;
@@ -215,12 +214,12 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           const objectives = objectivesByChallenge[challenge.id] || 
                             (Array.isArray(challenge.objectives) ? challenge.objectives : []);
           
-          const progress = await getChallengeProgress(challenge.id, challenge.challenge_type);
+          const progress = await getChallengeProgress(challenge.id, challenge.challengeType);
           const totalScore = calculateTotalPoints(
             objectives,
             progress,
             challenge.capedPoints,
-            challenge.challenge_type
+            challenge.challengeType
           );
           
           return {
@@ -305,7 +304,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
             }
 
             // Get the week identifier for this entry
-            const entryDate = new Date(entry.created_at);
+            const entryDate = new Date(entry.createdAt);
             const weekId = getWeekIdentifier(entryDate);
 
             // Initialize week progress tracking for this objective
@@ -457,20 +456,20 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     let totalPoints: number;
     if (challengeData.isRepeating) {
       // For repeating challenges, use a default large number since there's no end date
-      if (challengeData.challenge_type === "completion") {
+      if (challengeData.challengeType === "completion") {
         const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 365 * pointsPerDay;
-      } else if (challengeData.challenge_type === "weekly") {
+      } else if (challengeData.challengeType === "weekly") {
         const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 52 * pointsPerWeek;
-      } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
+      } else if (challengeData.challengeType === "checklist" || challengeData.challengeType === "collection") {
         totalPoints = challengeData.objectives.length;
       } else {
         totalPoints = challengeData.objectives.reduce((total, objective) => {
           return total + (objective.targetValue || 0) * (objective.pointsPerUnit || 0);
         }, 0);
       }
-    } else if (challengeData.challenge_type === "completion") {
+    } else if (challengeData.challengeType === "completion") {
       // For completion challenges, total points = number of days * points per day
       const startDate = challengeData.startDate ? new Date(challengeData.startDate) : null;
       const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
@@ -485,7 +484,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 365 * pointsPerDay;
       }
-    } else if (challengeData.challenge_type === "weekly") {
+    } else if (challengeData.challengeType === "weekly") {
       // For weekly challenges, total points = number of weeks * points per week
       const startDate = challengeData.startDate ? new Date(challengeData.startDate) : null;
       const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
@@ -500,7 +499,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 52 * pointsPerWeek;
       }
-    } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
+    } else if (challengeData.challengeType === "checklist" || challengeData.challengeType === "collection") {
       // For checklist challenges, total points = number of objectives (1 point per objective)
       totalPoints = challengeData.objectives.length;
     } else {
@@ -517,7 +516,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       participants: [],
       totalPoints,
       objectives: challengeData.objectives,
-      challenge_type: challengeData.challenge_type || "standard",
+      challengeType: challengeData.challengeType || "standard",
       isRepeating: challengeData.isRepeating || false,
       isCollaborative: challengeData.isCollaborative || false,
       // For repeating challenges, ensure startDate and endDate are null
@@ -540,21 +539,21 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       objectives: objectivesWithValidIds,
     };
 
-    // Prepare data for database insert (map camelCase to snake_case)
+    // Prepare data for database insert (all camelCase)
     const challengeDataForInsert: any = {
       title: newChallengeWithValidIds.title,
       description: newChallengeWithValidIds.description,
       objectives: newChallengeWithValidIds.objectives,
       participants: newChallengeWithValidIds.participants,
-      challenge_type: newChallengeWithValidIds.challenge_type || "standard",
-      is_collaborative: newChallengeWithValidIds.isCollaborative || false,
-      is_repeating: newChallengeWithValidIds.isRepeating || false,
+      challengeType: newChallengeWithValidIds.challengeType || "standard",
+      isCollaborative: newChallengeWithValidIds.isCollaborative || false,
+      isRepeating: newChallengeWithValidIds.isRepeating || false,
       capedPoints: newChallengeWithValidIds.capedPoints || false,
-      created_by_id: newChallengeWithValidIds.createdById,
-      creator_name: newChallengeWithValidIds.creatorName,
-      start_date: newChallengeWithValidIds.startDate || null,
-      end_date: newChallengeWithValidIds.endDate || null,
-      total_points: newChallengeWithValidIds.totalPoints,
+      createdById: newChallengeWithValidIds.createdById,
+      creatorName: newChallengeWithValidIds.creatorName,
+      startDate: newChallengeWithValidIds.startDate || null,
+      endDate: newChallengeWithValidIds.endDate || null,
+      totalPoints: newChallengeWithValidIds.totalPoints,
     };
 
     // Insert challenge (keep objectives in JSON for backward compatibility during migration)
@@ -655,20 +654,20 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     let totalPoints: number;
     if (challengeData.isRepeating) {
       // For repeating challenges, use a default large number since there's no end date
-      if (challengeData.challenge_type === "completion") {
+      if (challengeData.challengeType === "completion") {
         const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 365 * pointsPerDay;
-      } else if (challengeData.challenge_type === "weekly") {
+      } else if (challengeData.challengeType === "weekly") {
         const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 52 * pointsPerWeek;
-      } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
+      } else if (challengeData.challengeType === "checklist" || challengeData.challengeType === "collection") {
         totalPoints = challengeData.objectives.length;
       } else {
         totalPoints = challengeData.objectives.reduce((total, objective) => {
           return total + (objective.targetValue || 0) * (objective.pointsPerUnit || 0);
         }, 0);
       }
-    } else if (challengeData.challenge_type === "completion") {
+    } else if (challengeData.challengeType === "completion") {
       const startDate = challengeData.startDate ? new Date(challengeData.startDate) : null;
       const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
       
@@ -680,7 +679,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         const pointsPerDay = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 365 * pointsPerDay;
       }
-    } else if (challengeData.challenge_type === "weekly") {
+    } else if (challengeData.challengeType === "weekly") {
       // For weekly challenges, total points = number of weeks * points per week
       const startDate = challengeData.startDate ? new Date(challengeData.startDate) : null;
       const endDate = challengeData.endDate ? new Date(challengeData.endDate) : null;
@@ -693,7 +692,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         const pointsPerWeek = challengeData.objectives[0]?.pointsPerUnit || 1;
         totalPoints = 52 * pointsPerWeek;
       }
-    } else if (challengeData.challenge_type === "checklist" || challengeData.challenge_type === "collection") {
+    } else if (challengeData.challengeType === "checklist" || challengeData.challengeType === "collection") {
       totalPoints = challengeData.objectives.length;
     } else {
       totalPoints = challengeData.objectives.reduce((total, objective) => {
@@ -710,18 +709,18 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       return obj;
     });
 
-    // Prepare update data with correct field names (snake_case for database)
+    // Prepare update data with correct field names (camelCase)
     const updateData: any = {
       title: challengeData.title,
       description: challengeData.description,
-      start_date: challengeData.isRepeating ? null : challengeData.startDate,
-      end_date: challengeData.isRepeating ? null : challengeData.endDate,
-      challenge_type: challengeData.challenge_type || "standard",
+      startDate: challengeData.isRepeating ? null : challengeData.startDate,
+      endDate: challengeData.isRepeating ? null : challengeData.endDate,
+      challengeType: challengeData.challengeType || "standard",
       capedPoints: challengeData.capedPoints,
       objectives: objectivesWithValidIds,
-      total_points: totalPoints,
-      is_repeating: challengeData.isRepeating || false,
-      is_collaborative: challengeData.isCollaborative || false,
+      totalPoints: totalPoints,
+      isRepeating: challengeData.isRepeating || false,
+      isCollaborative: challengeData.isCollaborative || false,
     };
 
     // Update challenge (keep objectives in JSON for backward compatibility during migration)
@@ -796,7 +795,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data: challengeData, error: fetchError } = await supabase
         .from("challenges")
-        .select("participants, startDate, endDate, is_repeating")
+        .select("participants, startDate, endDate, isRepeating")
         .eq("id", challengeId)
         .single();
 
@@ -804,7 +803,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         throw fetchError;
       }
 
-      const isRepeating = challengeData?.is_repeating || false;
+      const isRepeating = challengeData?.isRepeating || false;
 
       // Check if challenge is completed (only for non-repeating challenges)
       if (!isRepeating && challengeData?.endDate) {
@@ -879,8 +878,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           .upsert({
             user_id: user.id,
             challenge_id: challengeId,
-            start_date: today.toISOString(),
-            end_date: endDate.toISOString(),
+            startDate: today.toISOString(),
+            endDate: endDate.toISOString(),
           }, {
             onConflict: 'user_id,challenge_id'
           });
@@ -1052,14 +1051,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           username: user.name || `User ${user.id}`,
         };
 
-        // If completionDate is provided, set created_at to that date
+        // If completionDate is provided, set createdAt to that date
         // Format: YYYY-MM-DD, convert to ISO timestamp at noon in local timezone (then to UTC)
         // Using noon ensures the date stays correct when converted back to local timezone
         if (completionDate) {
           // Parse the date string (YYYY-MM-DD) and create a date at noon in local timezone
           const localDate = getLocalDateFromString(completionDate);
           localDate.setHours(12, 0, 0, 0); // Set to noon local time to avoid timezone edge cases
-          entryData.created_at = localDate.toISOString();
+          entryData.createdAt = localDate.toISOString();
         }
         
         const { error: insertError } = await supabase.from("entries").insert(entryData);
@@ -1112,7 +1111,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       startDate: new Date("2025-06-01T00:00:00Z").toISOString(),
       endDate: new Date("2025-06-30T23:59:59Z").toISOString(),
       objectives,
-      challenge_type: "bingo" as ChallengeType,
+      challengeType: "bingo" as ChallengeType,
     };
 
     await createChallenge(challengeData);
@@ -1147,7 +1146,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         if (!challenge) return [];
 
         // For weekly challenges, count only completed weeks (where target is met)
-        if (challenge.challenge_type === "weekly") {
+        if (challenge.challengeType === "weekly") {
           // Group entries by objective and week, then count only completed weeks
           const progressMap: Record<string, UserProgress> = {};
           const weekProgressMap: Record<string, Record<string, number>> = {}; // objectiveId -> weekId -> total value
@@ -1164,7 +1163,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
             }
 
             // Get the week identifier for this entry
-            const entryDate = new Date(entry.created_at);
+            const entryDate = new Date(entry.createdAt);
             const weekId = getWeekIdentifier(entryDate);
 
             // Initialize week progress tracking for this objective
@@ -1212,7 +1211,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // For completion challenges, count unique days per objective
-        if (challenge.challenge_type === "completion") {
+        if (challenge.challengeType === "completion") {
           const progressMap: Record<string, UserProgress> = {};
           const dayProgressMap: Record<string, Set<string>> = {}; // objectiveId -> Set of day strings
 
@@ -1392,7 +1391,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_challenge_starts")
-        .select("start_date, end_date")
+        .select("startDate, endDate")
         .eq("challenge_id", challengeId)
         .eq("user_id", userId)
         .maybeSingle();
@@ -1402,7 +1401,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      return data?.start_date || null;
+      return data?.startDate || null;
     } catch (error) {
       console.error("Exception fetching user challenge start date:", error);
       return null;
@@ -1417,7 +1416,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_challenge_starts")
-        .select("start_date, end_date")
+        .select("startDate, endDate")
         .eq("challenge_id", challengeId)
         .eq("user_id", userId)
         .maybeSingle();
@@ -1427,7 +1426,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      return data?.end_date || null;
+      return data?.endDate || null;
     } catch (error) {
       console.error("Exception fetching user challenge end date:", error);
       return null;
@@ -1494,7 +1493,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       // Extract unique dates from entries, converting UTC timestamps to local dates
       const activityDates = entriesData?.map(entry => {
-        return utcTimestampToLocalDateString(entry.created_at);
+        return utcTimestampToLocalDateString(entry.createdAt);
       }) || [];
 
       // Remove duplicates and return

@@ -322,7 +322,7 @@ export default function CreateChallengeForm() {
       description,
       startDate: finalStartDate,
       endDate: finalEndDate,
-      challenge_type: databaseChallengeType as ChallengeType,
+      challengeType: databaseChallengeType as ChallengeType,
       capedPoints,
       objectives: objectivesWithValidIds,
       isRepeating,
