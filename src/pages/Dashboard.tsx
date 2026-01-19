@@ -358,13 +358,30 @@ export default function Dashboard() {
       const daysCompleted = userChallenge.totalScore;
       return `${daysCompleted}/${totalDays}`;
     } else if (challenge.challengeType === "weekly") {
-      if (!challenge.endDate) return `${userChallenge.totalScore}/∞`;
+      if (!challenge.endDate) {
+        // For ongoing weekly challenges, show total completions
+        const totalCompletions = userProgress.reduce((sum, progressItem) => {
+          return sum + (progressItem.currentValue || 0);
+        }, 0);
+        return `${totalCompletions}/∞`;
+      }
       
       const startDate = new Date(challenge.startDate);
       const endDate = new Date(challenge.endDate);
       const totalWeeks = getNumberOfWeeks(startDate, endDate);
-      const weeksCompleted = userChallenge.totalScore;
-      return `${weeksCompleted}/${totalWeeks}`;
+      
+      // Calculate total completions from userProgress (currentValue now represents total completions)
+      const totalCompletions = userProgress.reduce((sum, progressItem) => {
+        return sum + (progressItem.currentValue || 0);
+      }, 0);
+      
+      // Calculate total needed: sum of (weeks * targetValue) for each objective
+      const totalNeeded = challenge.objectives.reduce((sum, objective) => {
+        const targetValue = objective.targetValue || 1;
+        return sum + (totalWeeks * targetValue);
+      }, 0);
+      
+      return `${totalCompletions}/${totalNeeded}`;
     } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
       const completedObjectives = challenge.objectives.filter(obj => {
         const progressItem = userProgress.find(p => p.objectiveId === obj.id);

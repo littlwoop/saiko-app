@@ -226,6 +226,7 @@ export default function ObjectiveItem({
   const [weeklyEntries, setWeeklyEntries] = useState<Set<string>>(new Set());
   const [currentWeekProgress, setCurrentWeekProgress] = useState(0);
   const [showInlineInput, setShowInlineInput] = useState(false);
+  const [currentWeekEntries, setCurrentWeekEntries] = useState<Array<{ notes?: string; createdAt: string; userId?: string }>>([]);
   const longPressTimer = useRef<NodeJS.Timeout>();
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
@@ -311,6 +312,7 @@ export default function ObjectiveItem({
         }
       });
       getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
+      getCurrentWeekEntries().then((entries) => setCurrentWeekEntries(entries));
     }
   }, [challengeType, userIdToQuery, challengeId, objective.id, challengeStartDate, challengeEndDate]);
 
@@ -374,6 +376,8 @@ export default function ObjectiveItem({
           setWeeklyEntries(prev => new Set([...prev, weekId]));
           getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
         }
+        // Refresh current week entries to show the new entry
+        getCurrentWeekEntries().then((entries) => setCurrentWeekEntries(entries));
       }
       
       // Clear input
@@ -645,6 +649,51 @@ export default function ObjectiveItem({
     } catch (error) {
       console.error('Error getting this week\'s progress:', error);
       return 0;
+    }
+  };
+
+  const getCurrentWeekEntries = async (): Promise<Array<{ notes?: string; createdAt: string; userId?: string }>> => {
+    if (!userIdToQuery && !isCollaborative) return [];
+
+    const today = new Date();
+    try {
+      const weekStart = getWeekStart(today);
+      const weekEnd = getWeekEnd(today);
+      
+      let query = supabase
+        .from('entries')
+        .select('notes, created_at, user_id')
+        .eq('challenge_id', challengeId)
+        .eq('objective_id', objective.id)
+        .gte('created_at', weekStart.toISOString())
+        .lte('created_at', weekEnd.toISOString())
+        .order('created_at', { ascending: false });
+      
+      // For collaborative challenges, don't filter by user_id (get all participants' entries)
+      // For non-collaborative, filter by specific user
+      if (!isCollaborative && userIdToQuery) {
+        query = query.eq('user_id', userIdToQuery);
+      }
+      
+      const { data: entries, error } = await query;
+
+      if (error) {
+        console.error('Error getting this week\'s entries:', error);
+        return [];
+      }
+
+      // Map the entries to match the expected format (created_at -> createdAt, user_id -> userId)
+      const mappedEntries = (entries || []).map(entry => ({
+        notes: entry.notes,
+        createdAt: entry.created_at,
+        userId: entry.user_id
+      }));
+      
+      console.log('Current week entries fetched:', mappedEntries.length, mappedEntries);
+      return mappedEntries;
+    } catch (error) {
+      console.error('Error getting this week\'s entries:', error);
+      return [];
     }
   };
 
@@ -1398,12 +1447,34 @@ export default function ObjectiveItem({
         )}
         {/* Show weekly grid for weekly challenges */}
         {challengeType === "weekly" && (
-          <WeeklyProgressGrid 
-            startDate={challengeStartDate}
-            endDate={challengeEndDate}
-            completedWeeks={weeklyEntries}
-            t={t}
-          />
+          <>
+            <WeeklyProgressGrid 
+              startDate={challengeStartDate}
+              endDate={challengeEndDate}
+              completedWeeks={weeklyEntries}
+              t={t}
+            />
+            {/* Show current week entries with notes */}
+            {currentWeekEntries.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <div className="text-xs font-medium text-gray-700">
+                  {t("thisWeekEntries")}:
+                </div>
+            <div className="space-y-1.5">
+              {currentWeekEntries
+                .filter(entry => entry.notes && entry.notes.trim() !== "")
+                .map((entry, index) => (
+                  <div 
+                    key={index}
+                    className="text-xs text-gray-600 bg-gray-50 rounded-md px-2.5 py-1.5 border border-gray-200"
+                  >
+                    {entry.notes}
+                  </div>
+                ))}
+            </div>
+              </div>
+            )}
+          </>
         )}
       </>
     );
@@ -1454,7 +1525,7 @@ export default function ObjectiveItem({
             {showProgress && (
               <div className="mt-2">
                 <div className="text-xs text-gray-600">
-                  {currentWeekProgress} / {targetValue} {targetValue === 1 ? "completion" : "completions"}
+                  {currentWeekProgress} / {targetValue} {targetValue === 1 ? t("completion") : t("completions")}
                 </div>
                 <Progress 
                   value={Math.min(100, (currentWeekProgress / targetValue) * 100)} 
@@ -1465,14 +1536,14 @@ export default function ObjectiveItem({
             {(isCompleted || weekCompleted) && !showProgress && (
               <div className="mt-1">
                 <div className="bg-green-100 text-green-800 text-xs font-medium px-1.5 py-0.5 rounded-full inline-block">
-                  {hasEntryThisWeek ? t("completedThisWeek") || t("completedToday") : t("complete")}
+                  {hasEntryThisWeek ? t("completedThisWeek") : t("complete")}
                 </div>
               </div>
             )}
             {weekCompleted && showProgress && (
               <div className="mt-1">
                 <div className="bg-green-100 text-green-800 text-xs font-medium px-1.5 py-0.5 rounded-full inline-block">
-                  {t("completedThisWeek") || t("completedToday")}
+                  {t("completedThisWeek")}
                 </div>
               </div>
             )}
@@ -1484,10 +1555,10 @@ export default function ObjectiveItem({
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="weekly-completion-notes" className="text-sm">
-                    Description <span className="text-red-500">*</span>
+                    {t("description")} <span className="text-red-500">*</span>
                     {showProgress && (
                       <span className="text-xs text-gray-500 ml-2 font-normal">
-                        ({currentWeekProgress} / {targetValue} completions)
+                        ({currentWeekProgress} / {targetValue} {t("completions")})
                       </span>
                     )}
                   </Label>
@@ -1495,7 +1566,7 @@ export default function ObjectiveItem({
                     id="weekly-completion-notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Enter a description for this completion..."
+                    placeholder={t("addNotesAboutProgress")}
                     required
                     className="min-h-[80px]"
                     autoFocus
@@ -1518,7 +1589,7 @@ export default function ObjectiveItem({
                     size="sm"
                     disabled={!notes || notes.trim() === ""}
                   >
-                    Add Completion
+                    {t("addCompletion")}
                   </Button>
                 </div>
               </form>
@@ -1579,13 +1650,13 @@ export default function ObjectiveItem({
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="past-completion-notes">
-                            Description <span className="text-red-500">*</span>
+                            {t("description")} <span className="text-red-500">*</span>
                           </Label>
                           <Textarea
                             id="past-completion-notes"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Enter a description for this completion..."
+                            placeholder={t("addNotesAboutProgress")}
                             required
                           />
                         </div>
@@ -1618,6 +1689,26 @@ export default function ObjectiveItem({
           completedWeeks={weeklyEntries}
           t={t}
         />
+        {/* Show current week entries with notes */}
+        {currentWeekEntries.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <div className="text-xs font-medium text-gray-700">
+              {t("thisWeekEntries") || "This Week's Entries"}:
+            </div>
+            <div className="space-y-1.5">
+              {currentWeekEntries
+                .filter(entry => entry.notes && entry.notes.trim() !== "")
+                .map((entry, index) => (
+                  <div 
+                    key={index}
+                    className="text-xs text-gray-600 bg-gray-50 rounded-md px-2.5 py-1.5 border border-gray-200"
+                  >
+                    {entry.notes}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -1683,11 +1774,11 @@ export default function ObjectiveItem({
                   <form onSubmit={handleSubmit}>
                     <DialogHeader>
                       <DialogTitle>
-                        {challengeType === "weekly" ? "Add Completion" : t("addProgress")}
+                        {challengeType === "weekly" ? t("addCompletion") : t("addProgress")}
                       </DialogTitle>
                       <DialogDescription>
                         {challengeType === "weekly" 
-                          ? `Add a completion for ${objective.title}. Progress: ${currentWeekProgress} / ${objective.targetValue || 1} completions`
+                          ? `${t("addCompletion")} ${t("forObjective")} ${objective.title}. ${t("progress")}: ${currentWeekProgress} / ${objective.targetValue || 1} ${t("completions")}`
                           : `${t("enterProgressFor")} ${objective.title}`
                         }
                       </DialogDescription>
@@ -1714,7 +1805,7 @@ export default function ObjectiveItem({
                       )}
                       <div className="grid gap-2">
                         <Label htmlFor="notes">
-                          {challengeType === "weekly" ? "Description" : t("notes")}
+                          {challengeType === "weekly" ? t("description") : t("notes")}
                           {challengeType === "weekly" && <span className="text-red-500">*</span>}
                         </Label>
                         <Textarea
@@ -1722,7 +1813,7 @@ export default function ObjectiveItem({
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder={challengeType === "weekly" 
-                            ? "Enter a description for this completion..." 
+                            ? t("addNotesAboutProgress")
                             : t("addNotesAboutProgress")
                           }
                           required={challengeType === "weekly"}
@@ -1731,7 +1822,7 @@ export default function ObjectiveItem({
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={challengeType === "weekly" && (!notes || notes.trim() === "")}>
-                        {challengeType === "weekly" ? "Add Completion" : t("saveProgress")}
+                        {challengeType === "weekly" ? t("addCompletion") : t("saveProgress")}
                       </Button>
                     </DialogFooter>
                   </form>
