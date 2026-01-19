@@ -17,7 +17,7 @@ interface ChallengeContextType {
       Challenge,
       "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
     >,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   updateChallenge: (
     challengeId: number,
     challenge: Omit<
@@ -442,14 +442,14 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       Challenge,
       "id" | "createdById" | "creatorName" | "participants" | "totalPoints"
     >,
-  ) => {
+  ): Promise<boolean> => {
     if (!user) {
       toast({
         title: "Error",
         description: "You must be logged in to create a challenge",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     // Calculate total points based on challenge type
@@ -540,20 +540,29 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // Prepare data for database insert (all camelCase)
+    // Explicitly exclude 'id' to let database auto-generate it
+    // Destructure to ensure no 'id' field leaks through
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      id: _unusedId,
+      ...challengeDataWithoutId
+    } = newChallengeWithValidIds as any;
+    
     const challengeDataForInsert: any = {
-      title: newChallengeWithValidIds.title,
-      description: newChallengeWithValidIds.description,
-      objectives: newChallengeWithValidIds.objectives,
-      participants: newChallengeWithValidIds.participants,
-      challengeType: newChallengeWithValidIds.challengeType || "standard",
-      isCollaborative: newChallengeWithValidIds.isCollaborative || false,
-      isRepeating: newChallengeWithValidIds.isRepeating || false,
-      capedPoints: newChallengeWithValidIds.capedPoints || false,
-      createdById: newChallengeWithValidIds.createdById,
-      creatorName: newChallengeWithValidIds.creatorName,
-      startDate: newChallengeWithValidIds.startDate || null,
-      endDate: newChallengeWithValidIds.endDate || null,
-      totalPoints: newChallengeWithValidIds.totalPoints,
+      title: challengeDataWithoutId.title,
+      description: challengeDataWithoutId.description,
+      objectives: challengeDataWithoutId.objectives,
+      participants: challengeDataWithoutId.participants,
+      challengeType: challengeDataWithoutId.challengeType || "standard",
+      isCollaborative: challengeDataWithoutId.isCollaborative || false,
+      isRepeating: challengeDataWithoutId.isRepeating || false,
+      capedPoints: challengeDataWithoutId.capedPoints || false,
+      createdById: challengeDataWithoutId.createdById,
+      creatorName: challengeDataWithoutId.creatorName,
+      startDate: challengeDataWithoutId.startDate || null,
+      endDate: challengeDataWithoutId.endDate || null,
+      totalPoints: challengeDataWithoutId.totalPoints,
+      // Explicitly do NOT include 'id' - let database auto-generate
     };
 
     // Insert challenge (keep objectives in JSON for backward compatibility during migration)
@@ -564,12 +573,22 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       .single();
 
     if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
+      // Handle duplicate key error specifically
+      if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('challenges_pkey')) {
+        toast({
+          title: "Error",
+          description: "A challenge with this ID already exists. Please try again or contact support if this persists.",
+          variant: "destructive",
+        });
+        console.error("Duplicate key error - database sequence may be out of sync:", error);
+      } else {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      return false;
     }
 
     if (!insertedChallenge) {
@@ -578,7 +597,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         description: "Challenge created but failed to retrieve data",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     // Insert objectives into the objectives table
@@ -604,6 +623,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           description: "Challenge created but some objectives may not have been saved correctly",
           variant: "destructive",
         });
+        // Still return true since challenge was created, even if objectives had issues
       }
     }
 
@@ -611,6 +631,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
       title: "Success!",
       description: "Challenge created successfully",
     });
+    return true;
   };
 
   // Update an existing challenge

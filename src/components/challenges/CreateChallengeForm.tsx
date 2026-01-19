@@ -57,6 +57,7 @@ export default function CreateChallengeForm() {
   const [isRepeating, setIsRepeating] = useState(false);
   const [durationDays, setDurationDays] = useState<number>(30); // Duration in days for repeating challenges
   const [isCollaborative, setIsCollaborative] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [objectives, setObjectives] = useState([
     {
@@ -193,8 +194,13 @@ export default function CreateChallengeForm() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      return;
+    }
 
     if (!title || !description) {
       toast({
@@ -317,19 +323,40 @@ export default function CreateChallengeForm() {
       finalEndDate = noEndDate ? undefined : (endDate ? formatDateForStorage(endDate) : undefined);
     }
 
-    createChallenge({
-      title,
-      description,
-      startDate: finalStartDate,
-      endDate: finalEndDate,
-      challengeType: databaseChallengeType as ChallengeType,
-      capedPoints,
-      objectives: objectivesWithValidIds,
-      isRepeating,
-      isCollaborative,
-    });
+    setIsSubmitting(true);
+    try {
+      const success = await createChallenge({
+        title,
+        description,
+        startDate: finalStartDate,
+        endDate: finalEndDate,
+        challengeType: databaseChallengeType as ChallengeType,
+        capedPoints,
+        objectives: objectivesWithValidIds,
+        isRepeating,
+        isCollaborative,
+      });
 
-    navigate("/challenges");
+      // Only navigate if creation was successful
+      // Form fields will remain intact if there's an error
+      if (success === true) {
+        // Navigate away - form will reset naturally when component unmounts
+        // Don't clear fields here to avoid data loss if navigation fails
+        navigate("/challenges");
+      }
+      // If creation failed (success === false), form data remains intact
+      // User can fix errors and try again
+    } catch (error) {
+      console.error("Error creating challenge:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to create challenge. Please try again.",
+        variant: "destructive",
+      });
+      // Form data remains intact on error
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -806,8 +833,17 @@ export default function CreateChallengeForm() {
         )}
       </div>
 
-      <Button type="submit" className="w-full">
-        <Trophy className="mr-2 h-4 w-4" /> {t("createChallenge")}
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            {t("creating") || "Creating..."}
+          </>
+        ) : (
+          <>
+            <Trophy className="mr-2 h-4 w-4" /> {t("createChallenge")}
+          </>
+        )}
       </Button>
     </form>
   );
