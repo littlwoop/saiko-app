@@ -3,6 +3,7 @@ import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCompletionNotifications } from "@/hooks/use-completion-notifications";
+import { withTimeout } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -122,37 +123,43 @@ export default function Dashboard() {
       
       try {
         setIsLoading(true);
-        const userChallenges = await getUserChallenges();
+        // Wrap with timeout to prevent hanging in Safari
+        const userChallenges = await withTimeout(getUserChallenges(), 15000);
         console.log("Dashboard: getUserChallenges returned", userChallenges.length, "challenges");
         
-        // Get full challenge details for each user challenge
-        const challengesWithDetails = await Promise.all(
+        // Get full challenge details for each user challenge with timeout protection
+        const challengesWithDetails = await Promise.allSettled(
           userChallenges.map(async (userChallenge) => {
-            const challenge = await getChallenge(userChallenge.challengeId);
-            if (challenge) {
-              const userProgress = await getChallengeProgress(challenge.id, challenge.challengeType);
-              
-              // For repeating challenges or individual challenges, get user-specific start and end dates
-              let userStartDate: string | null = null;
-              let userEndDate: string | null = null;
-              // Try to fetch user dates (works for repeating challenges, and for individual challenges that have user-specific dates)
-              try {
-                userStartDate = await getUserChallengeStartDate(challenge.id, user.id);
-                userEndDate = await getUserChallengeEndDate(challenge.id, user.id);
-              } catch (error) {
-                // If fetching fails, continue without user dates
-                console.warn("Failed to fetch user challenge dates:", error);
+            try {
+              const challenge = await withTimeout(getChallenge(userChallenge.challengeId), 10000);
+              if (challenge) {
+                const userProgress = await withTimeout(getChallengeProgress(challenge.id, challenge.challengeType), 10000);
+                
+                // For repeating challenges or individual challenges, get user-specific start and end dates
+                let userStartDate: string | null = null;
+                let userEndDate: string | null = null;
+                // Try to fetch user dates (works for repeating challenges, and for individual challenges that have user-specific dates)
+                try {
+                  userStartDate = await withTimeout(getUserChallengeStartDate(challenge.id, user.id), 5000);
+                  userEndDate = await withTimeout(getUserChallengeEndDate(challenge.id, user.id), 5000);
+                } catch (error) {
+                  // If fetching fails, continue without user dates
+                  console.warn("Failed to fetch user challenge dates:", error);
+                }
+                
+                return {
+                  challenge,
+                  userChallenge,
+                  userProgress,
+                  userStartDate,
+                  userEndDate,
+                };
               }
-              
-              return {
-                challenge,
-                userChallenge,
-                userProgress,
-                userStartDate,
-                userEndDate,
-              };
+              return null;
+            } catch (error) {
+              console.error(`Error loading challenge ${userChallenge.challengeId}:`, error);
+              return null;
             }
-            return null;
           })
         );
 
@@ -160,6 +167,12 @@ export default function Dashboard() {
         // and future challenges (not started yet but user has joined)
         const now = new Date();
         const challenges = challengesWithDetails
+          .filter((result): result is PromiseFulfilledResult<DashboardChallengeData & { userStartDate?: string | null; userEndDate?: string | null }> => 
+            result.status === 'fulfilled' && 
+            result.value !== null && 
+            result.value.challenge !== null
+          )
+          .map(result => result.value)
           .filter((item): item is DashboardChallengeData & { userStartDate?: string | null; userEndDate?: string | null } => 
             item !== null && 
             item.challenge && 
@@ -264,8 +277,8 @@ export default function Dashboard() {
           console.log('Using stored daily challenge for today:', parsedChallenge.title);
           setTodaysChallenge(parsedChallenge);
         } else {
-          // No stored challenge for today, get a new one
-          const challenge = await dailyChallengesService.getTodaysRandomChallenge(user.id);
+          // No stored challenge for today, get a new one with timeout
+          const challenge = await withTimeout(dailyChallengesService.getTodaysRandomChallenge(user.id), 10000);
           console.log('New daily challenge loaded for today:', challenge?.title || 'none');
           
           if (challenge) {
@@ -279,6 +292,8 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error("Error loading today's challenge:", error);
+        // Set to null on error to prevent hanging
+        setTodaysChallenge(null);
       } finally {
         setIsChallengeLoading(false);
       }

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { withTimeout } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -241,19 +242,26 @@ export default function ChallengePage() {
 
       setLoading(true);
       try {
-        const challengeData = await getChallenge(parseInt(id));
+        // Wrap with timeout to prevent hanging in Safari
+        const challengeData = await withTimeout(getChallenge(parseInt(id)), 15000);
         if (challengeData) {
           setChallenge(challengeData);
-          // Load creator avatar and participants in parallel
+          // Load creator avatar and participants in parallel with timeout
           const [avatar, participantsData] = await Promise.all([
-            getCreatorAvatar(challengeData.createdById),
-            getParticipants(parseInt(id)),
+            withTimeout(getCreatorAvatar(challengeData.createdById), 10000),
+            withTimeout(getParticipants(parseInt(id)), 10000),
           ]);
           setCreatorAvatar(avatar);
           setParticipants(participantsData);
         }
       } catch (error) {
         console.error("Error fetching challenge:", error);
+        // Show error toast to user
+        toast({
+          title: t("error"),
+          description: error instanceof Error ? error.message : t("errorLoadingChallenge") || "Failed to load challenge",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }

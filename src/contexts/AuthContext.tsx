@@ -9,6 +9,7 @@ import {
 import { User } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { withTimeout } from "@/lib/utils";
 
 interface AuthContextType {
   user: User | null;
@@ -38,32 +39,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   useEffect(() => {
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error("Error getting session:", error);
-        // If there's an error but we have a stored session, try to refresh it
-        if (session) {
-          // Session exists but might need refresh, Supabase will handle it
-          if (session.user) {
-            setUser({
-              id: session.user.id,
-              email: session.user.email!,
-              name: session.user.user_metadata.name || "",
-              avatarUrl: session.user.user_metadata.avatar_url || "",
-            });
+    // Check active sessions and sets the user with timeout protection
+    withTimeout(supabase.auth.getSession(), 5000)
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("Error getting session:", error);
+          // If there's an error but we have a stored session, try to refresh it
+          if (session) {
+            // Session exists but might need refresh, Supabase will handle it
+            if (session.user) {
+              setUser({
+                id: session.user.id,
+                email: session.user.email!,
+                name: session.user.user_metadata.name || "",
+                avatarUrl: session.user.user_metadata.avatar_url || "",
+              });
+            }
           }
+        } else if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            name: session.user.user_metadata.name || "",
+            avatarUrl: session.user.user_metadata.avatar_url || "",
+          });
         }
-      } else if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata.name || "",
-          avatarUrl: session.user.user_metadata.avatar_url || "",
-        });
-      }
-      setIsLoading(false);
-    });
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error("Timeout or error getting session:", error);
+        // Set loading to false even on timeout to prevent infinite loading
+        setIsLoading(false);
+      });
 
     // Listen for changes on auth state
     const {
