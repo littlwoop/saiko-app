@@ -1178,6 +1178,7 @@ export default function ChallengePage() {
                       challengeStartDate={challenge.isRepeating && hasJoined && userStartDate ? userStartDate : (challenge.startDate || undefined)}
                       challengeEndDate={challenge.isRepeating && userEndDate ? userEndDate : (challenge.isRepeating ? undefined : challenge.endDate)}
                       selectedUserId={selectedUserId}
+                      challengeTitle={challenge.title}
                     />
                   ))}
                   {/* Show single grid for completion challenges */}

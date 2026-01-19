@@ -393,6 +393,7 @@ export const translations = {
     thisWeekEntries: "Einträge dieser Woche",
     completion: "Abschluss",
     completions: "Abschlüsse",
+    quickCompletion: "Schnellabschluss",
     
     // Past Completion Dialog
     addPastCompletion: "Vergangenen Tag abschließen",
@@ -928,7 +929,12 @@ export const translations = {
     weeklyProgress: "Weekly Progress",
     notCompleted: "Not completed",
     completedToday: "Completed today",
+    completedThisWeek: "Week completed",
     notCompletedToday: "Not completed today",
+    thisWeekEntries: "This Week's Entries",
+    completion: "completion",
+    completions: "completions",
+    quickCompletion: "Quick Completion",
     
     // Past Completion Dialog
     addPastCompletion: "Add Past Completion",

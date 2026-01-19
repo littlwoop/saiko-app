@@ -40,6 +40,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { getWeekIdentifier, getWeekStart, getWeekEnd } from "@/lib/week-utils";
 import { getLocalDateString, localDateToUTCStart, localDateToUTCEnd, utcTimestampToLocalDateString } from "@/lib/date-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { challenge41CompletionItems } from "@/lib/challenge-41-completion-items";
 
 interface DailyProgressGridProps {
   startDate?: string;
@@ -104,9 +105,52 @@ interface WeeklyProgressGridProps {
   endDate?: string;
   completedWeeks: Set<string>;
   t: (key: string) => string;
+  completionItems?: string[];
+  completedItems?: Set<string>;
+  onItemClick?: (item: string) => void;
+  readOnly?: boolean;
+  weekCompleted?: boolean;
+  currentWeekEntries?: Array<{ notes?: string; createdAt: string; userId?: string }>;
+  onCustomTextSubmit?: (text: string) => void;
+  language?: string;
+  targetValue?: number;
+  currentProgress?: number;
 }
 
-export const WeeklyProgressGrid = ({ startDate, endDate, completedWeeks, t }: WeeklyProgressGridProps) => {
+export const WeeklyProgressGrid = ({ 
+  startDate, 
+  endDate, 
+  completedWeeks, 
+  t,
+  completionItems,
+  completedItems,
+  onItemClick,
+  readOnly,
+  weekCompleted,
+  currentWeekEntries,
+  onCustomTextSubmit,
+  language,
+  targetValue,
+  currentProgress,
+}: WeeklyProgressGridProps) => {
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customText, setCustomText] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customText.trim() && onCustomTextSubmit) {
+      onCustomTextSubmit(customText.trim());
+      setCustomText("");
+      setShowCustomInput(false);
+    }
+  };
+
+  // Filter completion items based on search query
+  const filteredCompletionItems = completionItems?.filter(item =>
+    item.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
   if (!startDate || !endDate) return null;
 
   const start = new Date(startDate);
@@ -157,18 +201,139 @@ export const WeeklyProgressGrid = ({ startDate, endDate, completedWeeks, t }: We
   }
 
   return (
-    <div className="mt-1.5">
-      <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
-      <div className="flex flex-wrap gap-0.5">
-        {weeks.map((week, index) => (
-          <div
-            key={index}
-            className={`w-7 h-7 ${
-              week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
-            } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
-            title={`${week.weekRange} - ${week.isCompleted ? t("completed") : t("notCompleted")}`}
-          />
-        ))}
+    <div className="mt-1.5 space-y-2">
+      {/* Weekly progress grid */}
+      <div>
+        <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
+        <div className="flex flex-wrap gap-0.5">
+          {weeks.map((week, index) => (
+            <div
+              key={index}
+              className={`w-7 h-7 ${
+                week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
+              } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
+              title={`${week.weekRange} - ${week.isCompleted ? t("completed") : t("notCompleted")}`}
+            />
+          ))}
+        </div>
+      </div>
+      {/* Completion items grid for challenge ID 41 */}
+      {completionItems && completionItems.length > 0 && (
+        <div>
+          {/* Display target value and progress */}
+          {targetValue !== undefined && (
+            <div className="mb-2 text-sm text-gray-700">
+              {t("progress")}: {currentWeekEntries?.filter(entry => entry.notes && entry.notes.trim() !== "").length || 0} / {targetValue} {targetValue === 1 ? t("completion") : t("completions")}
+            </div>
+          )}
+          {/* Search field */}
+          <div className="mb-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("search") || "Search..."}
+              className="w-full h-9 px-2 text-sm border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex flex-wrap gap-0.5 items-center">
+            {/* "+" button to add custom text */}
+            {!readOnly && !weekCompleted && (
+              <>
+                {showCustomInput ? (
+                  <form onSubmit={handleCustomSubmit} className="flex gap-1 items-center">
+                    <input
+                      type="text"
+                      value={customText}
+                      onChange={(e) => setCustomText(e.target.value)}
+                      placeholder={language === "de" ? "hinzufügen" : "Add..."}
+                      className="h-9 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      autoFocus
+                      onBlur={() => {
+                        if (!customText.trim()) {
+                          setShowCustomInput(false);
+                        }
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!customText.trim()}
+                      className="h-9 px-2 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      {t("addCompletion") || "Add"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomInput(false);
+                        setCustomText("");
+                      }}
+                      className="h-9 px-2 text-sm bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300"
+                    >
+                      {t("cancel") || "Cancel"}
+                    </button>
+                  </form>
+                ) : (
+                  <div
+                    onClick={() => setShowCustomInput(true)}
+                    className="w-9 h-9 flex items-center justify-center text-lg font-medium bg-blue-500 text-white hover:bg-blue-600 cursor-pointer rounded-sm transition-colors"
+                    title={t("addCompletion") || "Add custom entry"}
+                  >
+                    +
+                  </div>
+                )}
+              </>
+            )}
+            {/* Show all entries as green, non-clickable squares */}
+            {currentWeekEntries
+              ?.filter(entry => entry.notes && entry.notes.trim() !== "")
+              .map((entry, index) => (
+                <div
+                  key={`entry-${index}-${entry.createdAt}`}
+                  className="min-w-9 h-9 px-2 flex items-center justify-center text-sm font-medium bg-green-500 text-white rounded-sm"
+                  title={`${entry.notes} - ${t("completed")}`}
+                >
+                  {entry.notes}
+                </div>
+              ))}
+            {/* Show clickable items that haven't been completed yet */}
+            {filteredCompletionItems.map((item) => {
+              const isCompleted = completedItems?.has(item) || false;
+              const canClick = !readOnly && !weekCompleted && !isCompleted;
+              // Only show if not completed (completed ones are shown above as entries)
+              if (isCompleted) return null;
+              return (
+                <div
+                  key={item}
+                  onClick={canClick ? () => onItemClick?.(item) : undefined}
+                  className={`min-w-9 h-9 px-2 flex items-center justify-center text-sm font-medium transition-colors rounded-sm ${
+                    canClick
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                  title={`${item} - ${t("notCompleted")}`}
+                >
+                  {item}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {/* Weekly progress grid */}
+      <div>
+        <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
+        <div className="flex flex-wrap gap-0.5">
+          {weeks.map((week, index) => (
+            <div
+              key={index}
+              className={`w-7 h-7 ${
+                week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
+              } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
+              title={`${week.weekRange} - ${week.isCompleted ? t("completed") : t("notCompleted")}`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -408,6 +573,51 @@ export default function ObjectiveItem({
     await updateProgress(challengeId, objective.id, 0);
     if (onProgressUpdate) {
       onProgressUpdate();
+    }
+  };
+
+  const handleQuickCompletionItem = async (itemName: string) => {
+    if (!user || readOnly) return;
+    
+    if (challengeType === "weekly") {
+      const targetValue = objective.targetValue || 1;
+      const showProgress = targetValue > 1;
+      // Calculate weekCompleted for this check
+      const weekCompleted = showProgress 
+        ? currentWeekProgress >= targetValue 
+        : hasEntryThisWeek;
+      
+      if (weekCompleted && targetValue === 1) return; // Don't allow adding more if single completion is done
+      
+      // Add completion with item name as notes
+      await updateProgress(challengeId, objective.id, 1, itemName);
+      
+      // Refresh weekly progress
+      let newProgress = 0;
+      if (targetValue === 1) {
+        setHasEntryThisWeek(true);
+        const today = new Date();
+        const weekId = getWeekIdentifier(today);
+        setWeeklyEntries(prev => new Set([...prev, weekId]));
+        getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
+        newProgress = 1;
+      } else {
+        newProgress = await getCurrentWeekProgress();
+        setCurrentWeekProgress(newProgress);
+        if (newProgress >= targetValue) {
+          setHasEntryThisWeek(true);
+          const today = new Date();
+          const weekId = getWeekIdentifier(today);
+          setWeeklyEntries(prev => new Set([...prev, weekId]));
+          getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
+        }
+        // Refresh current week entries to show the new entry
+        getCurrentWeekEntries().then((entries) => setCurrentWeekEntries(entries));
+      }
+      
+      if (onProgressUpdate) {
+        onProgressUpdate();
+      }
     }
   };
 
@@ -1453,27 +1663,21 @@ export default function ObjectiveItem({
               endDate={challengeEndDate}
               completedWeeks={weeklyEntries}
               t={t}
+              completionItems={challengeId === 41 ? challenge41CompletionItems : undefined}
+              completedItems={challengeId === 41 ? new Set(
+                currentWeekEntries
+                  .filter(entry => entry.notes && challenge41CompletionItems.includes(entry.notes.trim()))
+                  .map(entry => entry.notes!.trim())
+              ) : undefined}
+              onItemClick={challengeId === 41 ? handleQuickCompletionItem : undefined}
+              readOnly={readOnly}
+              weekCompleted={weekCompleted}
+              currentWeekEntries={challengeId === 41 ? currentWeekEntries : undefined}
+              onCustomTextSubmit={challengeId === 41 ? handleQuickCompletionItem : undefined}
+              language={language}
+              targetValue={challengeId === 41 ? (objective.targetValue || 1) : undefined}
+              currentProgress={challengeId === 41 ? currentWeekProgress : undefined}
             />
-            {/* Show current week entries with notes */}
-            {currentWeekEntries.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <div className="text-xs font-medium text-gray-700">
-                  {t("thisWeekEntries")}:
-                </div>
-            <div className="space-y-1.5">
-              {currentWeekEntries
-                .filter(entry => entry.notes && entry.notes.trim() !== "")
-                .map((entry, index) => (
-                  <div 
-                    key={index}
-                    className="text-xs text-gray-600 bg-gray-50 rounded-md px-2.5 py-1.5 border border-gray-200"
-                  >
-                    {entry.notes}
-                  </div>
-                ))}
-            </div>
-              </div>
-            )}
           </>
         )}
       </>
@@ -1498,6 +1702,123 @@ export default function ObjectiveItem({
     // For targetValue > 1, allow clicking even when inline input is shown (to add multiple completions)
     const canClick = !readOnly && !weekCompleted;
 
+    // Special handling for challenge 41: show Quick Completion grid instead of card
+    if (challengeId === 41) {
+      return (
+        <>
+          {/* Show Quick Completion grid instead of objective card */}
+          <WeeklyProgressGrid 
+            startDate={challengeStartDate}
+            endDate={challengeEndDate}
+            completedWeeks={weeklyEntries}
+            t={t}
+            completionItems={challenge41CompletionItems}
+            completedItems={new Set(
+              currentWeekEntries
+                .filter(entry => entry.notes && challenge41CompletionItems.includes(entry.notes.trim()))
+                .map(entry => entry.notes!.trim())
+            )}
+            onItemClick={handleQuickCompletionItem}
+            readOnly={readOnly}
+            weekCompleted={weekCompleted}
+            currentWeekEntries={currentWeekEntries}
+            onCustomTextSubmit={handleQuickCompletionItem}
+            language={language}
+            targetValue={objective.targetValue || 1}
+            currentProgress={currentWeekProgress}
+          />
+          {/* Move "Add Past Completion" to the bottom */}
+          {!readOnly && (
+            <div className="mt-3 flex justify-center">
+              <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      {t("addPastCompletion")}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>{t("addPastCompletion")}</DialogTitle>
+                      <DialogDescription>
+                        {t("selectDateToAddCompletion")}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-4 py-4">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => {
+                          // Disable dates outside challenge range
+                          if (challengeStartDate) {
+                            const startDate = new Date(challengeStartDate);
+                            startDate.setHours(0, 0, 0, 0);
+                            if (date < startDate) return true;
+                          }
+                          if (challengeEndDate) {
+                            const endDate = new Date(challengeEndDate);
+                            endDate.setHours(23, 59, 59, 999);
+                            if (date > endDate) return true;
+                          }
+                          // Disable future dates
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          if (date > today) return true;
+                          // For weekly challenges with targetValue > 1, don't disable weeks
+                          // For weekly challenges with targetValue === 1, disable completed weeks
+                          const targetValue = objective.targetValue || 1;
+                          if (targetValue === 1) {
+                            const weekId = getWeekIdentifier(date);
+                            return weeklyEntries.has(weekId);
+                          }
+                          return false;
+                        }}
+                        className="rounded-md border"
+                      />
+                      {selectedDate && (
+                        <>
+                          <div className="text-sm text-muted-foreground">
+                            {t("selectedDate")}: {selectedDate.toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="past-completion-notes">
+                              {t("description")} <span className="text-red-500">*</span>
+                            </Label>
+                            <Textarea
+                              id="past-completion-notes"
+                              value={notes}
+                              onChange={(e) => setNotes(e.target.value)}
+                              placeholder={t("addNotesAboutProgress")}
+                              required
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => {
+                        setIsDatePickerOpen(false);
+                        setSelectedDate(undefined);
+                        setNotes("");
+                      }}>
+                        {t("cancel")}
+                      </Button>
+                      <Button 
+                        onClick={handleAddPastCompletion}
+                        disabled={!selectedDate || !notes || notes.trim() === ""}
+                      >
+                        {t("addCompletion")}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    // Normal rendering for other weekly challenges
     return (
       <>
         <Card 
@@ -1689,26 +2010,6 @@ export default function ObjectiveItem({
           completedWeeks={weeklyEntries}
           t={t}
         />
-        {/* Show current week entries with notes */}
-        {currentWeekEntries.length > 0 && (
-          <div className="mt-3 space-y-2">
-            <div className="text-xs font-medium text-gray-700">
-              {t("thisWeekEntries") || "This Week's Entries"}:
-            </div>
-            <div className="space-y-1.5">
-              {currentWeekEntries
-                .filter(entry => entry.notes && entry.notes.trim() !== "")
-                .map((entry, index) => (
-                  <div 
-                    key={index}
-                    className="text-xs text-gray-600 bg-gray-50 rounded-md px-2.5 py-1.5 border border-gray-200"
-                  >
-                    {entry.notes}
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
       </>
     );
   }
