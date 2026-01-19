@@ -283,68 +283,31 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         const challengeData = challenge || await getChallenge(challengeId);
         if (!challengeData) return [];
 
-        // For weekly challenges, we need to count only completed weeks (where target is met)
+        // For weekly challenges, count the number of entries (not sum of values)
         if (challengeType === "weekly") {
           // For collaborative challenges, use a special userId to indicate collective progress
           const collectiveUserId = isCollaborative ? "collective" : user.id;
 
-          // Group entries by objective and week, then count only completed weeks
+          // Group entries by objective and count entries
           const progressMap: Record<string, UserProgress> = {};
-          const weekProgressMap: Record<string, Record<string, number>> = {}; // objectiveId -> weekId -> total value
 
-          entriesData.forEach((entry) => {
-            const key = `${entry.challenge_id}-${entry.objective_id}`;
-            if (!progressMap[key]) {
-              progressMap[key] = {
-                userId: collectiveUserId,
-                challengeId: entry.challenge_id,
-                objectiveId: entry.objective_id,
-                currentValue: 0,
-              };
-            }
-
-            // Get the week identifier for this entry
-            const entryDate = new Date(entry.createdAt);
-            const weekId = getWeekIdentifier(entryDate);
-
-            // Initialize week progress tracking for this objective
-            if (!weekProgressMap[entry.objective_id]) {
-              weekProgressMap[entry.objective_id] = {};
-            }
-            if (!weekProgressMap[entry.objective_id][weekId]) {
-              weekProgressMap[entry.objective_id][weekId] = 0;
-            }
-
-            // Sum values for this week
-            weekProgressMap[entry.objective_id][weekId] += entry.value || 0;
-          });
-
-          // Count only weeks where target is met
           // Initialize progress for all objectives, even if they have no entries
           challenge.objectives.forEach((objective) => {
             const key = `${challengeId}-${objective.id}`;
-            const targetValue = objective.targetValue || 1;
-            const weeksForObjective = weekProgressMap[objective.id] || {};
+            progressMap[key] = {
+              userId: collectiveUserId,
+              challengeId: challengeId,
+              objectiveId: objective.id,
+              currentValue: 0,
+            };
+          });
 
-            // Initialize progress entry if it doesn't exist
-            if (!progressMap[key]) {
-              progressMap[key] = {
-                userId: collectiveUserId,
-                challengeId: challengeId,
-                objectiveId: objective.id,
-                currentValue: 0,
-              };
+          // Count entries for each objective
+          entriesData.forEach((entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (progressMap[key]) {
+              progressMap[key].currentValue += 1; // Count each entry
             }
-
-            // Count only weeks where target is met
-            let completedWeeks = 0;
-            Object.values(weeksForObjective).forEach((weekTotal) => {
-              if (weekTotal >= targetValue) {
-                completedWeeks++;
-              }
-            });
-
-            progressMap[key].currentValue = completedWeeks;
           });
 
           const progress = Object.values(progressMap);
@@ -1166,62 +1129,28 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         const challenge = await getChallenge(challengeId);
         if (!challenge) return [];
 
-        // For weekly challenges, count only completed weeks (where target is met)
+        // For weekly challenges, count the number of entries (not sum of values)
         if (challenge.challengeType === "weekly") {
-          // Group entries by objective and week, then count only completed weeks
+          // Group entries by objective and count entries
           const progressMap: Record<string, UserProgress> = {};
-          const weekProgressMap: Record<string, Record<string, number>> = {}; // objectiveId -> weekId -> total value
 
-          entriesData.forEach((entry) => {
-            const key = `${entry.challenge_id}-${entry.objective_id}`;
-            if (!progressMap[key]) {
-              progressMap[key] = {
-                userId: entry.user_id,
-                challengeId: entry.challenge_id,
-                objectiveId: entry.objective_id,
-                currentValue: 0,
-              };
-            }
-
-            // Get the week identifier for this entry
-            const entryDate = new Date(entry.createdAt);
-            const weekId = getWeekIdentifier(entryDate);
-
-            // Initialize week progress tracking for this objective
-            if (!weekProgressMap[entry.objective_id]) {
-              weekProgressMap[entry.objective_id] = {};
-            }
-            if (!weekProgressMap[entry.objective_id][weekId]) {
-              weekProgressMap[entry.objective_id][weekId] = 0;
-            }
-
-            // Sum values for this week
-            weekProgressMap[entry.objective_id][weekId] += entry.value || 0;
-          });
-
-          // For weekly challenges, count total completions (not completed weeks)
           // Initialize progress for all objectives, even if they have no entries
           challenge.objectives.forEach((objective) => {
             const key = `${challengeId}-${objective.id}`;
-            const weeksForObjective = weekProgressMap[objective.id] || {};
+            progressMap[key] = {
+              userId: userId,
+              challengeId: challengeId,
+              objectiveId: objective.id,
+              currentValue: 0,
+            };
+          });
 
-            // Initialize progress entry if it doesn't exist
-            if (!progressMap[key]) {
-              progressMap[key] = {
-                userId: userId,
-                challengeId: challengeId,
-                objectiveId: objective.id,
-                currentValue: 0,
-              };
+          // Count entries for each objective
+          entriesData.forEach((entry) => {
+            const key = `${entry.challenge_id}-${entry.objective_id}`;
+            if (progressMap[key]) {
+              progressMap[key].currentValue += 1; // Count each entry
             }
-
-            // Count total completions across all weeks for this objective
-            let totalCompletions = 0;
-            Object.values(weeksForObjective).forEach((weekTotal) => {
-              totalCompletions += weekTotal;
-            });
-
-            progressMap[key].currentValue = totalCompletions;
           });
 
           const progress = Object.values(progressMap);
