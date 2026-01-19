@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, CheckCircle, Check, RotateCcw, Hand } from "lucide-react";
+import { Trophy, CheckCircle, Check, RotateCcw, Hand, X } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useTranslation } from "@/lib/translations";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -202,21 +202,23 @@ export const WeeklyProgressGrid = ({
 
   return (
     <div className="mt-1.5 space-y-2">
-      {/* Weekly progress grid */}
-      <div>
-        <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
-        <div className="flex flex-wrap gap-0.5">
-          {weeks.map((week, index) => (
-            <div
-              key={index}
-              className={`w-7 h-7 ${
-                week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
-              } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
-              title={`${week.weekRange} - ${week.isCompleted ? t("completed") : t("notCompleted")}`}
-            />
-          ))}
+      {/* Weekly progress grid - only show if no completion items (not challenge 41) */}
+      {(!completionItems || completionItems.length === 0) && (
+        <div>
+          <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
+          <div className="flex flex-wrap gap-0.5">
+            {weeks.map((week, index) => (
+              <div
+                key={index}
+                className={`w-7 h-7 ${
+                  week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
+                title={`${week.weekRange} - ${week.isCompleted ? t("completed") : t("notCompleted")}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       {/* Completion items grid for challenge ID 41 */}
       {completionItems && completionItems.length > 0 && (
         <div>
@@ -237,8 +239,8 @@ export const WeeklyProgressGrid = ({
             />
           </div>
           <div className="flex flex-wrap gap-0.5 items-center">
-            {/* "+" button to add custom text */}
-            {!readOnly && !weekCompleted && (
+            {/* "+" button to add custom text - hide when search is active */}
+            {!readOnly && !weekCompleted && !searchQuery.trim() && (
               <>
                 {showCustomInput ? (
                   <form onSubmit={handleCustomSubmit} className="flex gap-1 items-center">
@@ -268,9 +270,10 @@ export const WeeklyProgressGrid = ({
                         setShowCustomInput(false);
                         setCustomText("");
                       }}
-                      className="h-9 px-2 text-sm bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300"
+                      className="h-9 w-9 flex items-center justify-center bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300"
+                      title={t("cancel") || "Cancel"}
                     >
-                      {t("cancel") || "Cancel"}
+                      <X className="h-4 w-4" />
                     </button>
                   </form>
                 ) : (
@@ -317,24 +320,40 @@ export const WeeklyProgressGrid = ({
                 </div>
               );
             })}
+            {/* Show option to add search text as completion if no matches found */}
+            {searchQuery.trim() && 
+             filteredCompletionItems.length === 0 && 
+             !completedItems?.has(searchQuery.trim()) &&
+             !readOnly && 
+             !weekCompleted && (
+              <div
+                onClick={() => onCustomTextSubmit?.(searchQuery.trim())}
+                className="min-w-9 h-9 px-2 flex items-center justify-center text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 cursor-pointer rounded-sm transition-colors"
+                title={`${t("addCompletion") || "Add"} "${searchQuery.trim()}"`}
+              >
+                + {searchQuery.trim()}
+              </div>
+            )}
           </div>
         </div>
       )}
-      {/* Weekly progress grid */}
-      <div>
-        <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
-        <div className="flex flex-wrap gap-0.5">
-          {weeks.map((week, index) => (
-            <div
-              key={index}
-              className={`w-7 h-7 ${
-                week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
-              } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
-              title={`${week.weekRange} - ${week.isCompleted ? t("completed") : t("notCompleted")}`}
-            />
-          ))}
+      {/* Weekly progress grid - only show if no completion items (not challenge 41) */}
+      {(!completionItems || completionItems.length === 0) && (
+        <div>
+          <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
+          <div className="flex flex-wrap gap-0.5">
+            {weeks.map((week, index) => (
+              <div
+                key={index}
+                className={`w-7 h-7 ${
+                  week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
+                title={`${week.weekRange} - ${week.isCompleted ? t("completed") : t("notCompleted")}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -1655,28 +1674,14 @@ export default function ObjectiveItem({
             t={t}
           />
         )}
-        {/* Show weekly grid for weekly challenges */}
-        {challengeType === "weekly" && (
+        {/* Show weekly grid for weekly challenges (but not for challenge 41, which is handled separately) */}
+        {challengeType === "weekly" && challengeId !== 41 && (
           <>
             <WeeklyProgressGrid 
               startDate={challengeStartDate}
               endDate={challengeEndDate}
               completedWeeks={weeklyEntries}
               t={t}
-              completionItems={challengeId === 41 ? challenge41CompletionItems : undefined}
-              completedItems={challengeId === 41 ? new Set(
-                currentWeekEntries
-                  .filter(entry => entry.notes && challenge41CompletionItems.includes(entry.notes.trim()))
-                  .map(entry => entry.notes!.trim())
-              ) : undefined}
-              onItemClick={challengeId === 41 ? handleQuickCompletionItem : undefined}
-              readOnly={readOnly}
-              weekCompleted={weekCompleted}
-              currentWeekEntries={challengeId === 41 ? currentWeekEntries : undefined}
-              onCustomTextSubmit={challengeId === 41 ? handleQuickCompletionItem : undefined}
-              language={language}
-              targetValue={challengeId === 41 ? (objective.targetValue || 1) : undefined}
-              currentProgress={challengeId === 41 ? currentWeekProgress : undefined}
             />
           </>
         )}
@@ -1706,6 +1711,42 @@ export default function ObjectiveItem({
     if (challengeId === 41) {
       return (
         <>
+          {/* Weekly progress grid - show above completion items */}
+          <div className="mb-3">
+            <div className="text-xs text-gray-500 mb-1.5">{t("weeklyProgress") || t("dailyProgress")}</div>
+            <div className="flex flex-wrap gap-0.5">
+              {(() => {
+                const start = challengeStartDate ? new Date(challengeStartDate) : new Date();
+                const end = challengeEndDate ? new Date(challengeEndDate) : new Date();
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                const challengeWeekStart = getWeekStart(start);
+                const challengeWeekEnd = getWeekEnd(end);
+                const today = new Date();
+                const currentWeekId = getWeekIdentifier(today);
+                const weeks = [];
+                const current = new Date(challengeWeekStart);
+                while (current <= challengeWeekEnd) {
+                  const weekEnd = getWeekEnd(current);
+                  if (current <= end && weekEnd >= start) {
+                    const weekId = getWeekIdentifier(current);
+                    const isCompleted = weeklyEntries.has(weekId);
+                    const isCurrentWeek = weekId === currentWeekId;
+                    weeks.push({ weekId, isCompleted, isCurrentWeek });
+                  }
+                  current.setDate(current.getDate() + 7);
+                }
+                return weeks.map((week, index) => (
+                  <div
+                    key={index}
+                    className={`w-7 h-7 ${
+                      week.isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                    } ${week.isCurrentWeek ? 'ring-2 ring-blue-400' : ''}`}
+                  />
+                ));
+              })()}
+            </div>
+          </div>
           {/* Show Quick Completion grid instead of objective card */}
           <WeeklyProgressGrid 
             startDate={challengeStartDate}
@@ -2003,13 +2044,6 @@ export default function ObjectiveItem({
               </Dialog>
           </div>
         )}
-        {/* Show weekly grid for weekly challenges */}
-        <WeeklyProgressGrid 
-          startDate={challengeStartDate}
-          endDate={challengeEndDate}
-          completedWeeks={weeklyEntries}
-          t={t}
-        />
       </>
     );
   }
