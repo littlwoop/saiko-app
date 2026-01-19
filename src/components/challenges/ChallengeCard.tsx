@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Award, Calendar, Trophy } from "lucide-react";
 import { useChallenges } from "@/contexts/ChallengeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { getNumberOfWeeks } from "@/lib/week-utils";
 import { Link, useNavigate } from "react-router-dom";
 import { calculateTotalPoints } from "@/lib/points";
 import { Badge } from "@/components/ui/badge";
@@ -126,6 +127,30 @@ export default function ChallengeCard({
             
             setProgress((totalDaysCompleted / totalDays) * 100);
             setDisplayValue({ current: totalDaysCompleted, total: totalDays });
+          } else if (challenge.challengeType === "weekly") {
+            // For weekly challenges, calculate progress based on total completions vs (weeks * targetValue)
+            if (!challenge.endDate) {
+              setProgress(0);
+              setDisplayValue({ current: 0, total: 0 });
+            } else {
+              const startDate = new Date(challenge.startDate);
+              const endDate = new Date(challenge.endDate);
+              const totalWeeks = getNumberOfWeeks(startDate, endDate);
+              
+              // Calculate total completions across all objectives
+              const totalCompletions = progressData.reduce((sum, progressItem) => {
+                return sum + progressItem.currentValue;
+              }, 0);
+              
+              // Calculate total needed: sum of (weeks * targetValue) for each objective
+              const totalNeeded = (challenge.objectives || []).reduce((sum, objective) => {
+                const targetValue = objective.targetValue || 1;
+                return sum + (totalWeeks * targetValue);
+              }, 0);
+              
+              setProgress(totalNeeded > 0 ? (totalCompletions / totalNeeded) * 100 : 0);
+              setDisplayValue({ current: totalCompletions, total: totalNeeded });
+            }
           } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
             // For collection/checklist challenges, progress is number of completed objectives
             const completedObjectives = progressData.filter(p => p.currentValue >= 1).length;

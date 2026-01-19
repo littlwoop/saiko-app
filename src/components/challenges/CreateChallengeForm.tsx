@@ -56,7 +56,7 @@ export default function CreateChallengeForm() {
   const [noEndDate, setNoEndDate] = useState(false);
   const [isRepeating, setIsRepeating] = useState(false);
   const [durationDays, setDurationDays] = useState<number>(30); // Duration in days for repeating challenges
-  const [isCollaborative, setIsCollaborative] = useState(true);
+  const [isCollaborative, setIsCollaborative] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [objectives, setObjectives] = useState([
@@ -429,6 +429,17 @@ export default function CreateChallengeForm() {
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 type="button"
+                variant={!isCollaborative ? "default" : "outline"}
+                className={`flex-1 text-xs sm:text-sm px-2 sm:px-4 py-2 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isRepeating}
+                onClick={() => {
+                  setIsCollaborative(false);
+                }}
+              >
+                <span className="truncate">{t("individualChallenge") || "Individual Challenge"}</span>
+              </Button>
+              <Button
+                type="button"
                 variant={isCollaborative ? "default" : "outline"}
                 className={`flex-1 text-xs sm:text-sm px-2 sm:px-4 py-2 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 disabled={isRepeating}
@@ -438,17 +449,6 @@ export default function CreateChallengeForm() {
                 }}
               >
                 <span className="truncate">{t("collaborativeChallenge") || "Collaborative Challenge"}</span>
-              </Button>
-              <Button
-                type="button"
-                variant={!isCollaborative ? "default" : "outline"}
-                className={`flex-1 text-xs sm:text-sm px-2 sm:px-4 py-2 ${isRepeating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={isRepeating}
-                onClick={() => {
-                  setIsCollaborative(false);
-                }}
-              >
-                <span className="truncate">{t("individualChallenge") || "Individual Challenge"}</span>
               </Button>
             </div>
           </div>

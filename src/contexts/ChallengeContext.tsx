@@ -1199,11 +1199,10 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
             weekProgressMap[entry.objective_id][weekId] += entry.value || 0;
           });
 
-          // Count only weeks where target is met
+          // For weekly challenges, count total completions (not completed weeks)
           // Initialize progress for all objectives, even if they have no entries
           challenge.objectives.forEach((objective) => {
             const key = `${challengeId}-${objective.id}`;
-            const targetValue = objective.targetValue || 1;
             const weeksForObjective = weekProgressMap[objective.id] || {};
 
             // Initialize progress entry if it doesn't exist
@@ -1216,15 +1215,13 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
               };
             }
 
-            // Count only weeks where target is met
-            let completedWeeks = 0;
+            // Count total completions across all weeks for this objective
+            let totalCompletions = 0;
             Object.values(weeksForObjective).forEach((weekTotal) => {
-              if (weekTotal >= targetValue) {
-                completedWeeks++;
-              }
+              totalCompletions += weekTotal;
             });
 
-            progressMap[key].currentValue = completedWeeks;
+            progressMap[key].currentValue = totalCompletions;
           });
 
           const progress = Object.values(progressMap);

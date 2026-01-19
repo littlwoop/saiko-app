@@ -112,14 +112,13 @@ export const WeeklyProgressGrid = ({ startDate, endDate, completedWeeks, t }: We
   const start = new Date(startDate);
   const end = new Date(endDate);
   
+  // Normalize challenge dates to start/end of day
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+  
   // Get week start for the challenge start date
   const challengeWeekStart = getWeekStart(start);
   const challengeWeekEnd = getWeekEnd(end);
-  
-  // Calculate total weeks
-  const diffTime = challengeWeekEnd.getTime() - challengeWeekStart.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  const totalWeeks = Math.floor(diffDays / 7) + 1;
   
   // Get current week identifier
   const today = new Date();
@@ -133,14 +132,25 @@ export const WeeklyProgressGrid = ({ startDate, endDate, completedWeeks, t }: We
     return `${startStr} - ${endStr}`;
   };
   
+  // Helper function to check if a week overlaps with the challenge date range
+  const weekOverlapsChallenge = (weekStart: Date): boolean => {
+    const weekEnd = getWeekEnd(weekStart);
+    // Week overlaps if it starts before challenge ends AND ends after challenge starts
+    return weekStart <= end && weekEnd >= start;
+  };
+  
   const weeks = [];
   const current = new Date(challengeWeekStart);
-  for (let i = 0; i < totalWeeks; i++) {
-    const weekId = getWeekIdentifier(current);
-    const isCompleted = completedWeeks.has(weekId);
-    const isCurrentWeek = weekId === currentWeekId;
-    const weekRange = formatWeekRange(current);
-    weeks.push({ weekId, isCompleted, isCurrentWeek, weekRange, weekStart: new Date(current) });
+  // Stop when we've gone past the challenge end date
+  while (current <= challengeWeekEnd) {
+    // Only include weeks that overlap with the challenge date range
+    if (weekOverlapsChallenge(current)) {
+      const weekId = getWeekIdentifier(current);
+      const isCompleted = completedWeeks.has(weekId);
+      const isCurrentWeek = weekId === currentWeekId;
+      const weekRange = formatWeekRange(current);
+      weeks.push({ weekId, isCompleted, isCurrentWeek, weekRange, weekStart: new Date(current) });
+    }
     
     // Move to next week (add 7 days)
     current.setDate(current.getDate() + 7);
@@ -215,6 +225,7 @@ export default function ObjectiveItem({
   const [hasEntryThisWeek, setHasEntryThisWeek] = useState(false);
   const [weeklyEntries, setWeeklyEntries] = useState<Set<string>>(new Set());
   const [currentWeekProgress, setCurrentWeekProgress] = useState(0);
+  const [showInlineInput, setShowInlineInput] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout>();
   const { updateProgress } = useChallenges();
   const { user } = useAuth();
@@ -227,6 +238,8 @@ export default function ObjectiveItem({
   
   // Determine which user's data to fetch - prioritize selectedUserId, then progress userId, then logged-in user
   const userIdToQuery = selectedUserId || progress?.userId || user?.id;
+  // Check if this is a collaborative challenge (indicated by "collective" userId)
+  const isCollaborative = userIdToQuery === "collective";
   
   // Check if challenge is currently active
   const isChallengeActive = () => {
@@ -284,10 +297,20 @@ export default function ObjectiveItem({
     if (challengeType === "completion" && userIdToQuery) {
       hasEntryForToday().then(setHasEntryToday);
       getDailyEntries().then((entries) => setDailyEntries(entries));
-    } else if (challengeType === "weekly" && userIdToQuery) {
-      hasEntryForThisWeek().then(setHasEntryThisWeek);
+    } else if (challengeType === "weekly" && (userIdToQuery || isCollaborative)) {
+      // For weekly challenges, always fetch current progress first
+      const targetValue = objective.targetValue || 1;
+      getCurrentWeekProgress().then((progress) => {
+        setCurrentWeekProgress(progress);
+        // For targetValue === 1, set hasEntryThisWeek based on whether there's any entry
+        // For targetValue > 1, set hasEntryThisWeek only when target is reached
+        if (targetValue === 1) {
+          hasEntryForThisWeek().then(setHasEntryThisWeek);
+        } else {
+          setHasEntryThisWeek(progress >= targetValue);
+        }
+      });
       getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
-      getCurrentWeekProgress().then(setCurrentWeekProgress);
     }
   }, [challengeType, userIdToQuery, challengeId, objective.id, challengeStartDate, challengeEndDate]);
 
@@ -318,13 +341,59 @@ export default function ObjectiveItem({
       return;
     }
 
-    const numericValue = parseFloat(value);
-    if (isNaN(numericValue)) return;
-
-    await updateProgress(challengeId, objective.id, numericValue, notes);
-    setIsOpen(false);
-    setValue("0");
-    setNotes("");
+    // For weekly challenges, require notes (string input)
+    if (challengeType === "weekly") {
+      if (!notes || notes.trim() === "") {
+        toast({
+          title: t("error"),
+          description: "Please enter a description for this completion.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // For weekly challenges, always add 1 completion
+      await updateProgress(challengeId, objective.id, 1, notes.trim());
+      
+      // Refresh weekly progress
+      const targetValue = objective.targetValue || 1;
+      let newProgress = 0;
+      if (targetValue === 1) {
+        setHasEntryThisWeek(true);
+        const today = new Date();
+        const weekId = getWeekIdentifier(today);
+        setWeeklyEntries(prev => new Set([...prev, weekId]));
+        getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
+        newProgress = 1;
+      } else {
+        newProgress = await getCurrentWeekProgress();
+        setCurrentWeekProgress(newProgress);
+        if (newProgress >= targetValue) {
+          setHasEntryThisWeek(true);
+          const today = new Date();
+          const weekId = getWeekIdentifier(today);
+          setWeeklyEntries(prev => new Set([...prev, weekId]));
+          getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
+        }
+      }
+      
+      // Clear input
+      setNotes("");
+      
+      // For targetValue > 1, keep the inline input open if target not reached yet
+      // For targetValue === 1, hide the inline input after completion
+      if (targetValue === 1 || newProgress >= targetValue) {
+        setShowInlineInput(false);
+      }
+      // Otherwise, keep it open for next completion
+    } else {
+      const numericValue = parseFloat(value);
+      if (isNaN(numericValue)) return;
+      await updateProgress(challengeId, objective.id, numericValue, notes);
+      setIsOpen(false);
+      setValue("0");
+      setNotes("");
+    }
+    
     if (onProgressUpdate) {
       onProgressUpdate();
     }
@@ -339,7 +408,7 @@ export default function ObjectiveItem({
   };
 
   const hasEntryForToday = async () => {
-    if (!userIdToQuery) return false;
+    if (!userIdToQuery && !isCollaborative) return false;
 
     const today = getLocalDateString(); // Get today's date in YYYY-MM-DD format (local timezone)
 
@@ -347,14 +416,21 @@ export default function ObjectiveItem({
       const startUTC = localDateToUTCStart(today);
       const endUTC = localDateToUTCEnd(today);
       
-      const { data: entries, error } = await supabase
+      let query = supabase
         .from('entries')
         .select('created_at')
-        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', startUTC)
         .lte('created_at', endUTC);
+      
+      // For collaborative challenges, don't filter by user_id (get all participants' entries)
+      // For non-collaborative, filter by specific user
+      if (!isCollaborative && userIdToQuery) {
+        query = query.eq('user_id', userIdToQuery);
+      }
+      
+      const { data: entries, error } = await query;
 
       if (error) {
         console.error('Error checking today\'s entries:', error);
@@ -388,13 +464,18 @@ export default function ObjectiveItem({
       const startDateTime = localDateToUTCStart(startDateString);
       
       // If no end date, query all entries from start date onwards
-      const query = supabase
+      let query = supabase
         .from('entries')
         .select('created_at')
-        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', startDateTime);
+      
+      // For collaborative challenges, don't filter by user_id (get all participants' entries)
+      // For non-collaborative, filter by specific user
+      if (!isCollaborative && userIdToQuery) {
+        query = query.eq('user_id', userIdToQuery);
+      }
       
       if (endDate) {
         const endDateString = getLocalDateString(endDate);
@@ -426,7 +507,7 @@ export default function ObjectiveItem({
   };
 
   const getWeeklyEntries = async (): Promise<Set<string>> => {
-    if (!userIdToQuery || !challengeStartDate) return new Set<string>();
+    if ((!userIdToQuery && !isCollaborative) || !challengeStartDate) return new Set<string>();
 
     try {
       const startDate = new Date(challengeStartDate);
@@ -440,10 +521,15 @@ export default function ObjectiveItem({
       let query = supabase
         .from('entries')
         .select('created_at, value')
-        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', startDateTime);
+      
+      // For collaborative challenges, don't filter by user_id (get all participants' entries)
+      // For non-collaborative, filter by specific user
+      if (!isCollaborative && userIdToQuery) {
+        query = query.eq('user_id', userIdToQuery);
+      }
       
       if (endDate) {
         const endDateTime = new Date(endDate.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString();
@@ -486,7 +572,7 @@ export default function ObjectiveItem({
   };
 
   const hasEntryForThisWeek = async (): Promise<boolean> => {
-    if (!userIdToQuery) return false;
+    if (!userIdToQuery && !isCollaborative) return false;
 
     const today = new Date();
     const targetValue = objective.targetValue || 1;
@@ -495,14 +581,21 @@ export default function ObjectiveItem({
       const weekStart = getWeekStart(today);
       const weekEnd = getWeekEnd(today);
       
-      const { data: entries, error } = await supabase
+      let query = supabase
         .from('entries')
         .select('value')
-        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', weekStart.toISOString())
         .lte('created_at', weekEnd.toISOString());
+      
+      // For collaborative challenges, don't filter by user_id (get all participants' entries)
+      // For non-collaborative, filter by specific user
+      if (!isCollaborative && userIdToQuery) {
+        query = query.eq('user_id', userIdToQuery);
+      }
+      
+      const { data: entries, error } = await query;
 
       if (error) {
         console.error('Error checking this week\'s entries:', error);
@@ -519,21 +612,28 @@ export default function ObjectiveItem({
   };
 
   const getCurrentWeekProgress = async (): Promise<number> => {
-    if (!userIdToQuery) return 0;
+    if (!userIdToQuery && !isCollaborative) return 0;
 
     const today = new Date();
     try {
       const weekStart = getWeekStart(today);
       const weekEnd = getWeekEnd(today);
       
-      const { data: entries, error } = await supabase
+      let query = supabase
         .from('entries')
         .select('value')
-        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', weekStart.toISOString())
         .lte('created_at', weekEnd.toISOString());
+      
+      // For collaborative challenges, don't filter by user_id (get all participants' entries)
+      // For non-collaborative, filter by specific user
+      if (!isCollaborative && userIdToQuery) {
+        query = query.eq('user_id', userIdToQuery);
+      }
+      
+      const { data: entries, error } = await query;
 
       if (error) {
         console.error('Error getting this week\'s progress:', error);
@@ -549,7 +649,7 @@ export default function ObjectiveItem({
   };
 
   const getWeekProgress = async (weekId: string): Promise<number> => {
-    if (!userIdToQuery) return 0;
+    if (!userIdToQuery && !isCollaborative) return 0;
 
     try {
       // Parse week identifier to get week start date
@@ -558,14 +658,21 @@ export default function ObjectiveItem({
       const weekStart = new Date(year, month - 1, day, 0, 0, 0, 0);
       const weekEnd = getWeekEnd(weekStart);
       
-      const { data: entries, error } = await supabase
+      let query = supabase
         .from('entries')
         .select('value')
-        .eq('user_id', userIdToQuery)
         .eq('challenge_id', challengeId)
         .eq('objective_id', objective.id)
         .gte('created_at', weekStart.toISOString())
         .lte('created_at', weekEnd.toISOString());
+      
+      // For collaborative challenges, don't filter by user_id (get all participants' entries)
+      // For non-collaborative, filter by specific user
+      if (!isCollaborative && userIdToQuery) {
+        query = query.eq('user_id', userIdToQuery);
+      }
+      
+      const { data: entries, error } = await query;
 
       if (error) {
         console.error('Error getting week progress:', error);
@@ -732,6 +839,16 @@ export default function ObjectiveItem({
     }
 
     if (challengeType === "weekly") {
+      // For weekly challenges, require notes (string input)
+      if (!notes || notes.trim() === "") {
+        toast({
+          title: t("error"),
+          description: "Please enter a description for this completion.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // For weekly challenges, add completion for the selected week
       const weekId = getWeekIdentifier(selectedDate);
       const targetValue = objective.targetValue || 1;
@@ -739,8 +856,8 @@ export default function ObjectiveItem({
       // Get current progress for this week before adding
       const progressBefore = await getWeekProgress(weekId);
       
-      // Add the entry
-      await updateProgress(challengeId, objective.id, 1);
+      // Add the entry with notes
+      await updateProgress(challengeId, objective.id, 1, notes.trim());
       
       // Get progress after adding to check if week is now complete
       const progressAfter = await getWeekProgress(weekId);
@@ -769,6 +886,9 @@ export default function ObjectiveItem({
           }
         }
       }
+      
+      // Clear notes after adding
+      setNotes("");
     } else {
       // For completion challenges, add completion for the selected date
       const year = selectedDate.getFullYear();
@@ -802,9 +922,11 @@ export default function ObjectiveItem({
     if (challengeType === "completion" && (!user || readOnly || hasEntryToday)) return;
     // For weekly challenges with targetValue === 1, check if week is completed
     // For weekly challenges with targetValue > 1, allow clicking until target is reached
-    if (challengeType === "weekly" && (!user || readOnly)) {
+    if (challengeType === "weekly") {
+      if (!user || readOnly) return;
       const targetValue = objective.targetValue || 1;
       if (targetValue === 1 && hasEntryThisWeek) return;
+      // For targetValue > 1, only block if progress >= targetValue
       if (targetValue > 1 && currentWeekProgress >= targetValue) return;
     }
     if (challengeType !== "checklist" && challengeType !== "collection" && challengeType !== "completion" && challengeType !== "weekly" && (!user || readOnly)) return;
@@ -835,36 +957,9 @@ export default function ObjectiveItem({
       // Also refresh from database to ensure consistency
       getDailyEntries().then((entries) => setDailyEntries(entries));
     } else if (challengeType === "weekly") {
-      // For weekly challenges, add 1 unit of progress
-      const targetValue = objective.targetValue || 1;
-      
-      if (targetValue === 1) {
-        // If target is 1, mark week as complete (old behavior)
-        await updateProgress(challengeId, objective.id, 1);
-        setHasEntryThisWeek(true);
-        
-        // Update weekly entries with current week identifier
-        const today = new Date();
-        const weekId = getWeekIdentifier(today);
-        setWeeklyEntries(prev => new Set([...prev, weekId]));
-        getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
-      } else {
-        // If target > 1, add 1 incrementally
-        await updateProgress(challengeId, objective.id, 1);
-        
-        // Refresh current week progress
-        const newProgress = await getCurrentWeekProgress();
-        setCurrentWeekProgress(newProgress);
-        
-        // If we've reached the target, mark week as complete
-        if (newProgress >= targetValue) {
-          setHasEntryThisWeek(true);
-          const today = new Date();
-          const weekId = getWeekIdentifier(today);
-          setWeeklyEntries(prev => new Set([...prev, weekId]));
-          getWeeklyEntries().then((entries) => setWeeklyEntries(entries));
-        }
-      }
+      // For weekly challenges, show inline input field
+      setShowInlineInput(true);
+      return; // Don't add progress here, let the inline form handle it
     } else if (challengeType === "checklist" || challengeType === "collection") {
       // For checklist challenges, toggle completion (0 or 1)
       const newValue = currentValue >= 1 ? 0 : 1;
@@ -1322,7 +1417,14 @@ export default function ObjectiveItem({
     
     const targetValue = objective.targetValue || 1;
     const showProgress = targetValue > 1;
-    const weekCompleted = hasEntryThisWeek || (showProgress && currentWeekProgress >= targetValue);
+    // For targetValue > 1, only mark as completed when progress reaches target
+    // For targetValue === 1, mark as completed when hasEntryThisWeek is true
+    // IMPORTANT: For targetValue > 1, completely ignore hasEntryThisWeek
+    const weekCompleted = showProgress 
+      ? currentWeekProgress >= targetValue 
+      : hasEntryThisWeek;
+    // Allow clicking if not completed
+    // For targetValue > 1, allow clicking even when inline input is shown (to add multiple completions)
     const canClick = !readOnly && !weekCompleted;
 
     return (
@@ -1352,7 +1454,7 @@ export default function ObjectiveItem({
             {showProgress && (
               <div className="mt-2">
                 <div className="text-xs text-gray-600">
-                  {currentWeekProgress} / {targetValue} {objective.unit || ""}
+                  {currentWeekProgress} / {targetValue} {targetValue === 1 ? "completion" : "completions"}
                 </div>
                 <Progress 
                   value={Math.min(100, (currentWeekProgress / targetValue) * 100)} 
@@ -1376,70 +1478,137 @@ export default function ObjectiveItem({
             )}
           </CardHeader>
         </Card>
-        {!readOnly && (
-          <div className="mt-1.5 flex justify-center">
-            <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  {t("addPastCompletion")}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>{t("addPastCompletion")}</DialogTitle>
-                  <DialogDescription>
-                    {t("selectDateToAddCompletion")}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col gap-4 py-4">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    disabled={(date) => {
-                      // Disable dates outside challenge range
-                      if (challengeStartDate) {
-                        const startDate = new Date(challengeStartDate);
-                        startDate.setHours(0, 0, 0, 0);
-                        if (date < startDate) return true;
-                      }
-                      if (challengeEndDate) {
-                        const endDate = new Date(challengeEndDate);
-                        endDate.setHours(23, 59, 59, 999);
-                        if (date > endDate) return true;
-                      }
-                      // Disable future dates
-                      const today = new Date();
-                      today.setHours(23, 59, 59, 999);
-                      if (date > today) return true;
-                      // Disable weeks that already have entries
-                      const weekId = getWeekIdentifier(date);
-                      return weeklyEntries.has(weekId);
-                    }}
-                    className="rounded-md border"
+        {!readOnly && showInlineInput && !weekCompleted && (
+          <Card className="mt-2 border-gray-200">
+            <CardContent className="pt-4 pb-3 px-3">
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="weekly-completion-notes" className="text-sm">
+                    Description <span className="text-red-500">*</span>
+                    {showProgress && (
+                      <span className="text-xs text-gray-500 ml-2 font-normal">
+                        ({currentWeekProgress} / {targetValue} completions)
+                      </span>
+                    )}
+                  </Label>
+                  <Textarea
+                    id="weekly-completion-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Enter a description for this completion..."
+                    required
+                    className="min-h-[80px]"
+                    autoFocus
                   />
-                  {selectedDate && (
-                    <div className="text-sm text-muted-foreground">
-                      {t("selectedDate")}: {selectedDate.toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
-                    </div>
-                  )}
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => {
-                    setIsDatePickerOpen(false);
-                    setSelectedDate(undefined);
-                  }}>
+                <div className="flex gap-2 justify-end">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setShowInlineInput(false);
+                      setNotes("");
+                    }}
+                  >
                     {t("cancel")}
                   </Button>
                   <Button 
-                    onClick={handleAddPastCompletion}
-                    disabled={!selectedDate}
+                    type="submit" 
+                    size="sm"
+                    disabled={!notes || notes.trim() === ""}
                   >
-                    {t("addCompletion")}
+                    Add Completion
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+        {!readOnly && (
+          <div className="mt-1.5 flex justify-center">
+            <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    {t("addPastCompletion")}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>{t("addPastCompletion")}</DialogTitle>
+                    <DialogDescription>
+                      {t("selectDateToAddCompletion")}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-4 py-4">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={(date) => {
+                        // Disable dates outside challenge range
+                        if (challengeStartDate) {
+                          const startDate = new Date(challengeStartDate);
+                          startDate.setHours(0, 0, 0, 0);
+                          if (date < startDate) return true;
+                        }
+                        if (challengeEndDate) {
+                          const endDate = new Date(challengeEndDate);
+                          endDate.setHours(23, 59, 59, 999);
+                          if (date > endDate) return true;
+                        }
+                        // Disable future dates
+                        const today = new Date();
+                        today.setHours(23, 59, 59, 999);
+                        if (date > today) return true;
+                        // For weekly challenges with targetValue > 1, don't disable weeks
+                        // For weekly challenges with targetValue === 1, disable completed weeks
+                        const targetValue = objective.targetValue || 1;
+                        if (targetValue === 1) {
+                          const weekId = getWeekIdentifier(date);
+                          return weeklyEntries.has(weekId);
+                        }
+                        return false;
+                      }}
+                      className="rounded-md border"
+                    />
+                    {selectedDate && (
+                      <>
+                        <div className="text-sm text-muted-foreground">
+                          {t("selectedDate")}: {selectedDate.toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="past-completion-notes">
+                            Description <span className="text-red-500">*</span>
+                          </Label>
+                          <Textarea
+                            id="past-completion-notes"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="Enter a description for this completion..."
+                            required
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setIsDatePickerOpen(false);
+                      setSelectedDate(undefined);
+                      setNotes("");
+                    }}>
+                      {t("cancel")}
+                    </Button>
+                    <Button 
+                      onClick={handleAddPastCompletion}
+                      disabled={!selectedDate || !notes || notes.trim() === ""}
+                    >
+                      {t("addCompletion")}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
           </div>
         )}
         {/* Show weekly grid for weekly challenges */}
@@ -1513,41 +1682,57 @@ export default function ObjectiveItem({
                 <DialogContent className="sm:max-w-[425px]">
                   <form onSubmit={handleSubmit}>
                     <DialogHeader>
-                      <DialogTitle>{t("addProgress")}</DialogTitle>
+                      <DialogTitle>
+                        {challengeType === "weekly" ? "Add Completion" : t("addProgress")}
+                      </DialogTitle>
                       <DialogDescription>
-                        {t("enterProgressFor")} {objective.title}
+                        {challengeType === "weekly" 
+                          ? `Add a completion for ${objective.title}. Progress: ${currentWeekProgress} / ${objective.targetValue || 1} completions`
+                          : `${t("enterProgressFor")} ${objective.title}`
+                        }
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
+                      {challengeType !== "weekly" && (
+                        <div className="grid gap-2">
+                          <Label htmlFor="progress-value">
+                            {t("progress")}: {currentValue} /{" "}
+                            {objective.targetValue} {objective.unit}
+                          </Label>
+                          <Input
+                            id="progress-value"
+                            type="number"
+                            min="0"
+                            value={value}
+                            onChange={(e) => setValue(e.target.value)}
+                            placeholder={t("enterUnit").replace(
+                              "{unit}",
+                              objective.unit,
+                            )}
+                          />
+                        </div>
+                      )}
                       <div className="grid gap-2">
-                        <Label htmlFor="progress-value">
-                          {t("progress")}: {currentValue} /{" "}
-                          {objective.targetValue} {objective.unit}
+                        <Label htmlFor="notes">
+                          {challengeType === "weekly" ? "Description" : t("notes")}
+                          {challengeType === "weekly" && <span className="text-red-500">*</span>}
                         </Label>
-                        <Input
-                          id="progress-value"
-                          type="number"
-                          min="0"
-                          value={value}
-                          onChange={(e) => setValue(e.target.value)}
-                          placeholder={t("enterUnit").replace(
-                            "{unit}",
-                            objective.unit,
-                          )}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="notes">{t("notes")}</Label>
                         <Textarea
                           id="notes"
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
-                          placeholder={t("addNotesAboutProgress")}
+                          placeholder={challengeType === "weekly" 
+                            ? "Enter a description for this completion..." 
+                            : t("addNotesAboutProgress")
+                          }
+                          required={challengeType === "weekly"}
                         />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button type="submit">{t("saveProgress")}</Button>
+                      <Button type="submit" disabled={challengeType === "weekly" && (!notes || notes.trim() === "")}>
+                        {challengeType === "weekly" ? "Add Completion" : t("saveProgress")}
+                      </Button>
                     </DialogFooter>
                   </form>
                 </DialogContent>

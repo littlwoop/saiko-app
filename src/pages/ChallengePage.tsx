@@ -478,7 +478,7 @@ export default function ChallengePage() {
         setProgress((totalDaysCompleted / totalDays) * 100);
         setDisplayValue({ current: totalDaysCompleted, total: totalDays });
       } else if (challenge.challengeType === "weekly") {
-        // For weekly challenges, calculate progress based on weeks completed vs total weeks
+        // For weekly challenges, calculate progress based on total completions vs (weeks * targetValue)
         // For repeating challenges, use user's start date
         const effectiveStartDate = challenge.isRepeating && userStartDate
           ? new Date(userStartDate)
@@ -494,13 +494,19 @@ export default function ChallengePage() {
           ? Math.max(1, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1)
           : (endDate ? getNumberOfWeeks(startDate, endDate) : 52);
         
-        // Calculate total weeks completed across all objectives
-        const totalWeeksCompleted = progressToUse.reduce((sum, progressItem) => {
+        // Calculate total completions across all objectives
+        const totalCompletions = progressToUse.reduce((sum, progressItem) => {
           return sum + progressItem.currentValue;
         }, 0);
         
-        setProgress((totalWeeksCompleted / totalWeeks) * 100);
-        setDisplayValue({ current: totalWeeksCompleted, total: totalWeeks });
+        // Calculate total needed: sum of (weeks * targetValue) for each objective
+        const totalNeeded = challenge.objectives.reduce((sum, objective) => {
+          const targetValue = objective.targetValue || 1;
+          return sum + (totalWeeks * targetValue);
+        }, 0);
+        
+        setProgress(totalNeeded > 0 ? (totalCompletions / totalNeeded) * 100 : 0);
+        setDisplayValue({ current: totalCompletions, total: totalNeeded });
       } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
         // For collection/checklist challenges, progress is number of completed objectives
         const completedObjectives = progressToUse.filter(p => p.currentValue >= 1).length;

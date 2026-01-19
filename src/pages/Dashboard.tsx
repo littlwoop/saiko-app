@@ -310,9 +310,20 @@ export default function Dashboard() {
       const endDate = new Date(challenge.endDate);
       const totalWeeks = getNumberOfWeeks(startDate, endDate);
       
-      // For weekly challenges, totalScore represents weeks completed
-      const weeksCompleted = userChallenge.totalScore;
-      return Math.min((weeksCompleted / totalWeeks) * 100, 100);
+      // For weekly challenges, calculate progress based on total completions vs (weeks * targetValue)
+      // Get total completions from userProgress (currentValue now represents total completions)
+      const totalCompletions = userProgress.reduce((sum, progressItem) => {
+        return sum + progressItem.currentValue;
+      }, 0);
+      
+      // Calculate total needed: sum of (weeks * targetValue) for each objective
+      const totalNeeded = challenge.objectives.reduce((sum, objective) => {
+        const targetValue = objective.targetValue || 1;
+        return sum + (totalWeeks * targetValue);
+      }, 0);
+      
+      if (totalNeeded === 0) return 0;
+      return Math.min((totalCompletions / totalNeeded) * 100, 100);
     } else if (challenge.challengeType === "collection" || challenge.challengeType === "checklist") {
       // For collection/checklist challenges, progress is based on number of completed objectives
       const completedObjectives = challenge.objectives.filter(obj => {
