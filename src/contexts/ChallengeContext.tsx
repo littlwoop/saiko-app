@@ -1493,7 +1493,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
 
       // Extract unique dates from entries, converting UTC timestamps to local dates
       const activityDates = entriesData?.map(entry => {
-        return utcTimestampToLocalDateString(entry.createdAt);
+        return utcTimestampToLocalDateString(entry.created_at);
       }) || [];
 
       // Remove duplicates and return
