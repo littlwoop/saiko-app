@@ -878,8 +878,8 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           .upsert({
             user_id: user.id,
             challenge_id: challengeId,
-            startDate: today.toISOString(),
-            endDate: endDate.toISOString(),
+            start_date: today.toISOString(),
+            end_date: endDate.toISOString(),
           }, {
             onConflict: 'user_id,challenge_id'
           });
@@ -1391,7 +1391,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_challenge_starts")
-        .select("startDate, endDate")
+        .select("start_date, end_date")
         .eq("challenge_id", challengeId)
         .eq("user_id", userId)
         .maybeSingle();
@@ -1401,7 +1401,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      return data?.startDate || null;
+      return data?.start_date || null;
     } catch (error) {
       console.error("Exception fetching user challenge start date:", error);
       return null;
@@ -1416,7 +1416,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("user_challenge_starts")
-        .select("startDate, endDate")
+        .select("start_date, end_date")
         .eq("challenge_id", challengeId)
         .eq("user_id", userId)
         .maybeSingle();
@@ -1426,7 +1426,7 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      return data?.endDate || null;
+      return data?.end_date || null;
     } catch (error) {
       console.error("Exception fetching user challenge end date:", error);
       return null;
