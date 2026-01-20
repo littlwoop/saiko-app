@@ -1,20 +1,18 @@
+# Simplified Codemagic config - Build only, manual upload
+# Use this if you want to upload to TestFlight manually
+
 workflows:
-  ios-workflow:
-    name: iOS Workflow
+  ios-build-only:
+    name: iOS Build Only
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
-      groups:
-        - app_store_credentials # Optional: Create this group in Codemagic settings
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         PACKAGE_NAME: "com.saiko.app"
       node: 20
       xcode: latest
-    # Add integrations section if using App Store Connect API
-    # integrations:
-    #   app_store_connect: your_integration_name
     scripts:
       - name: Install dependencies
         script: |
@@ -29,10 +27,7 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install && cd ../..
-      - name: Set up code signing settings on Xcode project
-        script: |
-          xcode-project use-profiles
-      - name: Build ipa for distribution
+      - name: Build ipa
         script: |
           xcodebuild archive \
             -workspace "$XCODE_WORKSPACE" \
@@ -45,17 +40,3 @@ workflows:
             -exportPath "$CM_BUILD_DIR/build/ipa"
     artifacts:
       - build/ipa/*.ipa
-      - build/App.xcarchive
-    publishing:
-      email:
-        recipients:
-          - your-email@example.com
-        notify:
-          success: true
-          failure: false
-      # Uncomment and configure if you want automatic TestFlight upload
-      # app_store_connect:
-      #   auth: integration
-      #   submit_to_testflight: false
-      #   beta_groups:
-      #     - group name 1
