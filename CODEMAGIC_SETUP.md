@@ -56,7 +56,26 @@ In Codemagic → Your App → Environment variables, add:
 - `VITE_STRAVA_CLIENT_SECRET` - Your Strava client secret
 - `VITE_STRAVA_REDIRECT_URI` - `com.saiko.app://auth/strava/callback`
 
-### 3. For Automatic TestFlight Upload (Optional)
+### 3. Set Up Code Signing
+
+**Important:** You need to configure code signing for the build to succeed.
+
+#### Option A: Automatic Signing (Easiest)
+
+1. In Codemagic → Your App → Code signing
+2. Select "Automatic" signing
+3. Enter your Apple Developer account credentials
+4. Codemagic will handle certificates automatically
+
+#### Option B: Manual Certificates
+
+1. Generate certificates on a Mac (or use cloud Mac service once)
+2. Upload to Codemagic → Code signing → Certificates
+3. Select the certificate in your workflow
+
+**Note:** The `xcode-project use-profiles` command in the workflow will use your Codemagic code signing settings.
+
+### 4. For Automatic TestFlight Upload (Optional)
 
 #### Step 3a: Create App Store Connect API Key
 

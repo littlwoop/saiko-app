@@ -57,6 +57,24 @@ workflows:
           fi
           echo "Installing CocoaPods dependencies..."
           cd ios/App && pod install && cd ../..
+      - name: Create export options plist
+        script: |
+          cat > exportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>compileBitcode</key>
+              <false/>
+          </dict>
+          </plist>
+          EOF
       - name: Build ipa
         script: |
           xcodebuild archive \
