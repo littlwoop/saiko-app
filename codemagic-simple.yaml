@@ -23,11 +23,17 @@ workflows:
       - name: Setup Capacitor
         script: |
           npm install -g @capacitor/cli
-          # Add iOS platform if it doesn't exist
-          if [ ! -d "ios" ]; then
+          # Ensure iOS platform is added
+          if [ ! -d "ios" ] || [ ! -f "ios/App/Podfile" ]; then
+            echo "Adding iOS platform..."
             npx cap add ios
+            echo "iOS platform added successfully"
+          else
+            echo "iOS platform already exists"
           fi
-          npx cap sync ios
+          echo "Syncing Capacitor..."
+          npx cap sync ios --no-deps
+          echo "Capacitor sync completed"
       - name: Install CocoaPods dependencies
         script: |
           cd ios/App && pod install && cd ../..
