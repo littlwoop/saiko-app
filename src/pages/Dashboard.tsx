@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Trophy, Check, Minus, X, MessageCircle, Instagram } from "lucide-react";
+import { Trophy, Check, Minus, X, MessageCircle, Instagram, UserPlus, Copy, Link as LinkIcon } from "lucide-react";
 import { Challenge, UserChallenge, DailyChallenge, UserProgress } from "@/types";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -47,6 +47,8 @@ export default function Dashboard() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isFlyingOut, setIsFlyingOut] = useState(false);
   const [showWelcomeInfo, setShowWelcomeInfo] = useState(false);
+  const [showInviteNotification, setShowInviteNotification] = useState(false);
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
   const [completionStatus, setCompletionStatus] = useState<Map<number, boolean>>(new Map());
 
   // Check if this is first login and show welcome info
@@ -64,6 +66,24 @@ export default function Dashboard() {
         } else {
           // Still show it once even if they have challenges (maybe they joined before this feature)
           setShowWelcomeInfo(true);
+        }
+      });
+    }
+  }, [user, getUserChallenges]);
+
+  // Check if invite notification should be shown
+  useEffect(() => {
+    if (!user) return;
+    
+    const inviteDismissedKey = `inviteNotificationDismissed_${user.id}`;
+    const isDismissed = localStorage.getItem(inviteDismissedKey) === 'true';
+    
+    if (!isDismissed) {
+      // Show invite notification after user has been using the app for a bit
+      // Check if they have at least one challenge (so they understand the app)
+      getUserChallenges().then(challenges => {
+        if (challenges.length > 0) {
+          setShowInviteNotification(true);
         }
       });
     }
@@ -547,6 +567,57 @@ export default function Dashboard() {
     setShowWelcomeInfo(false);
   };
 
+  const handleDismissInviteNotification = () => {
+    if (!user) return;
+    const inviteDismissedKey = `inviteNotificationDismissed_${user.id}`;
+    localStorage.setItem(inviteDismissedKey, 'true');
+    setShowInviteNotification(false);
+  };
+
+  const getInviteLink = () => {
+    if (!user) return '';
+    const inviteCode = user.id;
+    return `${window.location.origin}/signup?ref=${inviteCode}`;
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (!user) return;
+    
+    const inviteLink = getInviteLink();
+    
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setInviteLinkCopied(true);
+      setTimeout(() => setInviteLinkCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+    }
+  };
+
+  const handleInviteFriends = async () => {
+    if (!user) return;
+    
+    const inviteLink = getInviteLink();
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: t("inviteFriendsTitle") || "Join me on Saiko!",
+          text: t("inviteFriendsMessage") || "Join me on Saiko and let's take on challenges together!",
+          url: inviteLink,
+        });
+      } catch (error) {
+        // User cancelled or error occurred
+        if ((error as Error).name !== "AbortError") {
+          console.error("Error sharing:", error);
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      handleCopyInviteLink();
+    }
+  };
+
   const handleCompleteChallenge = async () => {
     if (!todaysChallenge) return;
     
@@ -651,6 +722,60 @@ export default function Dashboard() {
               </a>
             </div>
           </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Invite Friends Notification */}
+      {showInviteNotification && (
+        <Alert className="mb-4 sm:mb-6 relative bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <button
+            onClick={handleDismissInviteNotification}
+            className="absolute right-2 top-2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">{t("close") || "Close"}</span>
+          </button>
+          <div className="flex items-start gap-3 pr-6">
+            <div className="flex-shrink-0">
+              <UserPlus className="h-5 w-5 text-blue-600 mt-0.5" />
+            </div>
+            <div className="flex-1">
+              <AlertTitle className="mb-1">{t("inviteFriendsNotificationTitle") || "Invite Your Friends!"}</AlertTitle>
+              <AlertDescription>
+                <p className="mb-3 text-sm">
+                  {t("inviteFriendsNotificationDescription") || "Share Saiko with your friends and challenge them to join you! The more friends, the more fun!"}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    onClick={handleInviteFriends}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    size="sm"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    {t("inviteFriends") || "Invite Friends"}
+                  </Button>
+                  <Button
+                    onClick={handleCopyInviteLink}
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    {inviteLinkCopied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2 text-green-600" />
+                        {t("inviteLinkCopied") || "Copied!"}
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="h-4 w-4 mr-2" />
+                        {t("copyLink") || "Copy Link"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </div>
+          </div>
         </Alert>
       )}
 

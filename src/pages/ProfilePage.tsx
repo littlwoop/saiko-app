@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StravaActivities from "@/components/profile/StravaActivities";
 import StravaConnectionCard from "@/components/profile/StravaConnectionCard";
 import PersonalBest from "@/components/profile/PersonalBest";
+import InviteFriends from "@/components/profile/InviteFriends";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -400,6 +401,13 @@ export default function ProfilePage() {
                       </form>
                     </CardContent>
                   </Card>
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-3">
+                <div className="md:col-span-1"></div>
+                <div className="md:col-span-2">
+                  <InviteFriends />
                 </div>
               </div>
             </TabsContent>
