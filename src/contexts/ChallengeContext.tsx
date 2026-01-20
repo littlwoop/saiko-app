@@ -1035,19 +1035,25 @@ export const ChallengeProvider = ({ children }: { children: ReactNode }) => {
           username: user.name || `User ${user.id}`,
         };
 
-        // If completionDate is provided, set createdAt to that date
+        // If completionDate is provided, set created_at to that date
         // Format: YYYY-MM-DD, convert to ISO timestamp at noon in local timezone (then to UTC)
         // Using noon ensures the date stays correct when converted back to local timezone
         if (completionDate) {
           // Parse the date string (YYYY-MM-DD) and create a date at noon in local timezone
           const localDate = getLocalDateFromString(completionDate);
           localDate.setHours(12, 0, 0, 0); // Set to noon local time to avoid timezone edge cases
-          entryData.createdAt = localDate.toISOString();
+          entryData.created_at = localDate.toISOString();
         }
         
         const { error: insertError } = await supabase.from("entries").insert(entryData);
 
         if (insertError) {
+          console.error("Error inserting entry:", insertError);
+          toast({
+            title: "Error",
+            description: insertError.message || "Failed to update progress. Please try again.",
+            variant: "destructive",
+          });
           return;
         }
 
