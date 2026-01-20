@@ -93,6 +93,7 @@ export default function ChallengePage() {
     getCreatorAvatar,
     getUserChallengeStartDate,
     getUserChallengeEndDate,
+    updateProgress,
   } = useChallenges();
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -1088,7 +1089,57 @@ export default function ChallengePage() {
                 </div>
               )}
 
-              {(challenge?.challenge_type === "bingo" || (challenge?.objectives?.length === 25)) ? (
+              {(challenge?.challengeType === "checklist" || challenge?.challengeType === "collection") ? (
+                <>
+                  {/* Simple grid of clickable items for checklist challenges */}
+                  <div className="flex flex-wrap gap-0.5 items-center">
+                    {challenge.objectives.map((objective) => {
+                      const objectiveProgress = selectedUserId
+                        ? participantProgress.find((p) => p.objectiveId === objective.id)
+                        : userProgress.find((p) => p.objectiveId === objective.id);
+                      const currentValue = objectiveProgress?.currentValue || 0;
+                      const isCompleted = currentValue >= 1;
+                      const isReadOnly = selectedUserId !== null && selectedUserId !== user?.id;
+                      const challengeActive = challenge.endDate ? new Date(challenge.endDate) >= new Date() : true;
+                      
+                      const handleClick = async () => {
+                        if (!user || isReadOnly || !challengeActive) return;
+                        
+                        try {
+                          // Toggle completion (0 or 1)
+                          const newValue = currentValue >= 1 ? 0 : 1;
+                          await updateProgress(challenge.id, objective.id, newValue);
+                          await refreshProgress();
+                        } catch (error) {
+                          console.error("Error updating progress:", error);
+                          toast({
+                            title: t("error"),
+                            description: t("errorUpdatingProgress"),
+                            variant: "destructive",
+                          });
+                        }
+                      };
+                      
+                      return (
+                        <div
+                          key={objective.id}
+                          onClick={handleClick}
+                          className={`min-w-9 h-9 px-2 flex items-center justify-center text-sm font-medium transition-colors rounded-sm ${
+                            isCompleted
+                              ? 'bg-green-500 text-white'
+                              : isReadOnly || !challengeActive
+                              ? 'bg-gray-200 text-gray-500'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                          }`}
+                          title={`${objective.title}${objective.description ? ` - ${objective.description}` : ''} - ${isCompleted ? t("completed") : t("notCompleted")}`}
+                        >
+                          {objective.title}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (challenge?.challenge_type === "bingo" || (challenge?.objectives?.length === 25)) ? (
                 <>
                   {/* Expanded card in its own row */}
                   {expandedObjectiveId && (() => {
