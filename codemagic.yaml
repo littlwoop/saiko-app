@@ -26,19 +26,37 @@ workflows:
         script: |
           npm install -g @capacitor/cli
           # Ensure iOS platform is added
-          if [ ! -d "ios" ] || [ ! -f "ios/App/Podfile" ]; then
+          if [ ! -d "ios" ]; then
             echo "Adding iOS platform..."
             npx cap add ios
-            echo "iOS platform added successfully"
-          else
-            echo "iOS platform already exists"
           fi
+          echo "Checking Podfile location..."
+          ls -la ios/App/ || echo "ios/App directory not found"
+          ls -la ios/ || echo "ios directory contents"
           echo "Syncing Capacitor..."
-          npx cap sync ios --no-deps
+          npx cap sync ios
           echo "Capacitor sync completed"
       - name: Install CocoaPods dependencies
         script: |
-          cd ios/App && pod install && cd ../..
+          echo "Current directory: $(pwd)"
+          echo "Looking for Podfile..."
+          find . -name "Podfile" -type f 2>/dev/null || echo "No Podfile found"
+          if [ -f "ios/App/Podfile" ]; then
+            echo "Found Podfile at ios/App/Podfile"
+            cd ios/App && pod install && cd ../..
+          elif [ -f "ios/Podfile" ]; then
+            echo "Found Podfile at ios/Podfile"
+            cd ios && pod install && cd ..
+          else
+            echo "ERROR: Podfile not found. Creating iOS platform structure..."
+            npx cap add ios --force
+            if [ -f "ios/App/Podfile" ]; then
+              cd ios/App && pod install && cd ../..
+            else
+              echo "ERROR: Still no Podfile after force add"
+              exit 1
+            fi
+          fi
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
