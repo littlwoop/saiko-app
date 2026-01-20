@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { createCapacitorStorage } from "./capacitor-storage";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -15,8 +16,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    // Explicitly use localStorage for better persistence
-    storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    // Use Capacitor storage adapter for native, localStorage for web
+    storage: createCapacitorStorage(),
     storageKey: "supabase.auth.token",
   },
   db: {

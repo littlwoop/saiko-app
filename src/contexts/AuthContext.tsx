@@ -10,6 +10,7 @@ import { User } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { withTimeout } from "@/lib/utils";
+import { getRedirectUrl } from "@/lib/mobile-utils";
 
 interface AuthContextType {
   user: User | null;
@@ -204,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             name,
           },
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: getRedirectUrl("/login"),
         },
       });
 

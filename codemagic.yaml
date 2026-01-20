@@ -1,0 +1,75 @@
+workflows:
+  ios-workflow:
+    name: iOS Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - app_store_credentials
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+        PACKAGE_NAME: "com.saiko.app"
+      node: 20
+      xcode: latest
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Build web app
+        script: |
+          npm run build
+        env:
+          VITE_SUPABASE_URL: $VITE_SUPABASE_URL
+          VITE_SUPABASE_ANON_KEY: $VITE_SUPABASE_ANON_KEY
+          VITE_STRAVA_CLIENT_ID: $VITE_STRAVA_CLIENT_ID
+          VITE_STRAVA_CLIENT_SECRET: $VITE_STRAVA_CLIENT_SECRET
+          VITE_STRAVA_REDIRECT_URI: $VITE_STRAVA_REDIRECT_URI
+      - name: Setup Capacitor
+        script: |
+          npm install -g @capacitor/cli
+          npx cap sync ios
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios/App && pod install && cd ../..
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Build ipa for distribution
+        script: |
+          xcodebuild build-for-testing \
+            -workspace "$XCODE_WORKSPACE" \
+            -scheme "$XCODE_SCHEME" \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+          xcodebuild archive \
+            -workspace "$XCODE_WORKSPACE" \
+            -scheme "$XCODE_SCHEME" \
+            -archivePath "$CM_BUILD_DIR/build/App.xcarchive" \
+            -allowProvisioningUpdates
+          xcodebuild -exportArchive \
+            -archivePath "$CM_BUILD_DIR/build/App.xcarchive" \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath "$CM_BUILD_DIR/build/ipa"
+    artifacts:
+      - build/ipa/*.ipa
+      - build/App.xcarchive
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: false
+      app_store_connect:
+        auth: integration
+        
+        # Optional: Uncomment to automatically submit to TestFlight
+        # submit_to_testflight: true
+        # beta_groups:
+        #   - group name 1
+        #   - group name 2

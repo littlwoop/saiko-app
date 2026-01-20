@@ -1,11 +1,24 @@
 import { StravaAthlete, StravaTokenResponse, StravaConnection, StravaActivity } from "@/types";
 import { supabase } from "@/lib/supabase";
+import { getRedirectUrl } from "./mobile-utils";
 
 // Pre-configured Strava app credentials (you'll need to set these)
+const getStravaRedirectUri = () => {
+  // Use environment variable if set, otherwise use mobile-aware redirect
+  const envRedirect = import.meta.env.VITE_STRAVA_REDIRECT_URI;
+  if (envRedirect) {
+    return envRedirect;
+  }
+  // For mobile, use custom URL scheme; for web, use current origin
+  return getRedirectUrl("/auth/strava/callback");
+};
+
 const STRAVA_CONFIG = {
   clientId: import.meta.env.VITE_STRAVA_CLIENT_ID || "YOUR_CLIENT_ID",
   clientSecret: import.meta.env.VITE_STRAVA_CLIENT_SECRET || "YOUR_CLIENT_SECRET", 
-  redirectUri: import.meta.env.VITE_STRAVA_REDIRECT_URI || "https://www.saikochallenges.com/auth/strava/callback"
+  get redirectUri() {
+    return getStravaRedirectUri();
+  }
 };
 
 interface StravaAppConfig {
