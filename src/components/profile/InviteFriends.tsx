@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Copy, Share2, Check } from "lucide-react";
+import { Copy, Share2, Check, MessageCircle } from "lucide-react";
 
 export default function InviteFriends() {
   const { user } = useAuth();
@@ -115,6 +115,17 @@ export default function InviteFriends() {
         <p className="text-sm text-muted-foreground">
           {t("inviteFriendsHelp") || "Send this link to your friends. When they sign up using your link, they'll be connected to you!"}
         </p>
+        <div className="pt-2 border-t">
+          <a
+            href="https://chat.whatsapp.com/L00uRWF2FhKF45358lit3i"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium w-full sm:w-auto justify-center"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {t("joinWhatsAppCommunity") || "Join WhatsApp Community"}
+          </a>
+        </div>
       </CardContent>
     </Card>
   );

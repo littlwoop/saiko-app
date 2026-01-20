@@ -256,6 +256,7 @@ export const translations = {
     inviteFriendsHelp: "Sende diesen Link an deine Freunde. Wenn sie sich mit deinem Link anmelden, werden sie mit dir verbunden!",
     inviteFriendsNotificationTitle: "Lade deine Freunde ein!",
     inviteFriendsNotificationDescription: "Teile Saiko mit deinen Freunden und fordere sie heraus, dir beizutreten! Je mehr Freunde, desto mehr Spaß!",
+    joinWhatsAppCommunity: "WhatsApp Community beitreten",
     close: "Schließen",
 
     // Leaderboard
@@ -829,6 +830,7 @@ export const translations = {
     inviteFriendsHelp: "Send this link to your friends. When they sign up using your link, they'll be connected to you!",
     inviteFriendsNotificationTitle: "Invite Your Friends!",
     inviteFriendsNotificationDescription: "Share Saiko with your friends and challenge them to join you! The more friends, the more fun!",
+    joinWhatsAppCommunity: "Join WhatsApp Community",
 
     // Leaderboard
     leaderboardDescription: "See the top performers across all challenges",

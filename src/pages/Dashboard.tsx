@@ -772,6 +772,15 @@ export default function Dashboard() {
                       </>
                     )}
                   </Button>
+                  <a
+                    href="https://chat.whatsapp.com/L00uRWF2FhKF45358lit3i"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    {t("joinWhatsAppCommunity") || "Join WhatsApp Community"}
+                  </a>
                 </div>
               </AlertDescription>
             </div>
