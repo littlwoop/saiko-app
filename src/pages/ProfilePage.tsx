@@ -345,21 +345,26 @@ export default function ProfilePage() {
                           </Button>
                         </div>
                       )}
-                      <div className="mb-4 space-y-2">
-                        <Label className="mb-2 block">{t("notifications") || "Notifications"}</Label>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <EnableNotificationsButton 
-                            vapidPublicKey={import.meta.env.VITE_VAPID_PUBLIC_KEY}
-                          />
-                          <TestNotificationButton />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {t("enableNotificationsDescription") || "Enable push notifications to receive reminders about incomplete challenges"}
-                        </p>
-                      </div>
-                      <div className="mb-4">
-                        <ScheduledNotificationsManager />
-                      </div>
+                      {/* Notifications section - hidden */}
+                      {false && (
+                        <>
+                          <div className="mb-4 space-y-2">
+                            <Label className="mb-2 block">{t("notifications") || "Notifications"}</Label>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <EnableNotificationsButton 
+                                vapidPublicKey={import.meta.env.VITE_VAPID_PUBLIC_KEY}
+                              />
+                              <TestNotificationButton />
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              {t("enableNotificationsDescription") || "Enable push notifications to receive reminders about incomplete challenges"}
+                            </p>
+                          </div>
+                          <div className="mb-4">
+                            <ScheduledNotificationsManager />
+                          </div>
+                        </>
+                      )}
                       <form className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">{t("fullName")}</Label>
