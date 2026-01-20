@@ -36,33 +36,6 @@
 
 ---
 
-## Alternative: GitHub Actions (Free for Public Repos)
-
-If your repo is public, GitHub Actions is free!
-
-### Quick Setup:
-1. **Push your code to GitHub**
-2. **Add secrets** (Settings → Secrets):
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_STRAVA_CLIENT_ID`
-   - `VITE_STRAVA_CLIENT_SECRET`
-   - `VITE_STRAVA_REDIRECT_URI`
-
-3. **Push a tag** to trigger build:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-
-4. **Download IPA** from Actions → Artifacts
-
-5. **Upload to App Store Connect**:
-   - Use [Transporter app](https://apps.apple.com/us/app/transporter/id1450874784) (Windows/Mac)
-   - Or use App Store Connect web interface
-
----
-
 ## What You Need
 
 ### Required:
@@ -108,11 +81,5 @@ If your repo is public, GitHub Actions is free!
 
 ### Need Help?
 - See [NO_MAC_SETUP.md](./NO_MAC_SETUP.md) for detailed options
+- See [CODEMAGIC_SETUP.md](./CODEMAGIC_SETUP.md) for detailed Codemagic setup
 - Codemagic docs: https://docs.codemagic.io
-- GitHub Actions: See `.github/workflows/ios-build-simple.yml`
-
----
-
-## Recommendation
-
-**Start with Codemagic** - it's the easiest and handles everything automatically. You can always switch to GitHub Actions later if needed.
