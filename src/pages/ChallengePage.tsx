@@ -23,6 +23,7 @@ import {
   LogOut,
   Info,
   Edit,
+  Share2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -220,6 +221,54 @@ export default function ChallengePage() {
     } finally {
       setJoiningChallenge(false);
       setShowJoinConfirmDialog(false);
+    }
+  };
+
+  const handleShareChallenge = async () => {
+    if (!challenge) return;
+    
+    const challengeUrl = `${window.location.origin}/challenges/${challenge.id}`;
+    const shareText = (t("shareChallengeMessage") || "Check out this challenge: {title}").replace("{title}", challenge.title);
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: challenge.title,
+          text: shareText,
+          url: challengeUrl,
+        });
+      } catch (error) {
+        // User cancelled or error occurred
+        if ((error as Error).name !== "AbortError") {
+          console.error("Error sharing:", error);
+          // Fallback to copy
+          try {
+            await navigator.clipboard.writeText(challengeUrl);
+            toast({
+              title: t("linkCopied") || "Link copied!",
+              description: t("challengeLinkCopied") || "Challenge link has been copied to your clipboard",
+            });
+          } catch (copyError) {
+            console.error("Failed to copy:", copyError);
+          }
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(challengeUrl);
+        toast({
+          title: t("linkCopied") || "Link copied!",
+          description: t("challengeLinkCopied") || "Challenge link has been copied to your clipboard",
+        });
+      } catch (error) {
+        console.error("Failed to copy:", error);
+        toast({
+          title: t("error") || "Error",
+          description: t("failedToCopyLink") || "Failed to copy link. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -798,6 +847,14 @@ export default function ChallengePage() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={handleShareChallenge}
+                    size="icon"
+                    title={t("shareChallenge") || "Share Challenge"}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
                   {isCreator && (
                     <Button
                       variant="ghost"
