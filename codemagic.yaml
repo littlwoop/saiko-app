@@ -25,38 +25,40 @@ workflows:
       - name: Setup Capacitor
         script: |
           npm install -g @capacitor/cli
-          # Ensure iOS platform is added
+          # Remove iOS platform if it exists but is incomplete
+          if [ -d "ios" ] && [ ! -f "ios/App/Podfile" ]; then
+            echo "Removing incomplete iOS platform..."
+            rm -rf ios
+          fi
+          # Add iOS platform if it doesn't exist
           if [ ! -d "ios" ]; then
             echo "Adding iOS platform..."
             npx cap add ios
+            echo "iOS platform added"
           fi
-          echo "Checking Podfile location..."
-          ls -la ios/App/ || echo "ios/App directory not found"
-          ls -la ios/ || echo "ios directory contents"
+          # Verify Podfile exists
+          if [ ! -f "ios/App/Podfile" ]; then
+            echo "ERROR: Podfile not found after adding iOS platform"
+            echo "iOS directory contents:"
+            ls -la ios/ || echo "ios directory doesn't exist"
+            if [ -d "ios/App" ]; then
+              echo "ios/App directory contents:"
+              ls -la ios/App/ || echo "ios/App is empty"
+            fi
+            exit 1
+          fi
+          echo "Podfile found at ios/App/Podfile"
           echo "Syncing Capacitor..."
           npx cap sync ios
           echo "Capacitor sync completed"
       - name: Install CocoaPods dependencies
         script: |
-          echo "Current directory: $(pwd)"
-          echo "Looking for Podfile..."
-          find . -name "Podfile" -type f 2>/dev/null || echo "No Podfile found"
-          if [ -f "ios/App/Podfile" ]; then
-            echo "Found Podfile at ios/App/Podfile"
-            cd ios/App && pod install && cd ../..
-          elif [ -f "ios/Podfile" ]; then
-            echo "Found Podfile at ios/Podfile"
-            cd ios && pod install && cd ..
-          else
-            echo "ERROR: Podfile not found. Creating iOS platform structure..."
-            npx cap add ios --force
-            if [ -f "ios/App/Podfile" ]; then
-              cd ios/App && pod install && cd ../..
-            else
-              echo "ERROR: Still no Podfile after force add"
-              exit 1
-            fi
+          if [ ! -f "ios/App/Podfile" ]; then
+            echo "ERROR: Podfile not found at ios/App/Podfile"
+            exit 1
           fi
+          echo "Installing CocoaPods dependencies..."
+          cd ios/App && pod install && cd ../..
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
