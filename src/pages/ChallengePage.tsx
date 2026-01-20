@@ -96,11 +96,18 @@ export default function ChallengePage() {
     getUserChallengeEndDate,
     updateProgress,
   } = useChallenges();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect to start page if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
   const [loading, setLoading] = useState(true);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);

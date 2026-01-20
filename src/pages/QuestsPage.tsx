@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { BookOpen, Play, CheckCircle2, Loader2, ArrowRight, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,8 +10,20 @@ import { useToast } from "@/components/ui/use-toast";
 import QuestObjectiveItem from "@/components/quests/QuestObjectiveItem";
 
 export default function QuestsPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Redirect to start page if not logged in
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading || !user) {
+    return null;
+  }
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [userProgress, setUserProgress] = useState<UserChapterProgress | null>(null);
   const [currentQuest, setCurrentQuest] = useState<number>(0);

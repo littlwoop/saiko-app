@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChallenges } from '@/contexts/ChallengeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import LeaderboardTable from '@/components/challenges/LeaderboardTable';
@@ -18,7 +19,19 @@ import { supabase } from '@/lib/supabase';
 export default function LeaderboardPage() {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to start page if not logged in
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading || !user) {
+    return null;
+  }
   const [selectedChallenge, setSelectedChallenge] = useState<string | undefined>(undefined);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChallenges } from '@/contexts/ChallengeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -13,7 +14,19 @@ import { supabase } from '@/lib/supabase';
 
 export default function ChallengesPage() {
   const { getChallenge, getUserChallenges } = useChallenges();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to start page if not logged in
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading || !user) {
+    return null;
+  }
   const { language } = useLanguage();
   const { t } = useTranslation(language);
   const [searchQuery, setSearchQuery] = useState('');

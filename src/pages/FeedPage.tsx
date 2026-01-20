@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/lib/translations";
+import { useAuth } from "@/contexts/AuthContext";
 import { activityFeedService, ActivityFeedEntry } from "@/lib/activity-feed";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Target, Users, Trophy, BookOpen, CheckCircle2, TrendingUp } from "lucide-react";
@@ -12,6 +14,19 @@ import { Button } from "@/components/ui/button";
 export default function FeedPage() {
   const { language } = useLanguage();
   const { t } = useTranslation(language);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to start page if not logged in
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading || !user) {
+    return null;
+  }
   const [feedEntries, setFeedEntries] = useState<ActivityFeedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
